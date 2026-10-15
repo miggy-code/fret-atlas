@@ -347,6 +347,7 @@ kbd { font-family: inherit; font-size: 12px; min-width: 18px; text-align: center
   .workspace { padding: 12px 8px; }
   .site-header { padding-inline: 12px; }
   .study-primary, .study-secondary { padding-inline: 12px; }
+  .minimal-studio .label-controls .segmented button { padding-inline: 8px; }
   .triad-controls .segmented button { padding-inline: 7px; }
   .musical-controls { gap: 9px; }
   .musical-controls .field { flex-direction: column; align-items: stretch; gap: 6px; }

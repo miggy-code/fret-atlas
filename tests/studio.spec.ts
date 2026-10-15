@@ -1,5 +1,34 @@
 import { test, expect } from '@playwright/test';
 
+const openLabels = async (page: import('@playwright/test').Page) => {
+  const module = page.locator('.control-module').filter({ hasText: 'Labels & overlays' });
+  if (!await module.evaluate(element => (element as HTMLDetailsElement).open)) {
+    await module.locator(':scope > summary').click();
+  }
+};
+
+const openDisplay = async (page: import('@playwright/test').Page) => {
+  await openLabels(page);
+  const display = page.locator('.display-settings');
+  if (!await display.evaluate(element => (element as HTMLDetailsElement).open)) {
+    await display.locator('summary').click();
+  }
+};
+
+const closeDisplay = async (page: import('@playwright/test').Page) => {
+  const display = page.locator('.display-settings');
+  if (await display.evaluate(element => (element as HTMLDetailsElement).open)) {
+    await display.locator('summary').click();
+  }
+};
+
+const openScaleTones = async (page: import('@playwright/test').Page) => {
+  const module = page.locator('.tones-module');
+  if (!await module.evaluate(element => (element as HTMLDetailsElement).open)) {
+    await module.locator('summary').click();
+  }
+};
+
 test('all patterns shows the entire neck, persists, and keeps the skeleton independent',async({page})=>{
   await page.goto('/');
   await page.getByLabel('Skeleton',{exact:true}).check();
@@ -84,26 +113,26 @@ test('one form renders cleanly; independent pattern and warp toggles persist wit
   expect(rectangles).toBe(2);
   expect(stacks).toBe(1);
   expect(dots).toBe(12);
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   await page.getByRole('button',{name:'Rectangles',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(0);
   await expect(page.locator('.shape-outline.stack')).toHaveCount(stacks);
   await page.getByRole('button',{name:'Stacks',exact:true}).click();
   await expect(page.locator('.shape-outline')).toHaveCount(0);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
-  await page.locator('.display-settings summary').click();
+  await closeDisplay(page);
   await page.getByLabel('Warp',{exact:true}).uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   await page.reload();
   await expect(page.getByLabel('Warp',{exact:true})).not.toBeChecked();
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   for (const name of ['Rectangles','Stacks']) await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-pressed','false');
   await page.getByRole('button',{name:'Rectangles',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(rectangles);
-  await page.locator('.display-settings summary').click();
+  await closeDisplay(page);
   await page.locator('[data-note-id="1:5"]').hover();
   await expect(page.locator('.shape-outline.is-emphasized')).toHaveCount(1);
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   for (let string=1;string<=6;string++) await page.getByRole('button',{name:`Show patterns on string ${string}`,exact:true}).click();
   await expect(page.locator('.shape-outline')).toHaveCount(0);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
@@ -111,7 +140,7 @@ test('one form renders cleanly; independent pattern and warp toggles persist wit
 
 test('dark mode is available in Display and persists on this device', async ({page}) => {
   await page.goto('/');
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   await page.getByLabel('Dark mode',{exact:true}).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
   await page.reload();
@@ -139,8 +168,8 @@ test('pattern lines share joins and render behind opaque note badges', async ({p
     const computed = getComputedStyle(node);
     return { width: computed.strokeWidth, dash: computed.strokeDasharray, opacity: computed.opacity };
   });
-  expect(style).toEqual({ width: '5.5px', dash: 'none', opacity: '1' });
-  await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '5.5px');
+  expect(style).toEqual({ width: '3.5px', dash: 'none', opacity: '1' });
+  await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '3.5px');
   expect(await page.locator('.shape-outline').evaluateAll(nodes => nodes.every(node => !/[QC]/.test(node.getAttribute('d')!)))).toBe(true);
   expect(await page.locator('.shape-outline').first().evaluate(node => {
     const note = node.ownerSVGElement!.querySelector('[data-note-id]')!;
@@ -153,6 +182,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   await page.locator('#scale').selectOption('minor');
+  await openLabels(page);
   await page.getByRole('button',{name:'Both',exact:true}).click();
   const note = page.locator('[data-note-id="1:5"]');
   await note.click();
@@ -167,7 +197,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','false');
   await page.getByRole('button',{name:'Clear focus',exact:true}).click();
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','true');
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   await page.getByLabel('Left-handed',{exact:true}).check();
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','left');
   await page.locator('#frets').selectOption('24');
@@ -182,7 +212,8 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await page.getByRole('button',{name:'Reset display & focus',exact:true}).click();
   await expect(page.locator('.marks-list button')).toHaveCount(2);
   await expect(page.locator('.row-toggles button[aria-pressed="true"]')).toHaveCount(6);
-  await page.locator('.display-settings summary').click();
+  await closeDisplay(page);
+  await openScaleTones(page);
   await page.getByRole('button',{name:'Customize notes',exact:true}).click();
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   await expect(page.locator('.tone-sequence button.selected')).toHaveCount(0);
@@ -217,7 +248,7 @@ test('small screens contain controls and scroll only the instrument', async ({pa
       await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     }
     for (const name of ['Whole map','Skeleton','Warp']) await expect(page.getByLabel(name,{exact:true})).toBeVisible();
-    await page.locator('.display-settings summary').click();
+    await openDisplay(page);
     expect(await page.locator('.settings-panel').evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
   }
 });
@@ -236,7 +267,7 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
     return {id:node.getAttribute('data-shape-id'),x:box.x,y:box.y,width:box.width,height:box.height};
   }));
   const width=await page.locator('.fretboard').evaluate(n=>(n as SVGSVGElement).viewBox.baseVal.width);
-  await page.locator('.display-settings summary').click();
+  await openDisplay(page);
   await page.getByLabel('Left-handed',{exact:true}).check();
   for (const shape of positions) {
     const mirrored=await page.locator(`[data-shape-id="${shape.id}"]`).evaluate(node=>{
@@ -247,7 +278,7 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
   }
   const boundary=await page.locator('.warp-guide line').evaluate(node=>({x1:Number(node.getAttribute('x1')),x2:Number(node.getAttribute('x2'))}));
   expect(boundary.x1).toBeGreaterThan(boundary.x2);
-  await page.locator('.display-settings summary').click();
+  await closeDisplay(page);
   await page.getByLabel('Warp',{exact:true}).uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   expect(await page.locator('.shape-outline').count()).toBe(positions.length);
@@ -255,6 +286,7 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
 
 test('triad highlighting is independent, optional, persistent, and available with custom notes', async ({page})=>{
   await page.goto('/');
+  await openLabels(page);
   const triad=page.getByRole('group',{name:'Triad highlight',exact:true});
   await expect(triad.getByRole('button',{name:'Off',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#scale option[value$="-triad"]')).toHaveCount(0);
@@ -271,8 +303,10 @@ test('triad highlighting is independent, optional, persistent, and available wit
   await expect(added).toHaveAttribute('aria-pressed','true');
   await page.locator('#triad-root').selectOption('0');
   await page.reload();
+  await openLabels(page);
   await expect(page.locator('#triad-root')).toHaveValue('0');
   await expect(page.locator('.triad-legend')).toHaveText('C major triad');
+  await openScaleTones(page);
   await page.getByRole('button',{name:'Customize notes',exact:true}).click();
   const custom=await page.locator('.tone-chip[aria-pressed="true"]').count();
   await triad.getByRole('button',{name:'Minor',exact:true}).click();
