@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.gstack/
+test-results/
+playwright-report/
+
+# Local agent metadata and credentials
+.agents/
+.env
+.env.*
+!.env.example
+.DS_Store
