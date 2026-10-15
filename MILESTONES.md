@@ -10,7 +10,7 @@ is the destination, not the claim for this first milestone.
 3. Full scale catalog, instruments, tunings, and orthogonal controls.
 4. In-position, diagonal, two-string, one-string, and 3NPS modes.
 5. Cross-mode integration, browser, accessibility, and visual polish.
-6. Final unification and removal of the preserved legacy implementation.
+6. Final unification and removal of the legacy implementation. Completed 2026-10-15.
 
 ## First checkpoint acceptance
 

@@ -64,4 +64,4 @@ Changing forms centers the active range within the horizontally scrolling fretbo
 
 ## Runtime
 
-React and TypeScript with Vite. `src/core/music.ts` owns note and scale theory; `src/core/shapes.ts` enumerates blocks; `src/core/study.ts` composes forms, shapes, diagonals and root connections; `src/core/geometry.ts` provides shared SVG coordinates; `src/core/state.ts` validates, migrates, and updates saved views; `src/core/presentation.ts` determines note visibility and identity. `src/components/` and `src/studio.css` render the studio. Earlier JavaScript implementations remain as legacy reference. Hosting remains local.
+React and TypeScript with Vite. `src/core/music.ts` owns note and scale theory; `src/core/shapes.ts` enumerates blocks; `src/core/study.ts` composes forms, shapes, diagonals and root connections; `src/core/geometry.ts` provides shared SVG coordinates; `src/core/state.ts` validates, migrates, and updates saved views; `src/core/presentation.ts` determines note visibility and identity. `src/components/` and `src/studio.css` render the studio. Hosting remains local.
