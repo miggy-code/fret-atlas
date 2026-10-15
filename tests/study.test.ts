@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultState, reducer, restoreState, visibleShapes } from '../src/core/state';
-import { activeStudy, ghostStudies, rootConnections, studyChoices } from '../src/core/study';
+import { activeStudy, deriveStudy, ghostStudies, rootConnections, studyChoices } from '../src/core/study';
 import { mod, position, SCALES } from '../src/core/music';
 import { notePresentation } from '../src/core/presentation';
 import { boardGeometry, sharedShapePath } from '../src/core/geometry';
@@ -62,6 +62,21 @@ test('form navigation follows fret order, wraps and survives saved views',()=>{
   assert.equal(activeStudy(s)!.id,start);
   s=reducer(s,{type:'study-step',direction:-1});
   assert.equal(activeStudy(s)!.form,5);
+});
+
+test('derived study data matches the public selectors across study modes',()=>{
+  for(const s of [
+    defaultState(),
+    {...defaultState(),ghostForms:true},
+    {...defaultState(),studyMode:'shape' as const},
+    {...defaultState(),studyMode:'string' as const},
+    {...defaultState(),studyMode:'nps' as const,scaleId:'major'},
+  ]) {
+    const derived=deriveStudy(s);
+    assert.deepEqual(derived.choices,studyChoices(s));
+    assert.deepEqual(derived.study,activeStudy(s));
+    assert.deepEqual(derived.ghosts,ghostStudies(s));
+  }
 });
 
 test('single shapes and diagonals match the reference topology, including edge fragments',()=>{

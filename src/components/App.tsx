@@ -1,11 +1,11 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { describeNote, degreeLabel, LOWEST_STRING_CHOICES, pitchName, position, scaleById, SHARPS, spellTone } from '../core/music';
 import { loadState, reducer, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
 import type { Labels, Triad } from '../core/state';
 import { Fretboard } from './Fretboard';
 import { SCALES } from '../core/music';
-import { activeStudy, studyChoices, tuningOf } from '../core/study';
+import { deriveStudy, tuningOf } from '../core/study';
 import type { StudyMode } from '../core/study';
 import type { ShapeKind } from '../core/shapes';
 
@@ -45,9 +45,8 @@ export function App() {
   const shareTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
-  const shapes = visibleShapes(state);
-  const study = activeStudy(state);
-  const choices = studyChoices(state);
+  const { choices, study, ghosts } = useMemo(() => deriveStudy(state), [state]);
+  const shapes = useMemo(() => visibleShapes(state, study), [state, study]);
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const inspection = inspected ? describeNote(position(...(inspected.split(':').map(Number) as [number, number]), tuning), state.root, scale, state.spelling) : undefined;
@@ -111,7 +110,7 @@ export function App() {
       </section>}
 
         {scale.family && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
-        <Fretboard state={state} shapes={shapes} onMark={id => dispatch({ type: 'mark', id })} onInspect={setInspected} />
+        <Fretboard state={state} shapes={shapes} study={study} ghosts={ghosts} onMark={id => dispatch({ type: 'mark', id })} onInspect={setInspected} />
         <div className="board-legend"><div className="legend-items"><span><i className="legend-note root" />Root</span><span><i className="legend-note skeleton" />{scale.family ? 'Pentatonic' : 'Selected tone'}</span>{state.chordColors && <><span><i className="legend-note third" />Third</span><span><i className="legend-note fifth" />Fifth</span></>}{scale.tones.some(t => !t.skeleton) && !state.hideAdded && <span><i className="legend-note added" />Added tone</span>}{(['rectangle','stack'] as const).filter(kind => shapes.some(shape => shape.kind === kind)).map(kind => <span key={kind}><i className={`legend-outline ${kind}`} />{shapeName(kind)}</span>)}{state.ghostForms && state.studyMode === 'position' && <span><i className="legend-outline ghost" />Adjacent forms</span>}{state.triad !== 'off' && <span className="triad-legend"><i className="legend-triad" />{pitchName(state.triadRoot ?? state.root, state.spelling)} {state.triad} triad</span>}{state.marks.length > 0 && <span><i className="legend-note marked" />Marked</span>}</div><span className={`warp-caption ${state.warp && !state.fourths ? 'is-shift' : ''}`}>{state.warp && !state.fourths ? 'G–B shift · +1 fret toward the bridge' : 'Equal fret spacing'}</span></div>
 
       <details className="control-module"><summary>Labels & overlays<span>Note labels, triads, colors and display</span></summary>        <div className="study-secondary">
@@ -126,7 +125,6 @@ export function App() {
             <label className="field"><span>Frets</span><select id="frets" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>{[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}</select></label>
             <label className="field"><span>Lowest string</span><select id="lowest" value={state.lowest} onChange={e => dispatch({ type: 'lowest', value: Number(e.target.value) })}>{LOWEST_STRING_CHOICES.map(c => <option key={c.lowered} value={c.lowered}>{c.label}</option>)}</select></label>
             <Toggle label="All fourths" checked={state.fourths} onChange={() => dispatch({ type: 'toggle', key: 'fourths' })} hint="Tune the B and e strings up a semitone so every string is a fourth apart" />
-            <Toggle label="Degree colors" checked={state.degreeColors} onChange={() => dispatch({ type: 'toggle', key: 'degreeColors' })} hint="Give each scale degree its own color; the root keeps its color" />
             <label className="field"><span>Key spelling</span><select id="spelling" value={state.spelling} onChange={e => dispatch({ type: 'spelling', value: e.target.value as 'sharps' | 'flats' })}><option value="sharps">Sharps ♯</option><option value="flats">Flats ♭</option></select></label>
             <Toggle label="Dark mode" checked={darkMode} onChange={() => setDarkMode(value => !value)} />
             <Toggle label="String names" checked={state.stringNames} onChange={() => dispatch({ type: 'toggle', key: 'stringNames' })} />

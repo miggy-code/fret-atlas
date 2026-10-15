@@ -7,14 +7,13 @@ import { insideShape } from '../core/shapes';
 import type { Shape } from '../core/shapes';
 import type { State } from '../core/state';
 import { inFocus, shapeInFocus } from '../core/state';
-import { activeStudy, ghostStudies, rootConnections, tuningOf } from '../core/study';
+import { rootConnections, tuningOf } from '../core/study';
+import type { Study } from '../core/study';
 
-interface Props { state: State; shapes: Shape[]; onMark: (id: string) => void; onInspect: (id: string) => void }
+interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; onMark: (id: string) => void; onInspect: (id: string) => void }
 
-export function Fretboard({ state, shapes, onMark, onInspect }: Props) {
+export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: Props) {
   const geo = useMemo(() => boardGeometry(state.frets, state.leftHanded), [state.frets, state.leftHanded]);
-  const study = useMemo(()=>activeStudy(state),[state]);
-  const ghosts = useMemo(()=>ghostStudies(state),[state]);
   const ghostShapes = useMemo(() => {
     if (!state.ghostForms || state.studyMode !== 'position') return [];
     return ghosts.flatMap(g => g.shapes).filter(shape => state.patterns.includes(shape.kind) && shapeInFocus(state, shape) && shape.rows.every(r => state.overlayRows.includes(r.string)));

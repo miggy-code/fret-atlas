@@ -2,6 +2,7 @@ import { mod, position, scaleById, tuningFor } from './music';
 import type { Tuning } from './music';
 import { findShapes } from './shapes';
 import type { Shape, ShapeRow } from './shapes';
+import { selectedPitches } from './selection';
 import type { State } from './state';
 
 export type StudyMode = 'position' | 'shape' | 'diagonal' | 'all' | 'string' | 'nps';
@@ -18,21 +19,20 @@ const FORMS = [
 ] as const;
 
 export const tuningOf = (s: Pick<State, 'lowest' | 'fourths'>): Tuning => tuningFor(s.lowest, s.fourths);
-const selectedOf = (s: State) => s.scaleId === 'custom' ? s.customPitches : scaleById(s.scaleId).tones.map(t => mod(s.root + t.semitones));
 
 // Where the minor tonic sits on the lowest string: lowering the guitar moves it up the neck.
 const lowStringTonic = (s: State) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? 9 : 0) - 4 + s.lowest);
 
 // One string: the whole scale along a single string. Pick the string with the arrows.
 function stringChoices(s: State): Study[] {
-  if (!selectedOf(s).length) return [];
+  if (!selectedPitches(s).length) return [];
   return [1, 2, 3, 4, 5, 6].map(string => ({ id: `string:${string}`, form: string, anchor: 0, label: `String ${string}`, rows: [{ string, left: 0, right: s.frets }], shapes: [] }));
 }
 
 // Three notes per string: seven scale notes ascending through all six strings, three on each.
 // Each position starts on a different scale degree of the lowest string and repeats an octave higher.
 function npsChoices(s: State, tuning: Tuning): Study[] {
-  const degrees = [...new Set(selectedOf(s))].sort((a, b) => mod(a - s.root) - mod(b - s.root));
+  const degrees = [...new Set(selectedPitches(s))].sort((a, b) => mod(a - s.root) - mod(b - s.root));
   if (degrees.length !== 7) return [];
   const choices: Study[] = [];
   const low = tuning.midi[5];
@@ -104,20 +104,21 @@ export function studyChoices(s: State): Study[] {
   return choices.sort((a,b)=>a.anchor-b.anchor);
 }
 
-export function activeStudy(s: State): Study | undefined {
-  const choices = studyChoices(s);
+export function activeStudyFromChoices(s: State, choices: Study[]): Study | undefined {
   const sameForm = choices.filter(choice=>choice.form===s.form);
   const candidates = sameForm.length ? sameForm : choices;
   const preferred = s.studyFret ?? lowStringTonic(s);
   return [...candidates].sort((a,b)=>Math.abs(a.anchor-preferred)-Math.abs(b.anchor-preferred))[0];
 }
 
+export function activeStudy(s: State): Study | undefined {
+  return activeStudyFromChoices(s, studyChoices(s));
+}
+
 export const inStudy = (string: number, fret: number, study?: Study) => !study || study.rows.some(row=>row.string===string && fret>=row.left && fret<=row.right);
 
-export function ghostStudies(s: State): Study[] {
+export function ghostStudiesFromChoices(s: State, choices: Study[], current = activeStudyFromChoices(s, choices)): Study[] {
   if (s.studyMode !== 'position' || !s.ghostForms) return [];
-  const choices = studyChoices(s);
-  const current = activeStudy(s);
   if (!current || choices.length < 2) return [];
   const index = choices.findIndex(choice => choice.id === current.id);
   if (index === -1) return [];
@@ -125,6 +126,17 @@ export function ghostStudies(s: State): Study[] {
   if (index > 0) neighbors.push(choices[index - 1]);
   if (index < choices.length - 1) neighbors.push(choices[index + 1]);
   return neighbors;
+}
+
+export function ghostStudies(s: State): Study[] {
+  const choices = studyChoices(s);
+  return ghostStudiesFromChoices(s, choices);
+}
+
+export function deriveStudy(s: State) {
+  const choices = studyChoices(s);
+  const study = activeStudyFromChoices(s, choices);
+  return { choices, study, ghosts: ghostStudiesFromChoices(s, choices, study) };
 }
 
 // Join neighboring root locations along the neck: the octave/unison skeleton.

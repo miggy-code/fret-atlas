@@ -1,6 +1,7 @@
 import { mod, scaleById, SCALES } from './music';
 import type { Spelling } from './music';
 import type { Shape, ShapeKind } from './shapes';
+import { selectedPitches } from './selection';
 import { activeStudy, studyChoices } from './study';
 import type { StudyMode } from './study';
 
@@ -44,8 +45,8 @@ export interface State {
 export const STORAGE_KEY = 'fret-atlas-v4';
 export const inFocus = (s: State, string: number, fret: number) => s.strings.includes(string) && (!s.focus || (fret >= s.from && fret <= s.to));
 export const shapeInFocus = (s: State, shape: Shape) => shape.rows.every(r => inFocus(s, r.string, r.left) && inFocus(s, r.string, r.right));
-export const visibleShapes = (s: State) => (activeStudy(s)?.shapes ?? []).filter(shape => s.patterns.includes(shape.kind) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
-export const selectedPitches = (s: State) => s.scaleId === 'custom' ? s.customPitches : scaleById(s.scaleId).tones.map(t => mod(s.root + t.semitones));
+export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shapes ?? []).filter(shape => s.patterns.includes(shape.kind) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
+export { selectedPitches };
 export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
 export function defaultState(): State {
   return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 15, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
