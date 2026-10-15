@@ -2,6 +2,8 @@
 
 Fret Atlas is a focused guitar-fretboard workspace for learning how pentatonic positions, rectangles, stacks, and diagonal patterns connect. The neck is the center of the interface; controls are grouped into small modules so the study view stays readable.
 
+**Stack:** React 19, TypeScript, and Vite, with unit tests on `node:test` and browser tests in Playwright.
+
 ## Learn the shapes
 
 Choose a key and a scale, then select a study view:
@@ -46,6 +48,8 @@ npm test
 npm run build
 npm run test:browser
 ```
+
+`server.mjs` is a minimal zero-dependency static file server (`node server.mjs --port 4177`) for serving the files without Vite. The production build in `dist/` does not use it.
 
 ## Credit
 
