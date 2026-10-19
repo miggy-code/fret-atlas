@@ -67,3 +67,28 @@ test('display reset restores pattern controls while keeping the musical study an
   assert.deepEqual(reset.marks,s.marks);
   assert.equal(reset.root,s.root);
 });
+
+test('note views are exclusive and saved charm views restore without labels', () => {
+  const labeled = reducer(defaultState(), { type: 'note-view', value: 'both' });
+  const charms = reducer(labeled, { type: 'note-view', value: 'charms' });
+  assert.equal(charms.labels, 'none');
+  assert.equal(charms.luckyCharms, true);
+  assert.equal(restoreState({ ...charms, labels: 'notes' }).labels, 'none');
+  const dots = reducer(charms, { type: 'note-view', value: 'none' });
+  assert.equal(dots.luckyCharms, false);
+  assert.equal(dots.labels, 'none');
+});
+
+test('color choices resolve conflicting preferences and preserve the musical study', () => {
+  const original = { ...defaultState(), degreeColors: true, chordColors: true, marks: ['1:5'] };
+  assert.equal(restoreState(original).chordColors, false);
+  const chord = reducer(original, { type: 'note-colors', value: 'chord' });
+  assert.equal(chord.degreeColors, false);
+  assert.equal(chord.chordColors, true);
+  const root = reducer(chord, { type: 'note-colors', value: 'root' });
+  assert.equal(root.degreeColors, false);
+  assert.equal(root.chordColors, false);
+  assert.deepEqual(root.marks, original.marks);
+  assert.equal(root.scaleId, original.scaleId);
+  assert.equal(root.form, original.form);
+});

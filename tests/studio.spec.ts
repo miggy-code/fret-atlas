@@ -1,43 +1,34 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-const openLabels = async (page: import('@playwright/test').Page) => {
-  const module = page.locator('.control-module').filter({ hasText: 'Labels & overlays' });
+// Controls live in collapsible `details.control-module` sections; open one by its summary title.
+const openModule = async (page: Page, title: 'Overlays' | 'Practice tools' | 'Instrument & display') => {
+  const module = page.locator('details.control-module').filter({ has: page.locator(':scope > summary', { hasText: title }) });
   if (!await module.evaluate(element => (element as HTMLDetailsElement).open)) {
     await module.locator(':scope > summary').click();
   }
+  return module;
 };
+// Toggles with a hint include it in their accessible name, so match the label prefix.
+const toggle = (page: Page, name: string) => page.getByRole('checkbox', { name, exact: true });
+const openOverlays = (page: Page) => openModule(page, 'Overlays');
+const openPractice = (page: Page) => openModule(page, 'Practice tools');
+const openInstrument = (page: Page) => openModule(page, 'Instrument & display');
 
-const openDisplay = async (page: import('@playwright/test').Page) => {
-  await openLabels(page);
-  const display = page.locator('.display-settings');
-  if (!await display.evaluate(element => (element as HTMLDetailsElement).open)) {
-    await display.locator('summary').click();
-  }
-};
-
-const closeDisplay = async (page: import('@playwright/test').Page) => {
-  const display = page.locator('.display-settings');
-  if (await display.evaluate(element => (element as HTMLDetailsElement).open)) {
-    await display.locator('summary').click();
-  }
-};
-
-const openScaleTones = async (page: import('@playwright/test').Page) => {
-  const module = page.locator('.tones-module');
-  if (!await module.evaluate(element => (element as HTMLDetailsElement).open)) {
-    await module.locator('summary').click();
-  }
-};
-
-test('all patterns shows the entire neck, persists, and keeps the skeleton independent',async({page})=>{
+test('whole neck shows the entire neck, persists, and keeps the skeleton independent',async({page})=>{
   await page.goto('/');
-  await page.getByLabel('Skeleton',{exact:true}).check();
+  await openOverlays(page);
+  await toggle(page,'Skeleton').check();
   const connections=()=>page.locator('.root-skeleton line').evaluateAll(nodes=>nodes.map(n=>[n.getAttribute('data-from'),n.getAttribute('data-to')]));
   const skeleton=await connections();
-  await page.getByRole('button',{name:'All patterns',exact:true}).click();
-  await expect(page.locator('.form-status strong')).toHaveText('All patterns');
-  await expect(page.getByRole('button',{name:'Next form',exact:true})).toBeDisabled();
-  await expect(page.getByLabel('Whole map',{exact:true})).toBeChecked();
+  const wholeNeck=page.getByRole('button',{name:'Whole neck',exact:true});
+  await wholeNeck.click();
+  await expect(wholeNeck).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.map-tag')).toHaveText('Whole neck');
+  // Whole neck has a single study, so the form navigation (and its status/Next button) is no longer rendered.
+  await expect(page.locator('.form-navigation')).toHaveCount(0);
+  // Whole neck already shows every note at full strength, so the Whole map toggle is not offered.
+  await expect(toggle(page,'Whole map')).toHaveCount(0);
   expect(await page.locator('.shape-outline.rectangle').count()).toBeGreaterThan(2);
   expect(await page.locator('.shape-outline.stack').count()).toBeGreaterThan(1);
   await expect(page.locator('.note-node.is-background')).toHaveCount(0);
@@ -47,12 +38,14 @@ test('all patterns shows the entire neck, persists, and keeps the skeleton indep
   await expect(page.locator('.shared-rail.stack')).toHaveCount(1);
   expect(await connections()).toEqual(skeleton);
   await page.reload();
-  await expect(page.locator('.form-status strong')).toHaveText('All patterns');
-  await page.getByLabel('Skeleton',{exact:true}).uncheck();
+  await expect(page.getByRole('button',{name:'Whole neck',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.map-tag')).toHaveText('Whole neck');
+  await openOverlays(page);
+  await toggle(page,'Skeleton').uncheck();
   await expect(page.locator('.root-skeleton')).toHaveCount(0);
   await expect(page.locator('[data-note-id="1:3"]')).toHaveAttribute('data-visible','true');
-  await page.getByRole('button',{name:'In position',exact:true}).click();
-  await expect(page.getByLabel('Whole map',{exact:true})).not.toBeChecked();
+  await page.getByRole('button',{name:'Position',exact:true}).click();
+  await expect(toggle(page,'Whole map')).not.toBeChecked();
   await expect(page.locator('.shared-rails')).toHaveCount(0);
 });
 
@@ -65,43 +58,53 @@ test('forms, isolated shapes, diagonals and map layers behave independently',asy
   expect(await paths()).not.toEqual(first);
   await page.getByRole('button',{name:'Previous form',exact:true}).click();
   expect(await paths()).toEqual(first);
-  await page.getByLabel('Whole map',{exact:true}).check();
+  await openOverlays(page);
+  await toggle(page,'Whole map').check();
   expect(await page.locator('.note-node.is-background[data-visible="true"]').count()).toBeGreaterThan(12);
   await expect(page.locator('[data-note-id="1:5"]')).toHaveAttribute('data-active','true');
   expect(await paths()).toEqual(first);
-  await page.getByLabel('Skeleton',{exact:true}).check();
+  await toggle(page,'Skeleton').check();
   expect(await page.locator('.root-skeleton line').count()).toBeGreaterThan(0);
-  await page.getByLabel('Whole map',{exact:true}).uncheck();
+  await toggle(page,'Whole map').uncheck();
   await expect(page.locator('[data-note-id="3:2"]')).toHaveAttribute('data-visible','true');
   await expect(page.locator('[data-note-id="3:0"]')).toHaveAttribute('data-visible','false');
-  await page.getByLabel('Warp',{exact:true}).uncheck();
+  await toggle(page,'Warp').uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   expect(await paths()).toEqual(first);
-  await page.getByLabel('Skeleton',{exact:true}).uncheck();
+  await toggle(page,'Skeleton').uncheck();
   await page.getByRole('button',{name:'Shape',exact:true}).click();
+  // Changing view keeps the current form.
+  await expect(page.locator('.form-status strong')).toHaveText('Form 1');
   await expect(page.locator('.shape-outline')).toHaveCount(1);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(4);
   await page.getByRole('button',{name:'Stack',exact:true}).click();
   await expect(page.locator('.shape-outline.stack')).toHaveCount(1);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(6);
+  const stackId=await page.locator('.shape-outline.stack').getAttribute('data-shape-id');
   await page.getByRole('button',{name:'Diagonal',exact:true}).click();
-  await expect(page.locator('.form-status strong')).toHaveText('Diagonal 1');
-  await expect(page.locator('[data-shape-id="stack:6:-2"]')).toHaveCount(1);
+  // Shape -> Diagonal selects the diagonal containing the current shape.
+  await expect(page.locator(`.shape-outline[data-shape-id="${stackId}"]`)).toHaveCount(1);
+  const diagonal=Number((await page.locator('.form-status strong').textContent())!.match(/^Diagonal (\d+)$/)![1]);
   await page.getByRole('button',{name:'Next form',exact:true}).click();
-  await expect(page.locator('.form-status strong')).toHaveText('Diagonal 2');
-  await expect(page.locator('.shape-outline.stack')).toHaveCount(4);
+  const nextLabel=`Diagonal ${diagonal+1}`;
+  await expect(page.locator('.form-status strong')).toHaveText(nextLabel);
+  await expect(page.locator(`.shape-outline[data-shape-id="${stackId}"]`)).toHaveCount(0);
+  const stacks=await page.locator('.shape-outline.stack').count();
+  expect(stacks).toBeGreaterThan(1);
   await page.reload();
-  await expect(page.locator('.form-status strong')).toHaveText('Diagonal 2');
-  await expect(page.getByLabel('Warp',{exact:true})).not.toBeChecked();
+  await expect(page.locator('.form-status strong')).toHaveText(nextLabel);
+  await expect(page.locator('.shape-outline.stack')).toHaveCount(stacks);
+  await openOverlays(page);
+  await expect(toggle(page,'Warp')).not.toBeChecked();
   await page.getByRole('button',{name:'Rectangle',exact:true}).click();
   await expect(page.locator('.shape-outline.stack')).toHaveCount(0);
-  await expect(page.locator('.shape-outline.rectangle')).toHaveCount(4);
+  expect(await page.locator('.shape-outline.rectangle').count()).toBeGreaterThan(1);
   await page.context().grantPermissions(['clipboard-read','clipboard-write']);
   await page.getByRole('button',{name:'Share view',exact:true}).click();
   const url=await page.evaluate(()=>navigator.clipboard.readText());
   await page.evaluate(()=>localStorage.clear());
   await page.goto(url);
-  await expect(page.locator('.form-status strong')).toHaveText('Diagonal 2');
+  await expect(page.locator('.form-status strong')).toHaveText(nextLabel);
   await expect(page.getByRole('button',{name:'Rectangle',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 
@@ -113,34 +116,31 @@ test('one form renders cleanly; independent pattern and warp toggles persist wit
   expect(rectangles).toBe(2);
   expect(stacks).toBe(1);
   expect(dots).toBe(12);
-  await openDisplay(page);
+  await openOverlays(page);
   await page.getByRole('button',{name:'Rectangles',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(0);
   await expect(page.locator('.shape-outline.stack')).toHaveCount(stacks);
   await page.getByRole('button',{name:'Stacks',exact:true}).click();
   await expect(page.locator('.shape-outline')).toHaveCount(0);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
-  await closeDisplay(page);
-  await page.getByLabel('Warp',{exact:true}).uncheck();
+  await toggle(page,'Warp').uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   await page.reload();
-  await expect(page.getByLabel('Warp',{exact:true})).not.toBeChecked();
-  await openDisplay(page);
+  await openOverlays(page);
+  await expect(toggle(page,'Warp')).not.toBeChecked();
   for (const name of ['Rectangles','Stacks']) await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-pressed','false');
   await page.getByRole('button',{name:'Rectangles',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(rectangles);
-  await closeDisplay(page);
   await page.locator('[data-note-id="1:5"]').hover();
   await expect(page.locator('.shape-outline.is-emphasized')).toHaveCount(1);
-  await openDisplay(page);
   for (let string=1;string<=6;string++) await page.getByRole('button',{name:`Show patterns on string ${string}`,exact:true}).click();
   await expect(page.locator('.shape-outline')).toHaveCount(0);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
 });
 
-test('dark mode is available in Display and persists on this device', async ({page}) => {
+test('dark mode is available in Instrument & display and persists on this device', async ({page}) => {
   await page.goto('/');
-  await openDisplay(page);
+  await openInstrument(page);
   await page.getByLabel('Dark mode',{exact:true}).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
   await page.reload();
@@ -182,8 +182,8 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   await page.locator('#scale').selectOption('minor');
-  await openLabels(page);
-  await page.getByRole('button',{name:'Both',exact:true}).click();
+  await page.getByRole('group',{name:'Note view',exact:true}).getByRole('button',{name:'Both',exact:true}).click();
+  await expect(page.locator('.fretboard')).toHaveAttribute('data-labels','both');
   const note = page.locator('[data-note-id="1:5"]');
   await note.click();
   await expect(note).toHaveAttribute('aria-pressed','true');
@@ -192,28 +192,38 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('[data-note-id="1:6"]')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('.marks-list button')).toHaveCount(2);
-  await page.getByRole('button',{name:'Focus',exact:true}).click();
+  await openPractice(page);
+  await page.getByRole('button',{name:'Fret & string focus',exact:true}).click();
   await page.getByRole('button',{name:'Include string 1',exact:true}).click();
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','false');
   await page.getByRole('button',{name:'Clear focus',exact:true}).click();
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','true');
-  await openDisplay(page);
+  await page.getByRole('button',{name:'Include string 1',exact:true}).click();
+  await openInstrument(page);
   await page.getByLabel('Left-handed',{exact:true}).check();
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','left');
   await page.locator('#frets').selectOption('24');
+  await page.getByLabel('String names',{exact:true}).uncheck();
+  await expect(page.locator('.string-name')).toHaveCount(0);
   await page.getByLabel('String names',{exact:true}).check();
-  await page.getByLabel('Other notes',{exact:true}).check();
-  await page.getByLabel('Chord-tone colors',{exact:true}).check();
-  expect(await page.locator('.note-node.third').count()).toBeGreaterThan(0);
-  expect(await page.locator('.note-node.fifth').count()).toBeGreaterThan(0);
-  await expect(page.getByText('Third',{exact:true})).toBeVisible();
-  await expect(page.getByText('Fifth',{exact:true})).toBeVisible();
+  await expect(page.locator('.string-name')).toHaveCount(6);
+  await openOverlays(page);
+  await page.getByLabel('Notes outside the scale',{exact:true}).check();
+  expect(await page.locator('.note-node.context[data-visible="true"]').count()).toBeGreaterThan(0);
+  await page.getByRole('group',{name:'Note colors',exact:true}).getByRole('button',{name:/Chord tones/}).click();
+  expect(await page.locator('.fretboard .note-node.third').count()).toBeGreaterThan(0);
+  expect(await page.locator('.fretboard .note-node.fifth').count()).toBeGreaterThan(0);
+  // The separate Third/Fifth legend was replaced by chord-colored markers in the scale-tone strip.
+  await expect(page.locator('.tone-strip .degree-marker.third')).toHaveCount(1);
+  await expect(page.locator('.tone-strip .degree-marker.fifth')).toHaveCount(1);
   await page.locator('#spelling').selectOption('flats');
-  await page.getByRole('button',{name:'Reset display & focus',exact:true}).click();
+  await page.getByRole('button',{name:'Reset',exact:true}).click();
   await expect(page.locator('.marks-list button')).toHaveCount(2);
+  await expect(page.locator('#scale')).toHaveValue('minor');
+  await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','right');
+  await expect(page.locator('.fretboard')).toHaveAttribute('data-labels','none');
   await expect(page.locator('.row-toggles button[aria-pressed="true"]')).toHaveCount(6);
-  await closeDisplay(page);
-  await openScaleTones(page);
+  await expect(page.locator('#focus-panel [aria-label="Included strings"] button[aria-pressed="true"]')).toHaveCount(6);
   await page.getByRole('button',{name:'Customize notes',exact:true}).click();
   await page.getByRole('button',{name:'Clear',exact:true}).click();
   await expect(page.locator('.tone-sequence button.selected')).toHaveCount(0);
@@ -241,15 +251,21 @@ test('small screens contain controls and scroll only the instrument', async ({pa
     await page.setViewportSize({width,height:844});
     await page.goto('/');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    await expect(page.getByRole('button',{name:'Share view',exact:true})).toBeVisible();
+    for (const name of ['Share view','Guide','Reset']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     const region = page.locator('.board-scroll');
     expect(await region.evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
-    for (const name of ['In position','Shape','Diagonal','All patterns']) {
+    for (const name of ['Position','Shape','Diagonal','Whole neck']) {
       await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     }
-    for (const name of ['Whole map','Skeleton','Warp']) await expect(page.getByLabel(name,{exact:true})).toBeVisible();
-    await openDisplay(page);
-    expect(await page.locator('.settings-panel').evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
+    await expect(page.getByRole('group',{name:'Note view',exact:true})).toBeVisible();
+    await openOverlays(page);
+    for (const name of ['Whole map','Skeleton','Warp']) await expect(toggle(page,name)).toBeVisible();
+    await openPractice(page);
+    await openInstrument(page);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+    for (const module of await page.locator('details.control-module').all()) {
+      expect(await module.evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
+    }
   }
 });
 
@@ -260,14 +276,15 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
   expect(await page.locator('.shape-outline.rectangle').count()).toBeGreaterThan(1);
   await expect(page.locator('.shape-outline.stack')).toHaveCount(0);
   await expect(page.locator('.marks-list button')).toHaveCount(1);
-  await page.getByLabel('Whole map',{exact:true}).check();
+  await openOverlays(page);
+  await toggle(page,'Whole map').check();
   await expect(page.locator('[data-note-id="3:2"]')).toHaveAttribute('data-visible','true');
   const positions=await page.locator('.shape-outline').evaluateAll(nodes=>nodes.map(node=>{
     const box=(node as SVGPathElement).getBBox();
     return {id:node.getAttribute('data-shape-id'),x:box.x,y:box.y,width:box.width,height:box.height};
   }));
   const width=await page.locator('.fretboard').evaluate(n=>(n as SVGSVGElement).viewBox.baseVal.width);
-  await openDisplay(page);
+  await openInstrument(page);
   await page.getByLabel('Left-handed',{exact:true}).check();
   for (const shape of positions) {
     const mirrored=await page.locator(`[data-shape-id="${shape.id}"]`).evaluate(node=>{
@@ -278,15 +295,14 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
   }
   const boundary=await page.locator('.warp-guide line').evaluate(node=>({x1:Number(node.getAttribute('x1')),x2:Number(node.getAttribute('x2'))}));
   expect(boundary.x1).toBeGreaterThan(boundary.x2);
-  await closeDisplay(page);
-  await page.getByLabel('Warp',{exact:true}).uncheck();
+  await toggle(page,'Warp').uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   expect(await page.locator('.shape-outline').count()).toBe(positions.length);
 });
 
 test('triad highlighting is independent, optional, persistent, and available with custom notes', async ({page})=>{
   await page.goto('/');
-  await openLabels(page);
+  await openPractice(page);
   const triad=page.getByRole('group',{name:'Triad highlight',exact:true});
   await expect(triad.getByRole('button',{name:'Off',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#scale option[value$="-triad"]')).toHaveCount(0);
@@ -303,10 +319,9 @@ test('triad highlighting is independent, optional, persistent, and available wit
   await expect(added).toHaveAttribute('aria-pressed','true');
   await page.locator('#triad-root').selectOption('0');
   await page.reload();
-  await openLabels(page);
+  await openPractice(page);
   await expect(page.locator('#triad-root')).toHaveValue('0');
   await expect(page.locator('.triad-legend')).toHaveText('C major triad');
-  await openScaleTones(page);
   await page.getByRole('button',{name:'Customize notes',exact:true}).click();
   const custom=await page.locator('.tone-chip[aria-pressed="true"]').count();
   await triad.getByRole('button',{name:'Minor',exact:true}).click();
@@ -322,3 +337,88 @@ test('triad highlighting is independent, optional, persistent, and available wit
   await expect(page.locator('.triad-halo')).toHaveCount(0);
   await expect(page.locator('.marks-list button')).toHaveCount(1);
 });
+
+test('light-mode header actions keep readable contrast', async ({page}) => {
+  await page.addInitScript(()=>localStorage.setItem('fret-atlas-theme','light'));
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+  for (const name of ['Share view','Guide','Reset']) {
+    const button=page.locator('.header-actions').getByRole('button',{name,exact:true});
+    const ratio=await button.evaluate(node=>{
+      const parse=(color:string)=>{const [r,g,b,a=1]=color.match(/[\d.]+/g)!.map(Number);return {r,g,b,a};};
+      let element:Element|null=node, background=parse('rgba(255,255,255,1)');
+      while (element) {
+        const color=parse(getComputedStyle(element).backgroundColor);
+        if (color.a>=1) { background=color; break; }
+        element=element.parentElement;
+      }
+      const text=parse(getComputedStyle(node).color);
+      // Blend any translucent text over the opaque background.
+      const blend=(c:'r'|'g'|'b')=>text[c]*text.a+background[c]*(1-text.a);
+      const luminance=(rgb:number[])=>{
+        const [r,g,b]=rgb.map(n=>n/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4);
+        return r*.2126+g*.7152+b*.0722;
+      };
+      const a=luminance([blend('r'),blend('g'),blend('b')]), b=luminance([background.r,background.g,background.b]);
+      return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+    });
+    expect(ratio,`${name} contrast`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test('fit neck applies only to wide views and normal scrolling returns in Position', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  const svgWidth=()=>page.locator('.fretboard').evaluate(n=>n.getBoundingClientRect().width);
+  const regionWidth=()=>page.locator('.board-scroll').evaluate(n=>n.clientWidth);
+  await page.getByRole('button',{name:'Diagonal',exact:true}).click();
+  const fit=page.getByRole('button',{name:'Fit neck to screen',exact:true});
+  await expect(fit).toBeVisible();
+  await fit.click();
+  await expect(fit).toHaveAttribute('aria-pressed','true');
+  await expect.poll(async()=>await svgWidth()<=await regionWidth()).toBe(true);
+  await page.getByRole('button',{name:'Position',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Fit neck to screen',exact:true})).toHaveCount(0);
+  await expect.poll(async()=>await svgWidth()>await regionWidth()).toBe(true);
+  expect(await page.locator('.board-scroll').evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
+});
+
+test('Lucky Charms keep a root center and give each pentatonic degree its own shape', async ({page}) => {
+  await page.addInitScript(()=>localStorage.setItem('fret-atlas-v4',JSON.stringify({version:4,scaleId:'minor-pentatonic',studyMode:'all'})));
+  await page.goto('/');
+  await page.getByRole('group',{name:'Note view',exact:true}).getByRole('button',{name:/Lucky Charms/}).click();
+  const roots=page.locator('.note-node.root[data-active="true"]');
+  expect(await roots.count()).toBeGreaterThan(0);
+  for (const root of await roots.all()) await expect(root.locator('.root-center')).toHaveCount(1);
+  const shapes=await page.locator('.note-node[data-active="true"][data-charm-degree]').evaluateAll(nodes=>{
+    const byDegree:Record<string,string[]>={};
+    for (const node of nodes) {
+      const face=node.querySelector('.note-face')!;
+      const key=`${face.tagName}:${face.getAttribute('d') ?? ''}`;
+      (byDegree[node.getAttribute('data-charm-degree')!] ??= []).push(key);
+    }
+    return Object.fromEntries(Object.entries(byDegree).map(([degree,keys])=>[degree,[...new Set(keys)]]));
+  });
+  // Minor pentatonic: 1, b3, 4, 5, b7.
+  expect(Object.keys(shapes).sort()).toEqual(['1','3','4','5','7']);
+  for (const keys of Object.values(shapes)) expect(keys).toHaveLength(1);
+  expect(new Set(Object.values(shapes).map(keys=>keys[0])).size).toBe(5);
+});
+
+for (const scale of ['minor','major']) {
+  test(`One string and 3 notes/string never show the pattern notice in ${scale}`, async ({page}) => {
+    await page.goto('/');
+    await page.locator('#scale').selectOption(scale);
+    for (const name of ['One string','3 notes/string']) {
+      const button=page.getByRole('button',{name,exact:true});
+      await expect(button).toBeEnabled();
+      await button.click();
+      await expect(button).toHaveAttribute('aria-pressed','true');
+      await expect(page.locator('.board-notice')).toHaveCount(0);
+      for (let step=0;step<6;step++) {
+        await page.getByRole('button',{name:'Next form',exact:true}).click();
+        await expect(page.locator('.board-notice')).toHaveCount(0);
+      }
+    }
+  });
+}

@@ -8,7 +8,7 @@ import { boardGeometry, sharedShapePath } from '../src/core/geometry';
 
 test('all patterns shows the whole scale and retains both colors on shared rails',()=>{
   const s=reducer(defaultState(),{type:'study-mode',value:'all'});
-  assert.equal(activeStudy(s)!.label,'All patterns');
+  assert.equal(activeStudy(s)!.label,'Whole neck');
   assert.ok(visibleShapes(s).filter(shape=>shape.kind==='rectangle').length>2);
   assert.ok(visibleShapes(s).filter(shape=>shape.kind==='stack').length>1);
   for(let string=1;string<=6;string++) for(let fret=0;fret<=s.frets;fret++) {
