@@ -1,8 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { boardGeometry, HIT_SIZE, shapePath, sharedShapePath, ROW } from '../core/geometry';
 import { position, pitchName } from '../core/music';
-import { notePresentation } from '../core/presentation';
+import { Charm } from './Charm';
+import { degreeColor, notePresentation } from '../core/presentation';
 import { insideShape } from '../core/shapes';
 import type { Shape } from '../core/shapes';
 import type { State } from '../core/state';
@@ -10,9 +11,11 @@ import { inFocus, shapeInFocus } from '../core/state';
 import { rootConnections, tuningOf } from '../core/study';
 import type { Study } from '../core/study';
 
-interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; onMark: (id: string) => void; onInspect: (id: string) => void }
+interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; fitNeck?: boolean; children?: ReactNode; onMark: (id: string) => void; onInspect: (id: string) => void }
 
-export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: Props) {
+export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested = false, children, onMark, onInspect }: Props) {
+  // Fitting only applies to the wide views that offer the toggle.
+  const fitNeck = fitRequested && (state.studyMode === 'diagonal' || state.studyMode === 'all');
   const geo = useMemo(() => boardGeometry(state.frets, state.leftHanded), [state.frets, state.leftHanded]);
   const ghostShapes = useMemo(() => {
     if (!state.ghostForms || state.studyMode !== 'position') return [];
@@ -40,18 +43,12 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
     const el = scrollRef.current;
     if (!el) return;
     const updateEdges = () => setScrollEdges({ left: el.scrollLeft > 3, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 3 });
-    const center = () => {
-      const svg = el.querySelector('svg');
-      if (!svg) return;
-      if (state.leftHanded) el.scrollLeft = el.scrollWidth;
-      updateEdges();
-    };
-    const observer = new ResizeObserver(center);
+    const observer = new ResizeObserver(updateEdges);
     observer.observe(el);
     el.addEventListener('scroll', updateEdges, { passive: true });
-    center();
+    updateEdges();
     return () => { observer.disconnect(); el.removeEventListener('scroll', updateEdges); };
-  }, [geo, state.leftHanded]);
+  }, [geo]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -62,8 +59,8 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
     const first = Math.min(...study.rows.map(row=>row.left));
     const last = Math.min(state.frets,Math.max(...study.rows.map(row=>row.right)));
     const scale = svg.getBoundingClientRect().width / geo.width;
-    el.scrollLeft = Math.max(0, (geo.x(first)+geo.x(last))/2 * scale - el.clientWidth/2);
-  }, [study?.id, state.studyMode, state.shapeKind, state.frets, geo]);
+    el.scrollLeft = fitNeck ? 0 : Math.max(0, (geo.x(first)+geo.x(last))/2 * scale - el.clientWidth/2);
+  }, [study?.id, state.studyMode, state.shapeKind, state.frets, geo, fitNeck]);
 
   function navigate(event: KeyboardEvent<SVGGElement>, id: string) {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onMark(id); return; }
@@ -83,9 +80,11 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
     node?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
+  const fitLeft = fitNeck && study && state.studyMode === 'diagonal' ? Math.max(0, Math.min(...study.rows.map(row => geo.x(row.left))) - 24) : 0;
+  const fitRight = fitNeck && study && state.studyMode === 'diagonal' ? Math.min(geo.width, Math.max(...study.rows.map(row => geo.x(row.right))) + 24) : geo.width;
   return <div className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label="Fretboard. Tab to a note; arrow keys navigate, Enter marks. Scroll horizontally for more frets.">
-      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`0 0 ${geo.width} ${geo.height}`} style={{ minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
         <title>Guitar fretboard, high strings above, nut {state.leftHanded ? 'right' : 'left'}</title>
         <defs>
           <marker id={warpArrow} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--shift)" strokeWidth="1.5" /></marker>
@@ -106,8 +105,9 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
             {state.stringNames && <text className="string-name" x={geo.labelX} y={geo.y(i + 1) + 4} textAnchor="middle">{i === 0 ? pitchName(midi, state.spelling).toLowerCase() : pitchName(midi, state.spelling)}</text>}
           </g>)}
         </g>
-        {state.warp && !state.fourths && <g className="warp-guide" aria-hidden="true">
+        {state.warp && !state.fourths && <g className="warp-guide" role="img" aria-label="Warp: one-fret shift across the G–B boundary">
           <rect className="warp-band" x={Math.min(geo.nut,geo.end)} y={(geo.y(2)+geo.y(3))/2-8} width={Math.abs(geo.end-geo.nut)} height="16" />
+          <title>Warp marks the one-fret shift toward the bridge when crossing from G to B.</title>
           <line x1={geo.nut} x2={geo.end} y1={(geo.y(2) + geo.y(3)) / 2} y2={(geo.y(2) + geo.y(3)) / 2} />
           <path className="warp-arrow" d={`M${geo.x(1)},${geo.y(3)-8} L${geo.x(2)},${geo.y(2)+8}`} markerStart={`url(#${warpArrow})`} markerEnd={`url(#${warpArrow})`} />
         </g>}
@@ -128,14 +128,17 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
         {tuning.midi.flatMap((_, i) => frets.map(fret => {
           const note = position(i + 1, fret, tuning);
           const p = notePresentation(note, state, shapes, study, ghosts);
-          const degreeHue = state.degreeColors && p.selected && p.kind !== 'root' && p.tone ? p.tone.semitones * 30 : undefined;
-          const chordTone = degreeHue === undefined && state.chordColors && p.selected && (p.tone?.degree === 3 || p.tone?.degree === 5) ? p.tone.degree === 3 ? 'third' : 'fifth' : '';
+          const charmDegree = state.luckyCharms && p.selected ? p.tone?.degree : undefined;
+          const degreeHue = !state.luckyCharms && state.degreeColors && p.selected && p.kind !== 'root' && p.tone ? degreeColor(p.tone.degree) : undefined;
+          const toneColor = p.tone ? degreeColor(p.tone.degree) : undefined;
+          const chordTone = !state.luckyCharms && degreeHue === undefined && state.chordColors && p.selected && (p.tone?.degree === 3 || p.tone?.degree === 5) ? p.tone.degree === 3 ? 'third' : 'fifth' : '';
           const label = state.labels === 'intervals' ? p.interval : p.name;
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={p.aria} aria-pressed={p.marked}
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={p.visible ? 'true' : 'false'}
-            className={`note-node ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${p.visible ? '' : 'is-hidden'} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
-            transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', ...(degreeHue === undefined ? {} : { '--degree-hue': degreeHue }) } as CSSProperties}
+            data-charm-degree={charmDegree}
+            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${p.visible ? '' : 'is-hidden'} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && p.visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
             <title>{p.aria}</title>
@@ -145,12 +148,13 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
             <g className="note-symbol">
               {p.kind === 'context' && !p.marked && !p.triad
                 ? <circle className="note-face" r="3" />
-                : state.labels === 'none' && !p.triad ? <circle className="note-face" r={shapes.length ? p.kind === 'root' ? 6 : 4 : p.kind === 'root' ? 11 : 10} />
+                : charmDegree ? <Charm degree={charmDegree} />
+                : state.labels === 'none' && !p.triad ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
-              {p.triad && <path className="triad-halo" d="M-8,12 H8" />}
+              {p.triad && <circle className="triad-halo" r="18" />}
               {state.labels !== 'none' && (p.selected || p.marked || p.triad) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
               {state.labels === 'both' && (p.selected || p.marked || p.triad) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
-              {state.labels === 'none' && p.kind === 'root' && <circle r="2.7" className="root-center" />}
+              {state.labels === 'none' && (charmDegree === undefined || charmDegree === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>
           </g>;
         }))}
@@ -193,6 +197,7 @@ export function Fretboard({ state, shapes, study, ghosts, onMark, onInspect }: P
         })()}
       </svg>
     </div>
+    {children}
     {(scrollEdges.left || scrollEdges.right) && <div className="scroll-cue" aria-hidden="true">{scrollEdges.left ? '← ' : ''}Scroll fretboard{scrollEdges.right ? ' →' : ''}</div>}
   </div>;
 }

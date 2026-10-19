@@ -28,3 +28,6 @@ export function notePresentation(note: Note, s: State, shapes: Shape[] = [], stu
   const role = kind === 'context' ? 'outside scale' : kind === 'root' ? 'root' : kind === 'added' ? 'added scale tone' : 'core scale tone';
   return { ...description, kind, selected, triad, marked, member, focused, visible, active, background, ghost, degreeDimmed, isolated: isIsolated, aria: `${description.name}${description.octave}, string ${note.string}, ${note.fret === 0 ? 'open' : `fret ${note.fret}`}, degree ${description.interval}, ${role}${member ? `, inside ${[...new Set(membership.map(shape => shape.kind))].join(' and ')}` : ''}${triad ? `, ${pitchName(s.triadRoot ?? s.root, s.spelling)} ${s.triad} triad` : ''}${isIsolated ? ', isolated degree' : ''}${!focused ? ', outside focus' : ''}${marked ? ', marked' : ''}` };
 }
+
+// Degree identity stays consistent between major and minor scales.
+export const degreeColor = (degree: number) => ['#d47b22', '#e3b341', '#a365b5', '#67a7a1', '#58a86c', '#bf7a47', '#8b86c8'][degree - 1] ?? '#e8edf2';

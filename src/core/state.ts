@@ -6,6 +6,8 @@ import { activeStudy, studyChoices } from './study';
 import type { StudyMode } from './study';
 
 export type Labels = 'none' | 'notes' | 'intervals' | 'both';
+export type NoteView = Labels | 'charms';
+export type NoteColors = 'root' | 'degrees' | 'chord';
 export type Triad = 'off' | 'major' | 'minor';
 export interface State {
   version: 4;
@@ -25,6 +27,7 @@ export interface State {
   labels: Labels;
   chordColors: boolean;
   degreeColors: boolean;
+  luckyCharms: boolean;
   lowest: number;
   fourths: boolean;
   triad: Triad;
@@ -49,7 +52,7 @@ export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shape
 export { selectedPitches };
 export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
 export function defaultState(): State {
-  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 15, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
+  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 15, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
 }
 const isRecord = (raw: unknown): raw is Record<string, unknown> => !!raw && typeof raw === 'object' && !Array.isArray(raw);
 const integer = (value: unknown, low: number, high: number) => typeof value === 'number' && Number.isInteger(value) && value >= low && value <= high;
@@ -65,6 +68,7 @@ export function restoreState(raw: unknown): State {
   s.customPitches = pitchList(legacy ? raw.notes : raw.customPitches, s.customPitches);
   if (raw.spelling === 'sharps' || raw.spelling === 'flats') s.spelling = raw.spelling;
   if (typeof raw.labels === 'string' && ['none', 'notes', 'intervals', 'both'].includes(raw.labels)) s.labels = raw.labels as Labels;
+  if (typeof raw.luckyCharms === 'boolean') s.luckyCharms = raw.luckyCharms;
   if (typeof raw.degreeColors === 'boolean') s.degreeColors = raw.degreeColors;
   if (typeof raw.fourths === 'boolean') s.fourths = raw.fourths;
   if (integer(raw.lowest, -2, 5)) s.lowest = raw.lowest as number;
@@ -105,9 +109,11 @@ export function restoreState(raw: unknown): State {
     s.customPitches = selectedPitches(s);
     s.scaleId = 'custom';
   }
+  if (s.luckyCharms) s.labels = 'none';
+  if (s.degreeColors) s.chordColors = false;
   return s;
 }
-type Preference = 'degreeColors' | 'fourths' | 'leftHanded' | 'stringNames' | 'skeleton' | 'warp' | 'ghostForms' | 'context' | 'focus' | 'chordColors' | 'wholeMap' | 'hideAdded';
+type Preference = 'luckyCharms' | 'degreeColors' | 'fourths' | 'leftHanded' | 'stringNames' | 'skeleton' | 'warp' | 'ghostForms' | 'context' | 'focus' | 'chordColors' | 'wholeMap' | 'hideAdded';
 export type Action =
   | { type: 'study-mode'; value: StudyMode }
   | { type: 'shape-kind'; value: ShapeKind }
@@ -119,6 +125,8 @@ export type Action =
   | { type: 'clear-isolated-tones' }
   | { type: 'pattern'; value: ShapeKind }
   | { type: 'labels'; value: Labels }
+  | { type: 'note-view'; value: NoteView }
+  | { type: 'note-colors'; value: NoteColors }
   | { type: 'triad'; value: Triad }
   | { type: 'triad-root'; value: number | null }
   | { type: 'spelling'; value: Spelling }
@@ -137,7 +145,15 @@ export type Action =
 const toggleItem = <T,>(items: T[], item: T) => items.includes(item) ? items.filter(i => i !== item) : [...items, item];
 export function reducer(s: State, action: Action): State {
   switch (action.type) {
-    case 'study-mode': return { ...s, studyMode: action.value, form: 1, studyFret: null };
+    case 'study-mode': {
+      const current = activeStudy(s);
+      const next = { ...s, studyMode: action.value, studyFret: null };
+      if (s.studyMode === 'shape' && action.value === 'diagonal' && current?.shapes[0]) {
+        const diagonal = studyChoices(next).find(choice => choice.shapes.some(shape => shape.id === current.shapes[0].id));
+        if (diagonal) return { ...next, form: diagonal.form, studyFret: diagonal.anchor };
+      }
+      return { ...next, form: current?.form ?? s.form };
+    }
     case 'shape-kind': return { ...s, shapeKind: action.value, studyFret: null, patterns: [...new Set([...s.patterns,action.value])] };
     case 'form': {
       if (!integer(action.value,1,5)) return s;
@@ -163,7 +179,9 @@ export function reducer(s: State, action: Action): State {
     case 'isolate-tone': return { ...s, isolatedTones: toggleItem(s.isolatedTones, action.value).sort((a, b) => a - b) };
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
     case 'pattern': return { ...s, patterns: toggleItem(s.patterns, action.value) };
-    case 'labels': return { ...s, labels: action.value };
+    case 'labels': return { ...s, labels: action.value, luckyCharms: false };
+    case 'note-view': return { ...s, labels: action.value === 'charms' ? 'none' : action.value, luckyCharms: action.value === 'charms' };
+    case 'note-colors': return { ...s, degreeColors: action.value === 'degrees', chordColors: action.value === 'chord' };
     case 'triad': return { ...s, triad: action.value };
     case 'triad-root': return action.value === null || integer(action.value, 0, 11) ? { ...s, triadRoot: action.value } : s;
     case 'spelling': return { ...s, spelling: action.value };

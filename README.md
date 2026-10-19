@@ -8,21 +8,22 @@ Fret Atlas is a focused guitar-fretboard workspace for learning how pentatonic p
 
 Choose a key and a scale, then select a study view:
 
-- **In position** shows one complete pentatonic position. Use the previous/next arrows or the **1–5** picker to move directly among all five forms; selecting a form extends the neck when necessary.
+- **Position** shows one complete pentatonic position. Use the previous/next arrows or the **1–5** picker to move directly among all five forms; selecting a form extends the neck when necessary.
 - **Shape** isolates one **rectangle** or **stack**.
 - **Diagonal** follows that rectangle or stack across the strings, including its partial continuations at the neck edges.
-- **All patterns** puts every rectangle and stack on the neck at once.
+- **Whole neck** puts every rectangle and stack on the neck at once.
 - **One string** and **3NPS** offer linear scale views alongside the shape studies.
+- **Fit neck** scales Diagonal and Whole neck views to the available width; turn it off to return to fretboard scrolling.
 
-Rectangle outlines are red and stack outlines are blue. Shared edges retain both colors, keeping the two pattern families legible when they overlap. **Ghost forms** adds the neighboring positions as quiet dashed outlines so their connections are easier to see.
+Rectangle outlines are red and stack outlines are blue. Shared edges retain both colors, keeping the two pattern families legible when they overlap. **Ghost forms** adds neighboring positions as dashed outlines so their connections are easier to see.
 
 With standard tuning, **Warp** marks the G–B boundary and shows the one-fret shift toward the bridge. It is hidden in all-fourths tuning, where the shift does not exist.
 
 ## Workspace
 
-The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, and **Pentatonic only** control how much context surrounds the active form.
+The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, **Warp**, and **Pentatonic only** control how much context surrounds the active form.
 
-The modular controls hold secondary settings such as labels, overlays, focus, display options, and scale tones. **Share** and **Guide** live below the board, along with the light/dark appearance switch.
+The modular controls hold secondary settings such as labels, overlays, focus, display options, and scale tones. **Share**, **Guide**, and **Reset** are in the board header. The light/dark appearance switch stays below the board.
 
 Your view, selected form, overlays, and marked notes are saved in browser local storage. **Share** copies a URL that contains the current view, so it can be reopened or sent to someone else.
 
