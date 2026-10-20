@@ -51,6 +51,18 @@ export const shapeInFocus = (s: State, shape: Shape) => shape.rows.every(r => in
 export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shapes ?? []).filter(shape => s.patterns.includes(shape.kind) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
 export { selectedPitches };
 export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
+// Each control panel restores only the settings it owns.
+export type Section = 'note-view' | 'overlays' | 'practice' | 'instrument';
+export const SECTION_KEYS: Record<Section, (keyof State)[]> = {
+  'note-view': ['labels', 'luckyCharms', 'degreeColors', 'chordColors', 'isolatedTones'],
+  overlays: ['wholeMap', 'ghostForms', 'skeleton', 'warp', 'context', 'hideAdded', 'patterns', 'overlayRows'],
+  practice: ['triad', 'triadRoot', 'focus', 'from', 'to', 'strings'],
+  instrument: ['frets', 'lowest', 'fourths', 'spelling', 'stringNames', 'leftHanded'],
+};
+export const sectionModified = (s: State, section: Section) => {
+  const defaults = defaultState();
+  return SECTION_KEYS[section].some(key => JSON.stringify(s[key]) !== JSON.stringify(defaults[key]));
+};
 export function defaultState(): State {
   return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 15, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
 }
@@ -124,6 +136,7 @@ export type Action =
   | { type: 'isolate-tone'; value: number }
   | { type: 'clear-isolated-tones' }
   | { type: 'pattern'; value: ShapeKind }
+  | { type: 'patterns'; value: ShapeKind[] }
   | { type: 'labels'; value: Labels }
   | { type: 'note-view'; value: NoteView }
   | { type: 'note-colors'; value: NoteColors }
@@ -141,7 +154,8 @@ export type Action =
   | { type: 'mark'; id: string }
   | { type: 'clear-marks' }
   | { type: 'lowest'; value: number }
-  | { type: 'reset-view' };
+  | { type: 'reset-view' }
+  | { type: 'reset-section'; value: Section };
 const toggleItem = <T,>(items: T[], item: T) => items.includes(item) ? items.filter(i => i !== item) : [...items, item];
 export function reducer(s: State, action: Action): State {
   switch (action.type) {
@@ -179,6 +193,7 @@ export function reducer(s: State, action: Action): State {
     case 'isolate-tone': return { ...s, isolatedTones: toggleItem(s.isolatedTones, action.value).sort((a, b) => a - b) };
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
     case 'pattern': return { ...s, patterns: toggleItem(s.patterns, action.value) };
+    case 'patterns': return { ...s, patterns: action.value.filter(kind => kind === 'rectangle' || kind === 'stack') };
     case 'labels': return { ...s, labels: action.value, luckyCharms: false };
     case 'note-view': return { ...s, labels: action.value === 'charms' ? 'none' : action.value, luckyCharms: action.value === 'charms' };
     case 'note-colors': return { ...s, degreeColors: action.value === 'degrees', chordColors: action.value === 'chord' };
@@ -200,6 +215,12 @@ export function reducer(s: State, action: Action): State {
     case 'mark': return /^[1-6]:(?:[0-9]|1[0-9]|2[0-4])$/.test(action.id) ? { ...s, marks: toggleItem(s.marks, action.id) } : s;
     case 'clear-marks': return { ...s, marks: [] };
     case 'lowest': return integer(action.value, -2, 5) ? { ...s, lowest: action.value, studyFret: null } : s;
+    case 'reset-section': {
+      const defaults = defaultState();
+      const next = { ...s, studyFret: null } as Record<string, unknown>;
+      for (const key of SECTION_KEYS[action.value]) next[key] = defaults[key];
+      return next as unknown as State;
+    }
     case 'reset-view': return { ...defaultState(), lowest: s.lowest, fourths: s.fourths, root: s.root, scaleId: s.scaleId, customPitches: s.customPitches, marks: s.marks };
   }
 }

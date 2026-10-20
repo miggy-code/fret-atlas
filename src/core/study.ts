@@ -47,7 +47,7 @@ function npsChoices(s: State, tuning: Tuning): Study[] {
       }
       const rows = [...byString].map(([string, frets]) => ({ string, left: Math.min(...frets), right: Math.max(...frets) })).sort((a, b) => a.string - b.string);
       if (rows.some(row => row.left < 0 || row.right > s.frets)) continue;
-      choices.push({ id: `nps:${k}:${octave}`, form: k + 1, anchor: Math.min(...rows.map(row => row.left)), label: `3NPS ${k + 1}`, rows, shapes: [] });
+      choices.push({ id: `nps:${k}:${octave}`, form: k + 1, anchor: Math.min(...rows.map(row => row.left)), label: `3 per string · ${k + 1}`, rows, shapes: [] });
     }
   });
   return choices.sort((a, b) => a.anchor - b.anchor);
@@ -60,7 +60,7 @@ export function studyChoices(s: State): Study[] {
   const scale = scaleById(s.scaleId);
   if (!scale.family) return [];
   const tonic = lowStringTonic(s);
-  const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:s.studyMode==='diagonal',tuning}));
+  const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:s.studyMode==='diagonal'||s.studyMode==='all',tuning}));
   if (s.studyMode === 'all') return [{id:'all',form:1,anchor:0,label:'Whole neck',rows:Array.from({length:6},(_,i)=>({string:i+1,left:0,right:s.frets})),shapes:allShapes}];
   if (s.studyMode === 'diagonal') {
     const family = allShapes.filter(shape => shape.kind === s.shapeKind);

@@ -5,7 +5,7 @@
   color: #263b47; background: #eaf0f3; font-synthesis: none;
   --ink: #263b47; --muted: #637681; --line: #dce5e9; --neck: #f3f7f8; --page: #f7f8fa; --panel: #f0f2f5;
   --root: #d47b22; --core: #314e5b; --added: #236fa8;
-  --rectangle: #b84b2c; --stack: #436ca7; --shift: #75868e; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
+  --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
   --triad: #3d806c; --accent: #226863; --surface: #fff;
   --degree-2: #e3b341; --degree-3: #a365b5; --degree-4: #67a7a1; --degree-5: #58a86c; --degree-6: #bf7a47; --degree-7: #8b86c8;
 }
@@ -24,7 +24,7 @@ html[data-theme='dark'] {
   --added: #78bee9;
   --rectangle: #f07b57;
   --stack: #79a8eb;
-  --shift: #a6b5bc;
+  --shift: #ff8585;
   --overlay: #b7a6e4;
   --focus: #88c7ff;
   --mark: #e0b568;
@@ -78,7 +78,7 @@ svg { flex-shrink: 0; }
 .text-button:hover { background: #eaf0f3; color: var(--ink); }
 .header-actions .text-button { color: var(--ink); }
 .header-actions .text-button:hover { background: var(--neck); color: var(--ink); }
-.header-actions .text-button:first-child { border: 1px solid var(--line); }
+.header-actions .text-button { border: 1px solid var(--line); }
 .workspace { max-width: 1536px; margin: auto; padding: 28px 36px 20px; }
 .board-card { background: var(--surface); border: 1px solid #d1dfe5; border-radius: 16px; box-shadow: 0 8px 32px #163c4908; }
 .board-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 28px; }
@@ -105,7 +105,7 @@ select:hover { border-color: #8fa9b6; }
 .segmented button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid transparent; border-radius: 5px; padding: 7px 14px; font-size: 14px; color: #58707c; white-space: nowrap; }
 .segmented button.active { background: #fff; color: #203f4c; border-color: #cbdbe2; box-shadow: 0 2px 3px #24465408; font-weight: 600; }
 .segmented button:hover:not(:disabled):not(.active) { background: #fff; color: var(--ink); }
-.segmented button:disabled { opacity: .5; }
+.segmented button:disabled { opacity: .38; }
 .shape-icon { display: inline-block; width: 19px; height: 12px; border: 1.5px solid var(--rectangle); border-radius: 1px; }
 .shape-icon.stack { width: 13px; height: 18px; border-color: var(--stack); }
 .triad-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -134,7 +134,7 @@ select:hover { border-color: #8fa9b6; }
 .pattern-button.stack[aria-pressed=true]::after { background: var(--stack); }
 .pattern-button:hover:not(:disabled) { background: #fff; border-color: #b4cbd5; }
 .pattern-button:disabled { opacity: .45; }
-.pattern-string-settings { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 15px; margin-top: 4px; }
+.pattern-string-settings { display: grid; gap: 10px; }
 .row-toggles { display: flex; gap: 5px; }
 .row-toggles button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 45px; height: 34px; border: 1px solid #d7e1e6; border-radius: 5px; font-size: 14px; color: #71848e; background: #f7f9fa; }
 .row-toggles button small { font-size: 12px; opacity: .8; }
@@ -155,17 +155,23 @@ select:hover { border-color: #8fa9b6; }
 .guitar-string { stroke: #97adb9; }
 .string-name { font-size: 12px; font-weight: 600; fill: #617c89; }
 .inlay { fill: #8fa7b3; }
-.has-patterns .guitar-string { opacity: .3; }
-.has-patterns .fret-wire { opacity: .45; }
+.has-patterns .guitar-string { opacity: .6; }
+.has-patterns .fret-wire { opacity: .7; }
 .warp-guide { pointer-events: none; }
 .warp-band { fill: var(--shift); opacity: .025; }
-.warp-guide line, .warp-arrow { stroke: var(--shift); stroke-width: 1; stroke-dasharray: none; opacity: .8; }
-.warp-arrow { fill: none; }
-.shape-halo { fill: none; stroke: var(--neck); stroke-width: 7; stroke-linejoin: miter; stroke-linecap: butt; pointer-events: none; }
-.shape-outline { fill: none; stroke: var(--rectangle); stroke-width: 3.5; stroke-linejoin: miter; stroke-linecap: butt; opacity: 1; pointer-events: none; }
+.warp-guide line { stroke: var(--shift); stroke-width: 2; stroke-dasharray: 0.1 6; stroke-linecap: round; opacity: .85; }
+.warp-label { fill: var(--shift); font-size: 11px; font-weight: 700; }
+.shape-halo { fill: none; stroke: var(--neck); stroke-width: 8; stroke-linejoin: miter; stroke-linecap: butt; pointer-events: none; }
+.shape-outline { fill: none; stroke: var(--rectangle); stroke-width: 4; stroke-linejoin: miter; stroke-linecap: butt; opacity: 1; pointer-events: none; }
 .shape-outline.stack { stroke: var(--stack); }
 .shape-outline.is-emphasized { filter: brightness(.75); }
-.shared-rail { fill: none; stroke-width: 3.5; stroke-linecap: butt; pointer-events: none; }
+/* Whole neck draws every block, so lighter strokes let the notes lead; hovering a note isolates its shapes. */
+.is-whole-neck .shape-outline, .is-whole-neck .shared-rail { stroke-width: 2.75; opacity: .7; transition: opacity .12s; }
+.is-whole-neck .shared-rail.stack { stroke-dasharray: 14 14; }
+.is-whole-neck .shape-halo { stroke-width: 6; }
+.is-whole-neck:has(.shape-outline.is-emphasized) .shape-outline:not(.is-emphasized), .is-whole-neck:has(.shape-outline.is-emphasized) .shared-rail { opacity: .15; }
+.is-whole-neck .shape-outline.is-emphasized { opacity: 1; stroke-width: 4; filter: none; }
+.shared-rail { fill: none; stroke-width: 4; stroke-linecap: butt; pointer-events: none; }
 .shared-rail.rectangle { stroke: var(--rectangle); }
 .shared-rail.stack { stroke: var(--stack); stroke-dasharray: 9 9; }
 /* Ghost forms overlay */
@@ -174,7 +180,7 @@ select:hover { border-color: #8fa9b6; }
 .shape-ghost-outline.rectangle, .shape-ghost-outline.stack { stroke: var(--overlay); }
 html[data-theme='dark'] .shape-ghost-outline { opacity: .65; }
 .root-skeleton { pointer-events: none; }
-.root-skeleton line { stroke: var(--overlay); stroke-width: 2; opacity: .75; stroke-linecap: round; }
+.root-skeleton line { stroke: var(--root); stroke-width: 2; opacity: .75; stroke-linecap: round; }
 /* Note identity: kind first, then the bright degree identities shared by the board and its legend. */
 .note-node { cursor: pointer; opacity: 1; outline: none; --marker: #a6b8c1; --marker-fill: #fff; --label: var(--core); }
 .note-node.root { --marker: var(--root); --marker-fill: var(--root); --label: #fff; }
@@ -189,6 +195,8 @@ html[data-theme='dark'] .note-node.context { --marker: #7c99a7; --marker-fill: #
 html[data-theme='dark'] .note-node.skeleton { --marker: #cfdee7; --marker-fill: #cfdee7; --label: #16242c; }
 html[data-theme='dark'] .note-node.context.is-triad { --marker: var(--triad); --marker-fill: #214438; --label: #b5ead7; }
 .has-patterns .note-node.skeleton:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--muted); --marker-fill: var(--core); --label: var(--surface); }
+/* Continuation tones on a diagonal run stay hollow so the blocks read first. */
+.has-patterns .note-node.is-run:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--core); --marker-fill: var(--neck); --label: var(--core); }
 .note-node.degree-colored, html[data-theme='dark'] .note-node.degree-colored,
 .note-node.third, html[data-theme='dark'] .note-node.third,
 .note-node.fifth, html[data-theme='dark'] .note-node.fifth,
@@ -207,6 +215,7 @@ html[data-theme='dark'] .note-node.lucky-charm[data-charm-degree='1'] { --marker
 .has-patterns .note-node.is-background .note-symbol { opacity: .16; }
 .note-node.is-background:hover .note-symbol { opacity: .75; }
 .note-node.is-ghost .note-symbol { opacity: .45; }
+.note-node.is-run .note-face { stroke-width: 1.75; }
 .triad-halo { fill: none; stroke: var(--triad); stroke-width: 2.5; stroke-linecap: round; opacity: .9; pointer-events: none; }
 .root-center { fill: #fff; stroke: #d7e9ff; stroke-width: 1; }
 .note-label { fill: var(--label); font-size: var(--note-label-size); font-weight: 600; letter-spacing: -.3px; }
@@ -216,7 +225,8 @@ html[data-theme='dark'] .note-node.lucky-charm[data-charm-degree='1'] { --marker
 .mark-ring { fill: none; stroke: var(--mark); stroke-width: 2; opacity: 0; pointer-events: none; }
 .is-marked .mark-ring { opacity: 1; }
 .note-node:focus-visible .focus-ring { opacity: 1; }
-.note-node:hover .note-hit { fill: #335d7810; }
+/* Hover uses a ring that stays inside the note's own row, clear of the tooltip chip. */
+.note-node:hover .focus-ring { opacity: .45; }
 .is-hidden .note-symbol { visibility: hidden; }
 .is-hidden:hover .note-symbol, .is-hidden:focus-visible .note-symbol { visibility: visible; }
 .board-notice { margin: 16px 28px 0; padding: 12px 15px; border: 1px solid #e4d3ba; background: #fcf8f1; border-radius: 6px; color: #78613a; font-size: 14px; line-height: 1.5; }
@@ -229,12 +239,17 @@ html[data-theme='dark'] .note-node.lucky-charm[data-charm-degree='1'] { --marker
 .legend-note.skeleton { background: var(--core); border-color: var(--core); }
 .legend-note.third { background: #287558; }
 .legend-note.fifth { background: #7859a6; }
-.legend-triad { width: 14px; height: 3px; border-radius: 1px; background: #72b695; }
-.triad-legend { color: #386954; }
+.legend-triad { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--triad); }
+.triad-legend { color: var(--triad); }
 .legend-note.marked { background: #fff; border: 1.5px solid var(--mark); }
 .legend-outline { display: inline-block; width: 17px; height: 10px; border: 1.5px solid var(--rectangle); border-radius: 1px; }
 .legend-outline.stack { width: 10px; height: 15px; border-color: var(--stack); }
 .legend-outline.ghost { border-style: dashed; border-color: var(--overlay); }
+.legend-note.run { background: var(--neck); border: 1.75px solid var(--core); border-radius: 50%; }
+.legend-note.background { background: var(--core); border-color: var(--core); border-radius: 50%; opacity: .25; }
+.legend-line { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--overlay); }
+.legend-line.skeleton { border-color: var(--root); }
+.legend-line.warp { border-top: 2px dotted var(--shift); }
 .tone-strip { display: flex; align-items: center; gap: 25px; padding: 20px 28px; background: #f8fafb; border-block: 1px solid var(--line); }
 .tone-strip-heading { min-width: 86px; }
 .tone-strip h2 { margin: 0 0 5px; font-size: 14px; font-weight: 600; }
@@ -392,6 +407,13 @@ kbd { font-family: inherit; font-size: 12px; min-width: 18px; text-align: center
   .form-bar { padding: 12px 16px; }
   .form-navigation { width: 100%; }
   .form-navigation > .segmented { margin-left: 0; }
+  /* Even three-column rows instead of ragged wrapping. */
+  .minimal-studio .study-primary > .segmented, .note-view-bar .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .minimal-studio .study-primary > .segmented button, .note-view-bar .segmented button { white-space: normal; text-align: center; padding-inline: 4px; line-height: 1.2; }
+  .note-view-bar .color-preview, .note-view-bar .view-charms { display: none; }
+  .form-navigation .form-picker { width: 100%; padding-left: 0; border-left: 0; }
+  .form-navigation .form-picker button { flex: 1; }
+  .form-hint { display: none; }
   .map-layers { width: 100%; gap: 18px; }
 }
 
@@ -412,18 +434,16 @@ html[data-theme='dark'] .tone-chip.scale-tone-chip.isolated { box-shadow: 0 0 0 
 .note-node.is-degree-isolated .mark-ring { stroke: var(--focus); stroke-width: 2.5; stroke-dasharray: none; opacity: .9; }
 
 /* Inline note tooltip */
-.inline-note-tooltip { pointer-events: none; filter: drop-shadow(0 4px 10px rgba(0,0,0,.15)); }
+.inline-note-tooltip { pointer-events: none; filter: drop-shadow(0 1px 3px rgba(0,0,0,.12)); }
 .tooltip-box { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
-.tooltip-arrow { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
-.tooltip-line-main { font-size: 13px; font-weight: 600; fill: var(--ink); }
-.tooltip-pitch { font-size: 15px; font-weight: 700; fill: var(--ink); }
-.tooltip-octave { font-size: 12px; font-weight: 500; fill: var(--muted); }
+.tooltip-line-main { font-size: 12px; font-weight: 600; fill: var(--ink); }
+.tooltip-pitch { font-size: 12px; font-weight: 700; fill: var(--ink); }
+.tooltip-octave { font-size: 10px; font-weight: 500; fill: var(--muted); }
 .tooltip-sep { fill: var(--muted); }
 .tooltip-degree { fill: var(--root); font-weight: 600; }
-.tooltip-line-sub { font-size: 12px; fill: var(--muted); font-weight: 500; }
 .tooltip-member { fill: var(--accent); font-weight: 600; }
-html[data-theme='dark'] .inline-note-tooltip { filter: drop-shadow(0 4px 14px rgba(0,0,0,.5)); }
-html[data-theme='dark'] .tooltip-box, html[data-theme='dark'] .tooltip-arrow { fill: #1c2b34; stroke: #3a505c; }
+html[data-theme='dark'] .inline-note-tooltip { filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
 
 /* A quiet workspace, with the instrument as the main surface. */
 .minimal-studio { max-width: 1600px; padding: 32px 32px 20px; }
@@ -460,8 +480,6 @@ html[data-theme='dark'] .tooltip-box, html[data-theme='dark'] .tooltip-arrow { f
 .minimal-studio .inspection-row { padding: 14px 4px; border-top: 1px solid var(--line); }
 .minimal-studio .note-inspector, .minimal-studio .keyboard-hint { font-size: 11px; color: var(--muted); }
 .minimal-studio .page-footer { padding-top: 16px; color: var(--muted); }
-.studio-utilities { display: flex; align-items: center; gap: 6px; }
-.minimal-studio .studio-utilities .text-button { font-size: 12px; color: var(--muted); padding-inline: 9px; }
 .control-module { border-top: 1px solid var(--line); }
 .control-module > summary { display: flex; align-items: center; gap: 16px; padding: 17px 4px; cursor: pointer; font-size: 13px; font-weight: 600; list-style: none; }
 .control-module > summary::-webkit-details-marker { display: none; }
@@ -469,6 +487,12 @@ html[data-theme='dark'] .tooltip-box, html[data-theme='dark'] .tooltip-arrow { f
 .control-module[open] > summary::after { content: '−'; }
 .control-module > summary > span { font-size: 12px; color: var(--muted); font-weight: 400; }
 .study-availability { margin: -4px 0 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.form-hint { color: var(--muted); font-size: 12px; margin-left: 8px; }
+.modified-badge { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 11px; font-style: normal; font-weight: 600; }
+.module-footer { width: 100%; display: flex; justify-content: flex-end; }
+.restore-button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 10px; border-radius: 6px; color: var(--accent); font-size: 13px; font-weight: 600; }
+.restore-button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.note-view-bar .restore-button { align-self: center; margin-left: auto; }
 .note-view-bar { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 16px 0 0; }
 .note-view-bar .label-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .note-view-bar .segmented { flex-wrap: wrap; }
@@ -490,7 +514,8 @@ html[data-theme='dark'] .tooltip-box, html[data-theme='dark'] .tooltip-arrow { f
 .degree-marker { width: 25px; height: 25px; flex-shrink: 0; overflow: visible; }
 .minimal-studio .degree-legend .tone-strip { padding: 0; }
 .fit-neck { min-height: 44px; margin: 12px 0 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); display: inline-flex; align-items: center; width: fit-content; }
-@media (min-width: 761px) { .fit-neck { display: none; } }
+/* Desktop only needs fitting once a long neck overflows. */
+@media (min-width: 761px) { .fit-neck:not(.long-neck) { display: none; } }
 .fit-neck[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 -2px var(--accent); font-weight: 600; }
 .form-picker { display: flex; gap: 4px; padding-left: 12px; border-left: 1px solid var(--line); }
 .form-picker button { min-width: 44px; min-height: 44px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; color: var(--muted); }
@@ -514,7 +539,8 @@ html[data-theme='dark'] .tooltip-box, html[data-theme='dark'] .tooltip-arrow { f
   .degree-legend .tone-sequence { flex-wrap: wrap; }
   .toggle { flex-wrap: wrap; white-space: normal; }
   .toggle-hint { display: block; width: 100%; margin-left: 26px; color: var(--muted); font-size: 12px; line-height: 1.4; }
-  .header-actions { flex-wrap: wrap; }
+  .header-actions { flex-wrap: wrap; width: 100%; justify-content: flex-start; margin-left: 0; }
   .header-actions .text-button { min-height: 44px; }
+  .board-title p { display: none; }
   .minimal-studio .form-status span, .minimal-studio .note-inspector, .control-module > summary > span { font-size: 12px; }
 }

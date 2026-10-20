@@ -20,13 +20,15 @@ export function notePresentation(note: Note, s: State, shapes: Shape[] = [], stu
   const active = selected && inStudy(note.string,note.fret,study);
   const inGhost = s.ghostForms && ghosts.some(g => inStudy(note.string, note.fret, g));
   const ghost = inGhost && !active;
+  // Diagonal runs add the next scale tone beyond each block; keep those visibly secondary.
+  const run = s.studyMode === 'diagonal' && active && shapes.length > 0 && !member;
   const background = selected && !active && (s.wholeMap || inGhost || (s.skeleton && kind==='root'));
   const allowedBySkeleton = !s.hideAdded || kind !== 'added';
   const isIsolated = description.tone ? s.isolatedTones.includes(description.tone.semitones) : false;
   const degreeDimmed = selected && s.isolatedTones.length > 0 && !isIsolated;
   const visible = marked || (focused && (active || background) && allowedBySkeleton) || (focused && (!selected && s.context || triad));
   const role = kind === 'context' ? 'outside scale' : kind === 'root' ? 'root' : kind === 'added' ? 'added scale tone' : 'core scale tone';
-  return { ...description, kind, selected, triad, marked, member, focused, visible, active, background, ghost, degreeDimmed, isolated: isIsolated, aria: `${description.name}${description.octave}, string ${note.string}, ${note.fret === 0 ? 'open' : `fret ${note.fret}`}, degree ${description.interval}, ${role}${member ? `, inside ${[...new Set(membership.map(shape => shape.kind))].join(' and ')}` : ''}${triad ? `, ${pitchName(s.triadRoot ?? s.root, s.spelling)} ${s.triad} triad` : ''}${isIsolated ? ', isolated degree' : ''}${!focused ? ', outside focus' : ''}${marked ? ', marked' : ''}` };
+  return { ...description, kind, selected, triad, marked, member, run, focused, visible, active, background, ghost, degreeDimmed, isolated: isIsolated, aria: `${description.name}${description.octave}, string ${note.string}, ${note.fret === 0 ? 'open' : `fret ${note.fret}`}, degree ${description.interval}, ${role}${member ? `, inside ${[...new Set(membership.map(shape => shape.kind))].join(' and ')}` : ''}${triad ? `, ${pitchName(s.triadRoot ?? s.root, s.spelling)} ${s.triad} triad` : ''}${isIsolated ? ', isolated degree' : ''}${!focused ? ', outside focus' : ''}${marked ? ', marked' : ''}` };
 }
 
 // Degree identity stays consistent between major and minor scales.

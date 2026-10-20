@@ -10,20 +10,20 @@ Choose a key and a scale, then select a study view:
 
 - **Position** shows one complete pentatonic position. Use the previous/next arrows or the **1–5** picker to move directly among all five forms; selecting a form extends the neck when necessary.
 - **Shape** isolates one **rectangle** or **stack**.
-- **Diagonal** follows that rectangle or stack across the strings, including its partial continuations at the neck edges.
-- **Whole neck** puts every rectangle and stack on the neck at once.
+- **Diagonal** follows that rectangle or stack across the strings, including its partial continuations at the neck edges. Hollow continuation tones mark the next scale note beyond each block.
+- **Whole neck** puts every rectangle and stack on the neck at once, including shapes cut off by the nut or the last fret. **Show** switches between both families, rectangles only, or stacks only; hovering a note highlights the shapes it belongs to.
 - **One string** and **3NPS** offer linear scale views alongside the shape studies.
-- **Fit neck** scales Diagonal and Whole neck views to the available width; turn it off to return to fretboard scrolling.
+- **Fit neck to screen** (on narrow screens) scales Diagonal and Whole neck to the available width; turn it off to return to fretboard scrolling.
 
 Rectangle outlines are red and stack outlines are blue. Shared edges retain both colors, keeping the two pattern families legible when they overlap. **Ghost forms** adds neighboring positions as dashed outlines so their connections are easier to see.
 
-With standard tuning, **Warp** marks the G–B boundary and shows the one-fret shift toward the bridge. It is hidden in all-fourths tuning, where the shift does not exist.
+With standard tuning, **Warp** draws a thin line at the G–B boundary, marked **+1** in the string-name gutter, for the one-fret shift toward the bridge. It is hidden in all-fourths tuning, where the shift does not exist.
 
 ## Workspace
 
 The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, **Warp**, and **Pentatonic only** control how much context surrounds the active form.
 
-The modular controls hold secondary settings such as labels, overlays, focus, display options, and scale tones. **Share**, **Guide**, and **Reset** are in the board header. The light/dark appearance switch stays below the board.
+The modular controls hold secondary settings such as labels, overlays, focus, display options, and scale tones. **Share**, **Guide**, and **Reset view** are in the board header. Each settings panel shows **Changed** when it differs from its defaults and offers **Restore defaults** for just that panel; Reset view restores them all. Key, scale, custom notes and marks always stay. Dark mode lives in Instrument & display.
 
 Your view, selected form, overlays, and marked notes are saved in browser local storage. **Share** copies a URL that contains the current view, so it can be reopened or sent to someone else.
 

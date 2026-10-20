@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { boardGeometry, HIT_SIZE, shapePath, sharedShapePath, ROW } from '../core/geometry';
 import { position, pitchName } from '../core/music';
@@ -24,7 +24,6 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const sharedRails = useMemo(()=>sharedShapePath(shapes,geo),[shapes,geo]);
   const roots = useMemo(()=>rootConnections(state).filter(({a,b})=>inFocus(state,a.string,a.fret)&&inFocus(state,b.string,b.fret)),[state]);
   const tuning = useMemo(()=>tuningOf(state),[state.lowest,state.fourths]);
-  const warpArrow = useId();
   const patternClip = useId();
   const [emphasized, setEmphasized] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -80,15 +79,18 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
     node?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
-  const fitLeft = fitNeck && study && state.studyMode === 'diagonal' ? Math.max(0, Math.min(...study.rows.map(row => geo.x(row.left))) - 24) : 0;
-  const fitRight = fitNeck && study && state.studyMode === 'diagonal' ? Math.min(geo.width, Math.max(...study.rows.map(row => geo.x(row.right))) + 24) : geo.width;
+  // A fitted diagonal crops to its own frets, mirrored or not, with room for string names.
+  const fitXs = fitNeck && study && state.studyMode === 'diagonal' ? study.rows.flatMap(row => [geo.x(Math.max(0, row.left)), geo.x(Math.min(state.frets, row.right))]) : [];
+  const fitLeft = fitXs.length ? Math.max(0, Math.min(...fitXs) - 52) : 0;
+  const fitRight = fitXs.length ? Math.min(geo.width, Math.max(...fitXs) + 52) : geo.width;
+  const labelX = state.leftHanded ? fitRight < geo.width ? fitRight - 16 : geo.labelX : fitLeft > 0 ? fitLeft + 16 : geo.labelX;
   return <div className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label="Fretboard. Tab to a note; arrow keys navigate, Enter marks. Scroll horizontally for more frets.">
-      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
         <title>Guitar fretboard, high strings above, nut {state.leftHanded ? 'right' : 'left'}</title>
         <defs>
-          <marker id={warpArrow} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--shift)" strokeWidth="1.5" /></marker>
-          <clipPath id={patternClip}><rect x={Math.min(geo.x(0),geo.end)-16} y="0" width={Math.abs(geo.end-geo.x(0))+32} height={geo.height} /></clipPath>
+          {/* Patterns may reach past the open notes, but stop at the last fret so cut-off shapes end on the neck. */}
+          <clipPath id={patternClip}><rect x={state.leftHanded ? geo.end : geo.x(0) - 16} y="0" width={Math.abs(geo.end - geo.x(0)) + 16} height={geo.height} /></clipPath>
         </defs>
         <g aria-hidden="true" className="neck-base">
           <rect x={Math.min(geo.nut, geo.end)} y={geo.y(1) - 23} width={Math.abs(geo.end - geo.nut)} height={ROW * 5 + 46} rx="2" fill="var(--neck)" />
@@ -102,14 +104,15 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           </g>)}
           {tuning.midi.map((midi, i) => <g key={i}>
             <line className="guitar-string" x1={geo.x(0)} x2={geo.end} y1={geo.y(i + 1)} y2={geo.y(i + 1)} strokeWidth={0.8 + i * .25} />
-            {state.stringNames && <text className="string-name" x={geo.labelX} y={geo.y(i + 1) + 4} textAnchor="middle">{i === 0 ? pitchName(midi, state.spelling).toLowerCase() : pitchName(midi, state.spelling)}</text>}
+            {state.stringNames && <text className="string-name" x={labelX} y={geo.y(i + 1) + 4} textAnchor="middle">{i === 0 ? pitchName(midi, state.spelling).toLowerCase() : pitchName(midi, state.spelling)}</text>}
           </g>)}
         </g>
         {state.warp && !state.fourths && <g className="warp-guide" role="img" aria-label="Warp: one-fret shift across the G–B boundary">
           <rect className="warp-band" x={Math.min(geo.nut,geo.end)} y={(geo.y(2)+geo.y(3))/2-8} width={Math.abs(geo.end-geo.nut)} height="16" />
           <title>Warp marks the one-fret shift toward the bridge when crossing from G to B.</title>
           <line x1={geo.nut} x2={geo.end} y1={(geo.y(2) + geo.y(3)) / 2} y2={(geo.y(2) + geo.y(3)) / 2} />
-          <path className="warp-arrow" d={`M${geo.x(1)},${geo.y(3)-8} L${geo.x(2)},${geo.y(2)+8}`} markerStart={`url(#${warpArrow})`} markerEnd={`url(#${warpArrow})`} />
+          {/* The shift reads in the label gutter, away from the notes on frets 1–2. */}
+          <text className="warp-label" x={labelX} y={(geo.y(2) + geo.y(3)) / 2 + 4} textAnchor="middle">+1</text>
         </g>}
         {state.skeleton && <g className="root-skeleton" aria-hidden="true">{roots.map(({a,b})=><line key={`${a.id}-${b.id}`} data-from={a.id} data-to={b.id} x1={geo.x(a.fret)} y1={geo.y(a.string)} x2={geo.x(b.fret)} y2={geo.y(b.string)} vectorEffect="non-scaling-stroke" />)}</g>}
         {state.ghostForms && ghostShapes.length > 0 && <g className="ghost-pattern-layer" aria-hidden="true" clipPath={`url(#${patternClip})`}>
@@ -137,7 +140,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={p.aria} aria-pressed={p.marked}
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={p.visible ? 'true' : 'false'}
             data-charm-degree={charmDegree}
-            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${p.visible ? '' : 'is-hidden'} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && p.visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${p.visible ? '' : 'is-hidden'} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && p.visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
             transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
@@ -149,7 +152,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
               {p.kind === 'context' && !p.marked && !p.triad
                 ? <circle className="note-face" r="3" />
                 : charmDegree ? <Charm degree={charmDegree} />
-                : state.labels === 'none' && !p.triad ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
+                : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
               {p.triad && <circle className="triad-halo" r="18" />}
               {state.labels !== 'none' && (p.selected || p.marked || p.triad) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
@@ -167,37 +170,36 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           const tipP = notePresentation(tipNote, state, shapes, study, ghosts);
           if (!tipP.visible && !tipP.marked && !tipP.triad) return null;
           const tipMembership = shapes.filter(s => insideShape(tipString, tipFret, s));
-          const tipMemberLabel = tipMembership.map(s => s.kind === 'rectangle' ? 'Rectangle' : 'Stack').join(' & ');
-          const x0 = geo.x(tipFret);
-          const y0 = geo.y(tipString);
-          const tipY = tipString <= 2 ? y0 + 36 : y0 - 36;
-          const tipW = 150;
-          const tipH = 46;
-          const halfW = tipW / 2;
-          const tipX = Math.max(halfW + 8, Math.min(geo.width - halfW - 8, x0));
-          const arrowDx = Math.max(-halfW + 12, Math.min(halfW - 12, x0 - tipX));
-          const arrowD = tipString <= 2
-            ? `M${arrowDx - 5},${-tipH / 2} L${arrowDx},${-tipH / 2 - 6} L${arrowDx + 5},${-tipH / 2} Z`
-            : `M${arrowDx - 5},${tipH / 2} L${arrowDx},${tipH / 2 + 6} L${arrowDx + 5},${tipH / 2} Z`;
-
-          return <g className="inline-note-tooltip" transform={`translate(${tipX},${tipY})`} pointerEvents="none" aria-hidden="true">
-            <rect x={-halfW} y={-tipH / 2} width={tipW} height={tipH} rx="7" className="tooltip-box" />
-            <path d={arrowD} className="tooltip-arrow" />
-            <text className="tooltip-line-main" textAnchor="middle" y="-4">
-              <tspan className="tooltip-pitch">{tipP.name}</tspan>
-              <tspan className="tooltip-octave">{tipP.octave}</tspan>
-              <tspan className="tooltip-sep"> · </tspan>
-              <tspan className="tooltip-degree">{tipP.kind === 'root' ? 'Root' : `Deg ${tipP.interval}`}</tspan>
-            </text>
-            <text className="tooltip-line-sub" textAnchor="middle" y="14">
-              <tspan>{`S${tipString} · ${tipFret === 0 ? 'Open' : `Fret ${tipFret}`}`}</tspan>
-              {tipMemberLabel ? <tspan className="tooltip-member">{` · ${tipMemberLabel}`}</tspan> : null}
-            </text>
-          </g>;
+          const tipMemberLabel = [...new Set(tipMembership.map(s => s.kind === 'rectangle' ? 'Rectangle' : 'Stack'))].join(' & ');
+          return <NoteTooltip x={geo.x(tipFret)} y={tipString === 1 ? geo.y(1) + TIP_OFFSET : geo.y(tipString) - TIP_OFFSET} maxX={geo.width}
+            pitch={tipP.name} octave={tipP.octave} degree={tipP.kind === 'root' ? 'Root' : `Deg ${tipP.interval}`} member={tipMemberLabel} />;
         })()}
       </svg>
     </div>
     {children}
     {(scrollEdges.left || scrollEdges.right) && <div className="scroll-cue" aria-hidden="true">{scrollEdges.left ? '← ' : ''}Scroll fretboard{scrollEdges.right ? ' →' : ''}</div>}
   </div>;
+}
+
+// Clears the hover ring (±21 with its stroke) and stops short of the neighboring string's markers (54 − 12).
+const TIP_OFFSET = 31;
+
+/** A one-line chip centered between strings; its box is measured from the text so long labels never spill out. */
+function NoteTooltip({ x, y, maxX, pitch, octave, degree, member }: { x: number; y: number; maxX: number; pitch: string; octave: number; degree: string; member: string }) {
+  const text = useRef<SVGTextElement>(null);
+  const [textWidth, setTextWidth] = useState(0);
+  useLayoutEffect(() => { setTextWidth(text.current?.getComputedTextLength() ?? 0); }, [pitch, octave, degree, member]);
+  const width = Math.ceil(textWidth) + 20;
+  const height = 18;
+  const left = Math.max(8, Math.min(maxX - width - 8, x - width / 2));
+  return <g className="inline-note-tooltip" transform={`translate(${left},${y})`} pointerEvents="none" aria-hidden="true" visibility={textWidth ? 'visible' : 'hidden'}>
+    <rect x={0} y={-height / 2} width={width} height={height} rx="5" className="tooltip-box" />
+    <text ref={text} className="tooltip-line-main" x={width / 2} textAnchor="middle" dominantBaseline="central">
+      <tspan className="tooltip-pitch">{pitch}</tspan>
+      <tspan className="tooltip-octave">{octave}</tspan>
+      <tspan className="tooltip-sep"> · </tspan>
+      <tspan className="tooltip-degree">{degree}</tspan>
+      {member ? <tspan className="tooltip-member">{` · ${member}`}</tspan> : null}
+    </text>
+  </g>;
 }
