@@ -25,8 +25,13 @@ test('whole neck shows the entire neck, persists, and keeps the skeleton indepen
   await wholeNeck.click();
   await expect(wholeNeck).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('.map-tag')).toHaveText('Whole neck');
-  // Whole neck has a single study, so the form navigation (and its status/Next button) is no longer rendered.
-  await expect(page.locator('.form-navigation')).toHaveCount(0);
+  // Whole neck has a single study: no Previous/Next or form status, only a pattern-family filter.
+  await expect(page.getByRole('button',{name:'Next form',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Previous form',exact:true})).toHaveCount(0);
+  await expect(page.locator('.form-status')).toHaveCount(0);
+  const families=page.getByRole('group',{name:'Pattern families',exact:true});
+  await expect(families).toBeVisible();
+  await expect(families.getByRole('button',{name:'Both',exact:true})).toHaveAttribute('aria-pressed','true');
   // Whole neck already shows every note at full strength, so the Whole map toggle is not offered.
   await expect(toggle(page,'Whole map')).toHaveCount(0);
   expect(await page.locator('.shape-outline.rectangle').count()).toBeGreaterThan(2);
@@ -168,8 +173,8 @@ test('pattern lines share joins and render behind opaque note badges', async ({p
     const computed = getComputedStyle(node);
     return { width: computed.strokeWidth, dash: computed.strokeDasharray, opacity: computed.opacity };
   });
-  expect(style).toEqual({ width: '3.5px', dash: 'none', opacity: '1' });
-  await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '3.5px');
+  expect(style).toEqual({ width: '4px', dash: 'none', opacity: '1' });
+  await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '4px');
   expect(await page.locator('.shape-outline').evaluateAll(nodes => nodes.every(node => !/[QC]/.test(node.getAttribute('d')!)))).toBe(true);
   expect(await page.locator('.shape-outline').first().evaluate(node => {
     const note = node.ownerSVGElement!.querySelector('[data-note-id]')!;
@@ -217,7 +222,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('.tone-strip .degree-marker.third')).toHaveCount(1);
   await expect(page.locator('.tone-strip .degree-marker.fifth')).toHaveCount(1);
   await page.locator('#spelling').selectOption('flats');
-  await page.getByRole('button',{name:'Reset',exact:true}).click();
+  await page.getByRole('button',{name:'Reset view',exact:true}).click();
   await expect(page.locator('.marks-list button')).toHaveCount(2);
   await expect(page.locator('#scale')).toHaveValue('minor');
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','right');
@@ -251,7 +256,7 @@ test('small screens contain controls and scroll only the instrument', async ({pa
     await page.setViewportSize({width,height:844});
     await page.goto('/');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    for (const name of ['Share view','Guide','Reset']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
+    for (const name of ['Share view','Guide','Reset view']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     const region = page.locator('.board-scroll');
     expect(await region.evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
     for (const name of ['Position','Shape','Diagonal','Whole neck']) {
@@ -342,7 +347,7 @@ test('light-mode header actions keep readable contrast', async ({page}) => {
   await page.addInitScript(()=>localStorage.setItem('fret-atlas-theme','light'));
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');
-  for (const name of ['Share view','Guide','Reset']) {
+  for (const name of ['Share view','Guide','Reset view']) {
     const button=page.locator('.header-actions').getByRole('button',{name,exact:true});
     const ratio=await button.evaluate(node=>{
       const parse=(color:string)=>{const [r,g,b,a=1]=color.match(/[\d.]+/g)!.map(Number);return {r,g,b,a};};
