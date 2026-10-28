@@ -60,7 +60,7 @@ export function studyChoices(s: State): Study[] {
   const scale = scaleById(s.scaleId);
   if (!scale.family) return [];
   const tonic = lowStringTonic(s);
-  const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:s.studyMode==='diagonal'||s.studyMode==='all',tuning}));
+  const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:true,tuning}));
   if (s.studyMode === 'all') return [{id:'all',form:1,anchor:0,label:'Whole neck',rows:Array.from({length:6},(_,i)=>({string:i+1,left:0,right:s.frets})),shapes:allShapes}];
   if (s.studyMode === 'diagonal') {
     const family = allShapes.filter(shape => shape.kind === s.shapeKind);

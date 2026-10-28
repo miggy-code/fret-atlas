@@ -9,6 +9,18 @@ import { notePresentation } from '../src/core/presentation';
 
 const SECTIONS = Object.keys(SECTION_KEYS) as Section[];
 
+test('A minor form 3 keeps the warped rectangle crossing the last fret', () => {
+  for (const studyMode of ['position', 'shape'] as const) {
+    const state = { ...defaultState(), studyMode, form: 3, frets: 12 };
+    const rectangle = activeStudy(state)?.shapes.find(shape => shape.id === 'rectangle:3:9');
+    assert.deepEqual(rectangle?.rows, [
+      { string: 2, left: 10, right: 13 },
+      { string: 3, left: 9, right: 12 },
+    ]);
+    assert.ok(visibleShapes(state).some(shape => shape.id === rectangle?.id));
+  }
+});
+
 // Every section's keys set to a non-default value, plus musical/study settings that no restore may touch.
 function changedState(): State {
   return {
