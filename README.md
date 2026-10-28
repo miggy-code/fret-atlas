@@ -24,6 +24,10 @@ With standard tuning, **Warp** draws a thin line at the G–B boundary, marked *
 - **Sound.** Tapping a note plucks it. **Play**, next to the form arrows, runs the current form up and back down the way it is fingered (low string to high) and lights each note as it sounds. Sound can be turned off in Instrument & display.
 - **Practice** in the board header starts "Find every…" drills. Each drill names one note, such as *Find every C (♭3) in Form 2* or *Find every E on the G string*, and highlights where to look. Notes, outlines and other hints stay hidden until you find them. A correct tap reveals the note with a pluck; a wrong one shows a cross and tells you which note it was. Finishing a round plays every answer and deals the next prompt. The flame counts correct taps in a row, and your best streak is saved on this device. Drills follow the current key, scale, form and focus.
 
+- **Progress.** In Position view, a form you've had on screen for a few seconds gets a hollow dot in the 1–5 picker. A form you've played through or finished a drill in gets a filled dot. The **Progress** panel at the bottom shows a ring for each of the 12 keys (minor and major are tracked separately); click a key to study it. Progress is saved on this device only.
+
+These extras sit around the atlas and never change it: closing Practice restores your view exactly, and none of them alter the saved or shared view.
+
 ## Workspace
 
 The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, **Warp**, and **Pentatonic only** control how much context surrounds the active form.

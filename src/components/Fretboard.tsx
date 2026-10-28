@@ -27,6 +27,14 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const tuning = useMemo(()=>tuningOf(state),[state.lowest,state.fourths]);
   const patternClip = useId();
   const [emphasized, setEmphasized] = useState<string | null>(null);
+  // Each new form fades its outlines in and sweeps its notes in from the left.
+  const [entering, setEntering] = useState(true);
+  const studyLeft = study ? Math.max(0, Math.min(...study.rows.map(row => row.left))) : 0;
+  useEffect(() => {
+    setEntering(true);
+    const timer = setTimeout(() => setEntering(false), 900);
+    return () => clearTimeout(timer);
+  }, [study?.id]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState('1:5');
   const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
@@ -87,7 +95,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const labelX = state.leftHanded ? fitRight < geo.width ? fitRight - 16 : geo.labelX : fitLeft > 0 ? fitLeft + 16 : geo.labelX;
   return <div className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label="Fretboard. Tab to a note; arrow keys navigate, Enter marks. Scroll horizontally for more frets.">
-      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : ''} ${drill?.complete ? 'drill-complete' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : entering ? 'form-enter' : ''} ${drill?.complete ? 'drill-complete' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
         <title>Guitar fretboard, high strings above, nut {state.leftHanded ? 'right' : 'left'}</title>
         <defs>
           {/* Patterns may reach past the open notes, but stop at the last fret so cut-off shapes end on the neck. */}
@@ -151,7 +159,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={visible ? 'true' : 'false'} data-drill={drillFound ? 'found' : drillMiss ? 'miss' : undefined}
             data-charm-degree={charmDegree}
             className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
-            transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
+            transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
             <title>{aria}</title>

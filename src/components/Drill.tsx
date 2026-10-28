@@ -14,7 +14,7 @@ const readBest = () => { try { return Number(localStorage.getItem(BEST_KEY)) || 
 export interface DrillView { drill: Drill; found: string[]; miss: string | null; complete: boolean }
 
 /** Runs "find every X" rounds against the current view. A new round starts whenever the view it depends on changes. */
-export function useDrill(state: State, study: Study | undefined, active: boolean, sound: boolean) {
+export function useDrill(state: State, study: Study | undefined, active: boolean, sound: boolean, onRound?: (drill: Drill) => void) {
   const [drill, setDrill] = useState<Drill>();
   const [found, setFound] = useState<string[]>([]);
   const [miss, setMiss] = useState<string | null>(null);
@@ -76,6 +76,7 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
     const seconds = ((performance.now() - started.current) / 1000).toFixed(1);
     if (sound) next.map(n => position(...(n.split(':').map(Number) as [number, number]), tuning).midi).sort((a, b) => a - b).forEach((midi, i) => pluck(midi, i * .09, .8));
     setRounds(r => r + 1);
+    onRound?.(drill);
     setFeedback(`All ${drill.targets.length} in ${seconds}s${record && nextStreak > 1 ? ' · New best streak!' : ''}`);
     later(() => begin(drill.key), 1300);
   }

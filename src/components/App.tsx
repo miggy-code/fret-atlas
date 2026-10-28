@@ -15,6 +15,8 @@ import { GuideDialog } from './GuideDialog';
 import { pluck } from './audio';
 import { DrillBar, useDrill } from './Drill';
 import { usePlayback } from './usePlayback';
+import { ProgressPanel, useProgress } from './Progress';
+import { levelOf, practicedForms } from '../core/progress';
 
 const scaleOptions = SCALES.filter(scale => !scale.id.endsWith('-triad'));
 const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
@@ -40,7 +42,11 @@ export function App() {
   const tuning = tuningOf(state);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(state), [state]);
   const shapes = useMemo(() => visibleShapes(state, study), [state, study]);
-  const drill = useDrill(state, study, practicing, sound);
+  const progress = useProgress();
+  // Progress tracks the five pentatonic positions, so only Position view counts toward it.
+  const family = scale.family;
+  const formStudy = family && state.studyMode === 'position' ? study : undefined;
+  const drill = useDrill(state, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); });
   const playback = usePlayback(sound);
   // A drill hides every hint that would give the answer away.
   const boardState = useMemo<State>(() => practicing ? { ...state, skeleton: false, ghostForms: false, triad: 'off', marks: [], isolatedTones: [], wholeMap: false, context: false } : state, [state, practicing]);
@@ -55,10 +61,26 @@ export function App() {
     try { localStorage.setItem('fret-atlas-theme', darkMode ? 'dark' : 'light'); } catch { /* The visual preference is optional. */ }
   }, [darkMode]);
   useEffect(() => () => clearTimeout(shareTimer.current), []);
+  // Six seconds with a form on screen counts as having seen it.
+  useEffect(() => {
+    if (!family || !formStudy || practicing) return;
+    const timer = setTimeout(() => progress.mark(family, state.root, formStudy.form, 1), 6000);
+    return () => clearTimeout(timer);
+  }, [family, formStudy?.id, state.root, practicing]);
   // A playing run belongs to the form it started on.
   useEffect(() => { playback.stop(); }, [study?.id]);
   useEffect(() => { try { localStorage.setItem('fret-atlas-sound', sound ? 'on' : 'off'); } catch { /* The sound preference is optional. */ } }, [sound]);
 
+  function notify(message: string) {
+    setShareMessage(message);
+    clearTimeout(shareTimer.current);
+    shareTimer.current = setTimeout(() => setShareMessage(''), 3500);
+  }
+  function practiced(form: number, root: number) {
+    if (!family) return;
+    progress.mark(family, root, form, 2);
+    if (levelOf(progress.progress, family, root, form) < 2 && practicedForms(progress.progress, family, root) === 4) notify(`All five forms of ${pitchName(root, state.spelling)} ${family} practiced`);
+  }
   function togglePractice() {
     playback.stop();
     setInspected(null);
@@ -73,7 +95,8 @@ export function App() {
     if (playback.running) { playback.stop(); return; }
     const notes = [6, 5, 4, 3, 2, 1].flatMap(string => Array.from({ length: state.frets + 1 }, (_, fret) => position(string, fret, tuning)))
       .filter(note => { const p = notePresentation(note, state, shapes, study, ghosts); return p.active && p.visible; });
-    playback.play(notes);
+    const form = formStudy?.form, root = state.root;
+    playback.play(notes, form ? () => practiced(form, root) : undefined);
   }
 
   async function share() {
@@ -81,10 +104,8 @@ export function App() {
     url.search = '';
     url.hash = '';
     url.searchParams.set('atlas', JSON.stringify(state));
-    try { await navigator.clipboard.writeText(url.toString()); setShareMessage('View link copied'); setManualLink(''); }
-    catch { setManualLink(url.toString()); setShareMessage('Select and copy your view link'); }
-    clearTimeout(shareTimer.current);
-    shareTimer.current = setTimeout(() => setShareMessage(''), 3500);
+    try { await navigator.clipboard.writeText(url.toString()); notify('View link copied'); setManualLink(''); }
+    catch { setManualLink(url.toString()); notify('Select and copy your view link'); }
   }
 
   return <>
@@ -103,7 +124,7 @@ export function App() {
           </div>
           <span className="map-tag">{study ? `${study.label}${state.studyMode === 'shape' ? ` · ${shapeName(state.shapeKind)}` : ''}` : 'Custom map'}</span>
         </div>
-        <StudyControls state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choices.length} playing={playback.running} onPlay={practicing ? undefined : playForm} />
+        <StudyControls state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choices.length} formLevel={family ? form => levelOf(progress.progress, family, state.root, form) : undefined} playing={playback.running} onPlay={practicing ? undefined : playForm} />
         {practicing && <DrillBar session={drill} onEnd={togglePractice} />}
 
         {!practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
@@ -123,6 +144,9 @@ export function App() {
         <ControlModule title="Instrument & display" summary="Tuning, neck and appearance" className="instrument-settings" modified={sectionModified(state, 'instrument')} onRestore={() => dispatch({ type: 'reset-section', value: 'instrument' })}>
           <InstrumentSettings state={state} dispatch={dispatch} darkMode={darkMode} onDarkMode={() => setDarkMode(value => !value)} sound={sound} onSound={() => setSound(value => !value)} />
         </ControlModule>
+        {family && <ControlModule title="Progress" summary={`${practicedForms(progress.progress, family, state.root)} of 5 forms practiced in ${pitchName(state.root, state.spelling)} ${family}`} modified={false} onRestore={() => {}}>
+          <ProgressPanel progress={progress.progress} family={family} root={state.root} spelling={state.spelling} onKey={value => dispatch({ type: 'root', value })} onClear={progress.clear} />
+        </ControlModule>}
 
         <div className="inspection-row">
           <div className="note-inspector" role="status" aria-live="polite">{inspection && inspected
@@ -149,7 +173,7 @@ export function App() {
   </>;
 }
 
-function StudyControls({ state, dispatch, scale, study, choiceCount, playing, onPlay }: Props & { scale: Scale; study: Study | undefined; choiceCount: number; playing: boolean; onPlay?: () => void }) {
+function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, playing, onPlay }: Props & { scale: Scale; study: Study | undefined; choiceCount: number; formLevel?: (form: number) => number; playing: boolean; onPlay?: () => void }) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
@@ -190,7 +214,10 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, playing, on
         <button className="icon-button" aria-label="Next form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
         {onPlay && <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}><Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}</button>}
         {scale.family && (state.studyMode === 'position' || state.studyMode === 'shape') && <div className="form-picker" role="group" aria-label="Pentatonic form">
-          {[1, 2, 3, 4, 5].map(form => <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form} onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>)}
+          {[1, 2, 3, 4, 5].map(form => {
+            const level = state.studyMode === 'position' ? formLevel?.(form) ?? 0 : 0;
+            return <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form} data-progress={['', 'seen', 'practiced'][level] || undefined} title={['', 'Seen', 'Practiced'][level] || undefined} onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>;
+          })}
         </div>}
         {(state.studyMode === 'shape' || state.studyMode === 'diagonal') && <Segments<ShapeKind> label="Shape family" value={state.shapeKind} options={[
           { value: 'rectangle', label: <><i className="shape-icon" />Rectangle</> },

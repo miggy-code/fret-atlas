@@ -75,3 +75,22 @@ test('play runs the form up and back with the sounding note lit', async ({ page 
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(page.locator('.note-node.is-playing')).toHaveCount(0);
 });
+
+test('playing a form through marks it practiced on the picker and in the key grid', async ({ page }) => {
+  await page.goto('/');
+  const formOne = page.getByRole('button', { name: 'Form 1', exact: true });
+  await expect(formOne).not.toHaveAttribute('data-progress', 'practiced');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(formOne).toHaveAttribute('data-progress', 'practiced', { timeout: 10000 });
+  await page.locator('details.control-module > summary', { hasText: 'Progress' }).click();
+  const a = page.getByRole('button', { name: 'A minor: 1 of 5 forms practiced' });
+  await expect(a).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('details.control-module > summary', { hasText: 'Progress' })).toContainText('1 of 5 forms practiced in A minor');
+  // Picking a key from the grid switches the study key; progress stays per key.
+  await page.getByRole('button', { name: /^C minor: 0 of 5/ }).click();
+  await expect(page.locator('#root')).toHaveValue('0');
+  await expect(formOne).not.toHaveAttribute('data-progress', 'practiced');
+  await page.reload();
+  await page.locator('#root').selectOption('9');
+  await expect(formOne).toHaveAttribute('data-progress', 'practiced');
+});

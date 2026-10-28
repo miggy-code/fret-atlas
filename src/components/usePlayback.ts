@@ -3,7 +3,7 @@ import { pluck } from './audio';
 
 const STEP = .2;
 
-/** Plays a run of notes up and back down, reporting which one is sounding so the board can light it. */
+/** Plays a run of notes up and back down, reporting which one is sounding so the board can light it. `onDone` runs only if the run finishes. */
 export function usePlayback(sound: boolean) {
   const [playing, setPlaying] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -11,7 +11,7 @@ export function usePlayback(sound: boolean) {
   const stop = () => { pending.current.forEach(cancel => cancel()); pending.current = []; setPlaying(null); setRunning(false); };
   useEffect(() => stop, []);
 
-  function play(notes: { id: string; midi: number }[]) {
+  function play(notes: { id: string; midi: number }[], onDone?: () => void) {
     stop();
     if (!notes.length) return;
     const run = [...notes, ...notes.slice(0, -1).reverse()];
@@ -21,7 +21,7 @@ export function usePlayback(sound: boolean) {
       const timer = setTimeout(() => setPlaying(note.id), i * STEP * 1000);
       pending.current.push(() => clearTimeout(timer));
     });
-    const done = setTimeout(() => { setPlaying(null); setRunning(false); pending.current = []; }, run.length * STEP * 1000 + 150);
+    const done = setTimeout(() => { setPlaying(null); setRunning(false); pending.current = []; onDone?.(); }, run.length * STEP * 1000 + 150);
     pending.current.push(() => clearTimeout(done));
   }
   return { playing, running, play, stop };

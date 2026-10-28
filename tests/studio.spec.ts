@@ -165,6 +165,8 @@ test('dark mode is available in Instrument & display and persists on this device
 
 test('pattern lines share joins and render behind opaque note badges', async ({page}) => {
   await page.goto('/');
+  // Outlines fade in with each new form; check their resting style.
+  await expect(page.locator('svg.fretboard.form-enter')).toHaveCount(0);
   await expect(page.locator('.shape-underlay')).toHaveCount(0);
   await expect(page.locator('.shape-halo')).toHaveCount(await page.locator('.shape-outline').count());
   await expect(page.locator('.pattern-layer.rectangle .shape-outline')).toHaveCount(await page.locator('.shape-outline.rectangle').count());

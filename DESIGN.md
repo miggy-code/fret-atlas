@@ -8,7 +8,7 @@ Implemented: custom notes; minor/major pentatonic and blues; major; natural mino
 
 ## Visual grammar
 
-- One continuous studio panel: study heading, consolidated controls, fretboard canvas, tone palette, and inspection footer. A deep blue header and restrained instrument colors establish hierarchy.
+- One continuous studio panel: study heading, consolidated controls, fretboard canvas, tone palette, and inspection footer. The key letter is in root red; the neck is a warm maple tone with bone-colored nut and warm fret wires (rosewood-dark in dark mode). Changing form fades the outlines in and sweeps the notes in from the left; notes lift slightly on hover. Motion is off under reduced-motion preferences.
 - Root markers use red with a contrasting center dot, including in Dots mode. Other notes are neutral unless degree colors are active. Pentatonic tones are solid. Added scale tones are hollow. Manual marks add an independent amber ring.
 - Rectangle outlines are rust and stack outlines blue. Both use unfilled paths with non-scaling strokes and a narrow neck-colored underlay to separate them from strings and fret wires. Straight diagonal rails join the shifted G–B endpoints. Each position assigns a string to one block, avoiding overlapping red and blue edges. Outer-string fragments use open rails and short continuation stubs. Pattern-string filters remove whole patterns touching excluded strings.
 - The selected form's scale tones are prominent. Whole map adds other scale tones at low opacity. Outline visibility never hides notes. Unrelated chromatic notes are hidden by default and can be shown separately.
@@ -27,6 +27,9 @@ Implemented: custom notes; minor/major pentatonic and blues; major; natural mino
 - Drills (`src/core/drill.ts`) pick one pitch from the current selection and target every position of it either along one string or within the active form. Form drills appear only in Position, Shape and Diagonal views, and alternate randomly with string drills. Focus limits both. A new prompt never repeats the previous one.
 - While drilling, the board is rendered from a quiet copy of the state: skeleton, ghost forms, triads, marks, degree isolation, whole map and outlines are off, and hidden notes have no names in their accessible labels, titles or tooltips. A dashed zone shows where to search. Found notes pop in with a green burst; the whole set bounces when the round completes.
 - The streak counts correct taps in a row and resets on a miss. The best streak and the sound preference are device preferences in local storage, outside the shared view state.
+
+- Progress (`src/core/progress.ts`) records each pentatonic form per key and family as seen (six seconds on screen) or practiced (a finished play-through or form drill). Only Position view counts. Progress appears as small dots on the form picker and as five-segment rings in a collapsed Progress panel listed after the settings panels. Completing all five forms in a key shows a toast. It is a device record, separate from the view state.
+- Practice, playback and progress are extras around the atlas: they never change the saved or shared view, and the atlas reads the same with all of them unused.
 
 ## Musical model
 

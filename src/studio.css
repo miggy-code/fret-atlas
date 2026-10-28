@@ -3,8 +3,8 @@
 :root {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #263b47; background: #eaf0f3; font-synthesis: none;
-  --ink: #263b47; --muted: #637681; --line: #dce5e9; --neck: #f3f7f8; --page: #f7f8fa; --panel: #f0f2f5;
-  --root: #d7263d; --core: #314e5b; --added: #236fa8;
+  --ink: #263b47; --muted: #637681; --line: #dce5e9; --neck: #f7f1e8; --page: #f7f8fa; --panel: #f0f2f5;
+  --root: #d7263d; --core: #4b6574; --added: #236fa8;
   --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
   --triad: #3d806c; --accent: #226863; --surface: #fff; --good: #1f9d63; --hot: #f0661d;
   --degree-2: #e3b341; --degree-3: #a365b5; --degree-4: #67a7a1; --degree-5: #58a86c; --degree-6: #bf7a47; --degree-7: #8b86c8;
@@ -16,11 +16,11 @@ html[data-theme='dark'] {
   --ink: #e5e9ec;
   --muted: #9ca8b0;
   --line: #30373c;
-  --neck: #1b2a32;
+  --neck: #221e1c;
   --page: #111416;
   --panel: #202528;
   --root: #ff5c6c;
-  --core: #d3e1e8;
+  --core: #b3c3cb;
   --added: #78bee9;
   --rectangle: #f07b57;
   --stack: #79a8eb;
@@ -54,9 +54,9 @@ html[data-theme='dark'] kbd { background: #22343e; border-color: #3a505c; }
 html[data-theme='dark'] .legend-note.root { background: var(--root); }
 html[data-theme='dark'] .legend-note.skeleton { background: var(--core); }
 html[data-theme='dark'] .neck-base rect:first-child { fill: var(--neck); }
-html[data-theme='dark'] .fret-wire { stroke: #3a515d; }
-html[data-theme='dark'] .nut { stroke: #73909f; }
-html[data-theme='dark'] .guitar-string { stroke: #7793a2; }
+html[data-theme='dark'] .fret-wire { stroke: #4a4440; }
+html[data-theme='dark'] .nut { stroke: #cbbfa8; }
+html[data-theme='dark'] .guitar-string { stroke: #9a9690; }
 html[data-theme='dark'] .fret-number, html[data-theme='dark'] .string-name { fill: #b5c8d2; }
 html[data-theme='dark'] .tone-chip.root { color: var(--root); border-color: #7a3640; }
 html[data-theme='dark'] .tone-chip.added { color: var(--added); border-color: #365b70; }
@@ -79,7 +79,7 @@ svg { flex-shrink: 0; }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 11px; border-radius: 6px; color: #536b77; font-size: 14px; white-space: nowrap; }
 .text-button:hover { background: #eaf0f3; color: var(--ink); }
 .header-actions .text-button { color: var(--ink); }
-.header-actions .text-button:hover { background: var(--neck); color: var(--ink); }
+.header-actions .text-button:hover { background: var(--panel); color: var(--ink); }
 .header-actions .text-button { border: 1px solid var(--line); }
 .workspace { max-width: 1536px; margin: auto; padding: 28px 36px 20px; }
 .board-card { background: var(--surface); border: 1px solid #d1dfe5; border-radius: 16px; box-shadow: 0 8px 32px #163c4908; }
@@ -152,9 +152,9 @@ select:hover { border-color: #8fa9b6; }
 .scroll-cue { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 0; }
 .fret-number { font: 500 12px 'DM Sans', sans-serif; fill: #5c7380; }
 .open-fret { font-size: 12px; letter-spacing: .7px; }
-.fret-wire { stroke: #d2e0e6; stroke-width: 1; }
-.nut { stroke: #728b98; stroke-width: 4; }
-.guitar-string { stroke: #97adb9; }
+.fret-wire { stroke: #d8cebf; stroke-width: 1.5; }
+.nut { stroke: #b3a283; stroke-width: 5; }
+.guitar-string { stroke: #a39d94; }
 .string-name { font-size: 12px; font-weight: 600; fill: #617c89; }
 .inlay { fill: #8fa7b3; }
 .has-patterns .guitar-string { opacity: .6; }
@@ -194,7 +194,7 @@ html[data-theme='dark'] .note-node { --marker: #7f9daa; --marker-fill: #21333d; 
 html[data-theme='dark'] .note-node.root { --marker: var(--root); --marker-fill: var(--root); --label: #10232e; }
 html[data-theme='dark'] .note-node.added { --marker: var(--added); --marker-fill: var(--neck); --label: var(--added); }
 html[data-theme='dark'] .note-node.context { --marker: #7c99a7; --marker-fill: #253943; }
-html[data-theme='dark'] .note-node.skeleton { --marker: #cfdee7; --marker-fill: #cfdee7; --label: #16242c; }
+html[data-theme='dark'] .note-node.skeleton { --marker: #b3c3cb; --marker-fill: #b3c3cb; --label: #16242c; }
 html[data-theme='dark'] .note-node.context.is-triad { --marker: var(--triad); --marker-fill: #214438; --label: #b5ead7; }
 .has-patterns .note-node.skeleton:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--muted); --marker-fill: var(--core); --label: var(--surface); }
 /* Continuation tones on a diagonal run stay hollow so the blocks read first. */
@@ -452,7 +452,7 @@ html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
 .minimal-studio .board-card { display: flex; flex-direction: column; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .minimal-studio .board-heading { padding: 0 0 24px; }
 .minimal-studio .board-title { gap: 10px; align-items: baseline; }
-.minimal-studio .tonic-badge { display: inline; min-width: 0; height: auto; padding: 0; border-radius: 0; color: var(--ink); background: transparent; font-size: 22px; font-weight: 600; }
+.minimal-studio .tonic-badge { display: inline; min-width: 0; height: auto; padding: 0; border-radius: 0; color: var(--root); background: transparent; font-size: 22px; font-weight: 600; }
 .minimal-studio h1 { font-size: 22px; letter-spacing: -.5px; margin-bottom: 6px; }
 .minimal-studio .board-title p { font-size: 12px; }
 .minimal-studio .map-tag { display: none; }
@@ -548,10 +548,8 @@ html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
 }
 
 /* Practice: drills, form playback and their feedback. */
-.header-actions .practice-button { background: var(--root); border-color: var(--root); color: #fff; font-weight: 600; }
-.header-actions .practice-button:hover { background: color-mix(in srgb, var(--root) 86%, #000); color: #fff; }
-.header-actions .practice-button.is-active { background: var(--surface); border-color: var(--root); color: var(--root); }
-html[data-theme='dark'] .header-actions .practice-button:not(.is-active) { color: #1a0d10; }
+.header-actions .practice-button svg { color: var(--root); }
+.header-actions .practice-button.is-active { border-color: var(--root); color: var(--root); font-weight: 600; }
 .play-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-left: 4px; padding: 6px 14px 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; }
 .play-button svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
 .play-button:hover { border-color: var(--accent); }
@@ -588,17 +586,42 @@ html[data-theme='dark'] .header-actions .practice-button:not(.is-active) { color
 .is-drill-miss .note-face { stroke-width: 1.5; stroke-dasharray: none; }
 .miss-cross { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
 .is-drill-miss .note-symbol { animation: note-shake .4s ease-in-out; }
-.is-playing .note-symbol { transform: scale(1.3); transition: transform .08s; }
+.note-node .note-symbol { transition: transform .12s ease-out; }
+.note-node:not(.is-hidden):hover .note-symbol { transform: scale(1.12); }
+.is-playing .note-symbol, .note-node.is-playing:hover .note-symbol { transform: scale(1.3); transition-duration: .08s; }
+.form-enter .shape-outline, .form-enter .shape-halo, .form-enter .shared-rail { animation: outline-in .45s ease-out both; }
+.form-enter .note-node[data-active='true']:not(.is-hidden) .note-symbol { animation: note-in .38s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--wave) * 22ms); }
 .is-playing .note-burst { stroke: var(--accent); animation: note-burst .45s ease-out; }
 
+@keyframes outline-in { from { opacity: 0; } }
+@keyframes note-in { from { transform: scale(.3); opacity: 0; } }
 @keyframes note-pop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
 @keyframes note-burst { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
 @keyframes note-cheer { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.35); } }
 @keyframes note-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
 @keyframes pip-pop { 0% { transform: scale(.3); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }
 @keyframes streak-bump { 0% { transform: translateY(4px) scale(1.4); opacity: .4; } 100% { transform: none; opacity: 1; } }
+/* Progress: quiet markers on the form picker, and a key grid in its own panel. */
+.form-picker button { position: relative; }
+.form-picker button[data-progress]::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; border: 1px solid var(--good); }
+.form-picker button[data-progress='practiced']::after { background: var(--good); }
+.progress-panel { width: 100%; }
+.progress-intro { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.key-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.key-cell { display: grid; justify-items: center; gap: 2px; padding: 10px 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+.key-cell:hover { border-color: var(--accent); }
+.key-cell[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.key-cell strong { font-size: 14px; }
+.key-cell span { color: var(--muted); font-size: 11px; }
+.key-cell.is-complete strong { color: var(--good); }
+.form-ring { width: 36px; height: 36px; }
+.ring-segment { fill: none; stroke-width: 4; stroke-linecap: butt; transition: stroke .3s; }
+.ring-segment.level-0 { stroke: var(--line); }
+.ring-segment.level-1 { stroke: color-mix(in srgb, var(--good) 35%, var(--line)); }
+.ring-segment.level-2 { stroke: var(--good); }
+.progress-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 12px; }
 @media (prefers-reduced-motion: reduce) {
-  .note-symbol, .note-burst, .drill-progress i, .drill-streak b { animation: none !important; transition: none !important; }
+  .note-symbol, .note-burst, .drill-progress i, .drill-streak b, .shape-outline, .shape-halo, .shared-rail, .ring-segment { animation: none !important; transition: none !important; }
 }
 @media (max-width: 760px) {
   .drill-bar { grid-template-columns: 1fr auto; padding: 14px; gap: 10px 16px; }
