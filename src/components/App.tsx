@@ -4,7 +4,7 @@ import { describeNote, degreeLabel, LOWEST_STRING_CHOICES, pitchName, position, 
 import type { Scale } from '../core/music';
 import { loadState, reducer, sectionModified, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
 import type { Action, NoteColors, NoteView, State, Triad } from '../core/state';
-import { degreeColor } from '../core/presentation';
+import { degreeColor, notePresentation } from '../core/presentation';
 import { deriveStudy, tuningOf } from '../core/study';
 import type { Study, StudyMode } from '../core/study';
 import type { Shape, ShapeKind } from '../core/shapes';
@@ -12,6 +12,9 @@ import { Charm } from './Charm';
 import { ControlModule, Icon, RestoreButton, Segments, Toggle } from './controls';
 import { Fretboard } from './Fretboard';
 import { GuideDialog } from './GuideDialog';
+import { pluck } from './audio';
+import { DrillBar, useDrill } from './Drill';
+import { usePlayback } from './usePlayback';
 
 const scaleOptions = SCALES.filter(scale => !scale.id.endsWith('-triad'));
 const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
@@ -23,6 +26,8 @@ export function App() {
     try { const theme = localStorage.getItem('fret-atlas-theme'); return theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; }
     catch { return false; }
   });
+  const [sound, setSound] = useState(() => { try { return localStorage.getItem('fret-atlas-sound') !== 'off'; } catch { return true; } });
+  const [practicing, setPracticing] = useState(false);
   const [fitNeck, setFitNeck] = useState(false);
   const [inspected, setInspected] = useState<string | null>(null);
   const [storageWorks, setStorageWorks] = useState(true);
@@ -35,6 +40,10 @@ export function App() {
   const tuning = tuningOf(state);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(state), [state]);
   const shapes = useMemo(() => visibleShapes(state, study), [state, study]);
+  const drill = useDrill(state, study, practicing, sound);
+  const playback = usePlayback(sound);
+  // A drill hides every hint that would give the answer away.
+  const boardState = useMemo<State>(() => practicing ? { ...state, skeleton: false, ghostForms: false, triad: 'off', marks: [], isolatedTones: [], wholeMap: false, context: false } : state, [state, practicing]);
   const inspection = inspected ? describeNote(position(...(inspected.split(':').map(Number) as [number, number]), tuning), state.root, scale, state.spelling) : undefined;
 
   useEffect(() => {
@@ -46,6 +55,26 @@ export function App() {
     try { localStorage.setItem('fret-atlas-theme', darkMode ? 'dark' : 'light'); } catch { /* The visual preference is optional. */ }
   }, [darkMode]);
   useEffect(() => () => clearTimeout(shareTimer.current), []);
+  // A playing run belongs to the form it started on.
+  useEffect(() => { playback.stop(); }, [study?.id]);
+  useEffect(() => { try { localStorage.setItem('fret-atlas-sound', sound ? 'on' : 'off'); } catch { /* The sound preference is optional. */ } }, [sound]);
+
+  function togglePractice() {
+    playback.stop();
+    setInspected(null);
+    setPracticing(value => !value);
+  }
+  function markNote(id: string) {
+    dispatch({ type: 'mark', id });
+    if (sound) pluck(position(...(id.split(':').map(Number) as [number, number]), tuning).midi);
+  }
+  // A form plays the way it is fingered: low string to high, each string left to right.
+  function playForm() {
+    if (playback.running) { playback.stop(); return; }
+    const notes = [6, 5, 4, 3, 2, 1].flatMap(string => Array.from({ length: state.frets + 1 }, (_, fret) => position(string, fret, tuning)))
+      .filter(note => { const p = notePresentation(note, state, shapes, study, ghosts); return p.active && p.visible; });
+    playback.play(notes);
+  }
 
   async function share() {
     const url = new URL(window.location.href);
@@ -67,18 +96,20 @@ export function App() {
             <div><h1>{scale.name}</h1><p>{state.fourths ? 'All fourths' : state.lowest === 0 ? 'Standard tuning' : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p></div>
           </div>
           <div className="header-actions">
+            <button className={`text-button practice-button ${practicing ? 'is-active' : ''}`} aria-pressed={practicing} onClick={togglePractice}><Icon name="target" /><span>{practicing ? 'Stop practice' : 'Practice'}</span></button>
             <button className="text-button" aria-label="Share view" onClick={share}><Icon name="link" /><span>Share</span></button>
             <button ref={guideButton} className="text-button" onClick={() => guide.current?.showModal()}><Icon name="help" /><span>Guide</span></button>
             <button className="text-button" title="Restore every panel's defaults. Key, scale and marked notes stay." onClick={() => dispatch({ type: 'reset-view' })}><Icon name="undo" /><span>Reset view</span></button>
           </div>
           <span className="map-tag">{study ? `${study.label}${state.studyMode === 'shape' ? ` · ${shapeName(state.shapeKind)}` : ''}` : 'Custom map'}</span>
         </div>
-        <StudyControls state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choices.length} />
+        <StudyControls state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choices.length} playing={playback.running} onPlay={practicing ? undefined : playForm} />
+        {practicing && <DrillBar session={drill} onEnd={togglePractice} />}
 
-        {scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
+        {!practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
         {(state.studyMode === 'diagonal' || state.studyMode === 'all') && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
-        <Fretboard state={state} shapes={shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} onMark={id => dispatch({ type: 'mark', id })} onInspect={setInspected}>
-          <BoardLegend state={state} shapes={shapes} scale={scale} />
+        <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing} onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
+          {!practicing && <BoardLegend state={state} shapes={shapes} scale={scale} />}
         </Fretboard>
         <NoteViewBar state={state} dispatch={dispatch} />
         <ToneStrip state={state} dispatch={dispatch} scale={scale} />
@@ -90,7 +121,7 @@ export function App() {
           <PracticeTools state={state} dispatch={dispatch} />
         </ControlModule>
         <ControlModule title="Instrument & display" summary="Tuning, neck and appearance" className="instrument-settings" modified={sectionModified(state, 'instrument')} onRestore={() => dispatch({ type: 'reset-section', value: 'instrument' })}>
-          <InstrumentSettings state={state} dispatch={dispatch} darkMode={darkMode} onDarkMode={() => setDarkMode(value => !value)} />
+          <InstrumentSettings state={state} dispatch={dispatch} darkMode={darkMode} onDarkMode={() => setDarkMode(value => !value)} sound={sound} onSound={() => setSound(value => !value)} />
         </ControlModule>
 
         <div className="inspection-row">
@@ -118,7 +149,7 @@ export function App() {
   </>;
 }
 
-function StudyControls({ state, dispatch, scale, study, choiceCount }: Props & { scale: Scale; study: Study | undefined; choiceCount: number }) {
+function StudyControls({ state, dispatch, scale, study, choiceCount, playing, onPlay }: Props & { scale: Scale; study: Study | undefined; choiceCount: number; playing: boolean; onPlay?: () => void }) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
@@ -157,6 +188,7 @@ function StudyControls({ state, dispatch, scale, study, choiceCount }: Props & {
         <button className="icon-button" aria-label="Previous form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
         <div className="form-status" aria-live="polite"><strong>{study.label}</strong><span>Frets {Math.max(0, Math.min(...study.rows.map(r => r.left)))}–{Math.min(state.frets, Math.max(...study.rows.map(r => r.right)))}</span></div>
         <button className="icon-button" aria-label="Next form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
+        {onPlay && <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}><Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}</button>}
         {scale.family && (state.studyMode === 'position' || state.studyMode === 'shape') && <div className="form-picker" role="group" aria-label="Pentatonic form">
           {[1, 2, 3, 4, 5].map(form => <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form} onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>)}
         </div>}
@@ -287,13 +319,14 @@ function PracticeTools({ state, dispatch }: Props) {
   </>;
 }
 
-function InstrumentSettings({ state, dispatch, darkMode, onDarkMode }: Props & { darkMode: boolean; onDarkMode: () => void }) {
+function InstrumentSettings({ state, dispatch, darkMode, onDarkMode, sound, onSound }: Props & { darkMode: boolean; onDarkMode: () => void; sound: boolean; onSound: () => void }) {
   return <>
     <label className="field"><span>Frets</span><select id="frets" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>{[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}</select></label>
     <label className="field"><span>Lowest string</span><select id="lowest" value={state.lowest} onChange={e => dispatch({ type: 'lowest', value: Number(e.target.value) })}>{LOWEST_STRING_CHOICES.map(c => <option key={c.lowered} value={c.lowered}>{c.label}</option>)}</select></label>
     <Toggle label="All fourths" checked={state.fourths} onChange={() => dispatch({ type: 'toggle', key: 'fourths' })} hint="Tune the B and e strings up a semitone so every string is a fourth apart" />
     <label className="field"><span>Key spelling</span><select id="spelling" value={state.spelling} onChange={e => dispatch({ type: 'spelling', value: e.target.value as 'sharps' | 'flats' })}><option value="sharps">Sharps ♯</option><option value="flats">Flats ♭</option></select></label>
     <Toggle label="Dark mode" checked={darkMode} onChange={onDarkMode} />
+    <Toggle label="Sound" checked={sound} onChange={onSound} hint="Pluck notes when you tap them, play forms and hear drill feedback" />
     <Toggle label="String names" checked={state.stringNames} onChange={() => dispatch({ type: 'toggle', key: 'stringNames' })} />
     <Toggle label="Left-handed" checked={state.leftHanded} onChange={() => dispatch({ type: 'toggle', key: 'leftHanded' })} />
   </>;

@@ -114,13 +114,16 @@ test('hover tooltip text stays inside its box and clear of the hovered note ring
   await page.getByRole('button', { name: 'Whole neck', exact: true }).click();
   for (const id of ['1:5', '3:7', '2:15']) {
     await page.locator(`[data-note-id="${id}"]`).hover();
+    await expect(page.locator('.inline-note-tooltip')).toHaveAttribute('data-tooltip-note', id);
+    await expect.poll(async () => {
+      const box = (await page.locator('.inline-note-tooltip rect').boundingBox())!;
+      const ring = (await page.locator(`[data-note-id="${id}"] .focus-ring`).boundingBox())!;
+      return box.y < ring.y + ring.height && ring.y < box.y + box.height;
+    }).toBe(false);
     const box = (await page.locator('.inline-note-tooltip rect').boundingBox())!;
     const text = (await page.locator('.inline-note-tooltip text').boundingBox())!;
     expect(text.x).toBeGreaterThanOrEqual(box.x);
     expect(text.x + text.width).toBeLessThanOrEqual(box.x + box.width);
-    const ring = (await page.locator(`[data-note-id="${id}"] .focus-ring`).boundingBox())!;
-    const overlaps = box.y < ring.y + ring.height && ring.y < box.y + box.height;
-    expect(overlaps).toBe(false);
   }
 });
 

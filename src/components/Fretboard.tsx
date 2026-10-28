@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { boardGeometry, HIT_SIZE, shapePath, sharedShapePath, ROW } from '../core/geometry';
+import { boardGeometry, CELL, HIT_SIZE, shapePath, sharedShapePath, ROW } from '../core/geometry';
 import { position, pitchName } from '../core/music';
 import { Charm } from './Charm';
 import { degreeColor, notePresentation } from '../core/presentation';
@@ -10,10 +10,11 @@ import type { State } from '../core/state';
 import { inFocus, shapeInFocus } from '../core/state';
 import { rootConnections, tuningOf } from '../core/study';
 import type { Study } from '../core/study';
+import type { DrillView } from './Drill';
 
-interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; fitNeck?: boolean; children?: ReactNode; onMark: (id: string) => void; onInspect: (id: string) => void }
+interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; fitNeck?: boolean; drill?: DrillView; playing?: string | null; children?: ReactNode; onMark: (id: string) => void; onInspect: (id: string) => void }
 
-export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested = false, children, onMark, onInspect }: Props) {
+export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested = false, drill, playing, children, onMark, onInspect }: Props) {
   // Fitting only applies to the wide views that offer the toggle.
   const fitNeck = fitRequested && (state.studyMode === 'diagonal' || state.studyMode === 'all');
   const geo = useMemo(() => boardGeometry(state.frets, state.leftHanded), [state.frets, state.leftHanded]);
@@ -86,7 +87,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const labelX = state.leftHanded ? fitRight < geo.width ? fitRight - 16 : geo.labelX : fitLeft > 0 ? fitLeft + 16 : geo.labelX;
   return <div className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label="Fretboard. Tab to a note; arrow keys navigate, Enter marks. Scroll horizontally for more frets.">
-      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : ''} ${drill?.complete ? 'drill-complete' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${fitLeft} 0 ${fitRight-fitLeft} ${geo.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { minWidth: geo.width }} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'}>
         <title>Guitar fretboard, high strings above, nut {state.leftHanded ? 'right' : 'left'}</title>
         <defs>
           {/* Patterns may reach past the open notes, but stop at the last fret so cut-off shapes end on the neck. */}
@@ -114,6 +115,10 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           {/* The shift reads in the label gutter, away from the notes on frets 1–2. */}
           <text className="warp-label" x={labelX} y={(geo.y(2) + geo.y(3)) / 2 + 4} textAnchor="middle">+1</text>
         </g>}
+        {drill && <g className="drill-zone" aria-hidden="true">{drill.drill.zone.map(row => {
+          const left = Math.min(geo.x(row.left), geo.x(row.right)) - CELL / 2 + 4;
+          return <rect key={row.string} x={left} y={geo.y(row.string) - ROW / 2 + 5} width={Math.abs(geo.x(row.right) - geo.x(row.left)) + CELL - 8} height={ROW - 10} rx="10" />;
+        })}</g>}
         {state.skeleton && <g className="root-skeleton" aria-hidden="true">{roots.map(({a,b})=><line key={`${a.id}-${b.id}`} data-from={a.id} data-to={b.id} x1={geo.x(a.fret)} y1={geo.y(a.string)} x2={geo.x(b.fret)} y2={geo.y(b.string)} vectorEffect="non-scaling-stroke" />)}</g>}
         {state.ghostForms && ghostShapes.length > 0 && <g className="ghost-pattern-layer" aria-hidden="true" clipPath={`url(#${patternClip})`}>
           {ghostShapes.map(shape => <path key={`ghost:${shape.id}`} className={`shape-ghost-outline ${shape.kind}`} data-ghost-shape-id={shape.id} d={shapePath(shape, geo)} vectorEffect="non-scaling-stroke" />)}
@@ -136,34 +141,41 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           const toneColor = p.tone ? degreeColor(p.tone.degree) : undefined;
           const chordTone = !state.luckyCharms && degreeHue === undefined && state.chordColors && p.selected && (p.tone?.degree === 3 || p.tone?.degree === 5) ? p.tone.degree === 3 ? 'third' : 'fifth' : '';
           const label = state.labels === 'intervals' ? p.interval : p.name;
+          // While drilling, only answers already found are drawn, and nothing names a hidden note.
+          const drillFound = drill?.found.includes(note.id) ?? false;
+          const drillMiss = drill?.miss === note.id;
+          const visible = drill ? drillFound || drillMiss : p.visible;
+          const aria = drill && !drillFound ? `String ${note.string}, ${fret === 0 ? 'open' : `fret ${fret}`}` : p.aria;
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
-            role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={p.aria} aria-pressed={p.marked}
-            data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={p.visible ? 'true' : 'false'}
+            role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={aria} aria-pressed={drill ? undefined : p.marked}
+            data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={visible ? 'true' : 'false'} data-drill={drillFound ? 'found' : drillMiss ? 'miss' : undefined}
             data-charm-degree={charmDegree}
-            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${p.visible ? '' : 'is-hidden'} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && p.visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
             transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
-            <title>{p.aria}</title>
+            <title>{aria}</title>
             <rect className="note-hit" x={-HIT_SIZE / 2} y={-HIT_SIZE / 2} width={HIT_SIZE} height={HIT_SIZE} rx="7" />
             <rect className="focus-ring" x="-20" y="-20" width="40" height="40" rx="9" />
             <rect className="mark-ring" x="-17" y="-17" width="34" height="34" rx="7" />
             <g className="note-symbol">
-              {p.kind === 'context' && !p.marked && !p.triad
+              {drillMiss ? <><circle className="note-face" r="11" /><path className="miss-cross" d="M-4,-4 4,4M4,-4-4,4" /></>
+                : p.kind === 'context' && !p.marked && !p.triad
                 ? <circle className="note-face" r="3" />
                 : charmDegree ? <Charm degree={charmDegree} />
                 : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
               {p.triad && <circle className="triad-halo" r="18" />}
-              {state.labels !== 'none' && (p.selected || p.marked || p.triad) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
-              {state.labels === 'both' && (p.selected || p.marked || p.triad) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
-              {state.labels === 'none' && (charmDegree === undefined || charmDegree === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
+              {(drillFound || playing === note.id) && <circle className="note-burst" r="13" />}
+              {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
+              {!drillMiss && state.labels === 'both' && (p.selected || p.marked || p.triad) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
+              {!drillMiss && state.labels === 'none' && (charmDegree === undefined || charmDegree === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>
           </g>;
         }))}
         {(() => {
           const tipId = emphasized;
-          if (!tipId) return null;
+          if (!tipId || drill) return null;
           const [tipString, tipFret] = tipId.split(':').map(Number);
           if (!tipString || isNaN(tipFret)) return null;
           const tipNote = position(tipString, tipFret, tuning);
@@ -171,7 +183,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           if (!tipP.visible && !tipP.marked && !tipP.triad) return null;
           const tipMembership = shapes.filter(s => insideShape(tipString, tipFret, s));
           const tipMemberLabel = [...new Set(tipMembership.map(s => s.kind === 'rectangle' ? 'Rectangle' : 'Stack'))].join(' & ');
-          return <NoteTooltip x={geo.x(tipFret)} y={tipString === 1 ? geo.y(1) + TIP_OFFSET : geo.y(tipString) - TIP_OFFSET} maxX={geo.width}
+          return <NoteTooltip noteId={tipId} x={geo.x(tipFret)} y={tipString === 1 ? geo.y(1) + TIP_OFFSET : geo.y(tipString) - TIP_OFFSET} maxX={geo.width}
             pitch={tipP.name} octave={tipP.octave} degree={tipP.kind === 'root' ? 'Root' : `Deg ${tipP.interval}`} member={tipMemberLabel} />;
         })()}
       </svg>
@@ -185,14 +197,14 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
 const TIP_OFFSET = 31;
 
 /** A one-line chip centered between strings; its box is measured from the text so long labels never spill out. */
-function NoteTooltip({ x, y, maxX, pitch, octave, degree, member }: { x: number; y: number; maxX: number; pitch: string; octave: number; degree: string; member: string }) {
+function NoteTooltip({ noteId, x, y, maxX, pitch, octave, degree, member }: { noteId: string; x: number; y: number; maxX: number; pitch: string; octave: number; degree: string; member: string }) {
   const text = useRef<SVGTextElement>(null);
   const [textWidth, setTextWidth] = useState(0);
   useLayoutEffect(() => { setTextWidth(text.current?.getComputedTextLength() ?? 0); }, [pitch, octave, degree, member]);
   const width = Math.ceil(textWidth) + 20;
   const height = 18;
   const left = Math.max(8, Math.min(maxX - width - 8, x - width / 2));
-  return <g className="inline-note-tooltip" transform={`translate(${left},${y})`} pointerEvents="none" aria-hidden="true" visibility={textWidth ? 'visible' : 'hidden'}>
+  return <g className="inline-note-tooltip" data-tooltip-note={noteId} transform={`translate(${left},${y})`} pointerEvents="none" aria-hidden="true" visibility={textWidth ? 'visible' : 'hidden'}>
     <rect x={0} y={-height / 2} width={width} height={height} rx="5" className="tooltip-box" />
     <text ref={text} className="tooltip-line-main" x={width / 2} textAnchor="middle" dominantBaseline="central">
       <tspan className="tooltip-pitch">{pitch}</tspan>

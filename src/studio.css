@@ -4,9 +4,9 @@
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #263b47; background: #eaf0f3; font-synthesis: none;
   --ink: #263b47; --muted: #637681; --line: #dce5e9; --neck: #f3f7f8; --page: #f7f8fa; --panel: #f0f2f5;
-  --root: #d47b22; --core: #314e5b; --added: #236fa8;
+  --root: #d7263d; --core: #314e5b; --added: #236fa8;
   --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
-  --triad: #3d806c; --accent: #226863; --surface: #fff;
+  --triad: #3d806c; --accent: #226863; --surface: #fff; --good: #1f9d63; --hot: #f0661d;
   --degree-2: #e3b341; --degree-3: #a365b5; --degree-4: #67a7a1; --degree-5: #58a86c; --degree-6: #bf7a47; --degree-7: #8b86c8;
 }
 html[data-theme='dark'] {
@@ -19,7 +19,7 @@ html[data-theme='dark'] {
   --neck: #1b2a32;
   --page: #111416;
   --panel: #202528;
-  --root: #ffc164;
+  --root: #ff5c6c;
   --core: #d3e1e8;
   --added: #78bee9;
   --rectangle: #f07b57;
@@ -31,6 +31,8 @@ html[data-theme='dark'] {
   --triad: #79bda4;
   --accent: #79c5b0;
   --surface: #181d20;
+  --good: #4fd497;
+  --hot: #ff8a3d;
 }
 html[data-theme='dark'] .board-card { border-color: #31454f; box-shadow: 0 8px 32px #0000002b; }
 html[data-theme='dark'] .map-tag, html[data-theme='dark'] .focus-panel { background: #1d3039; color: #bed2dc; }
@@ -56,7 +58,7 @@ html[data-theme='dark'] .fret-wire { stroke: #3a515d; }
 html[data-theme='dark'] .nut { stroke: #73909f; }
 html[data-theme='dark'] .guitar-string { stroke: #7793a2; }
 html[data-theme='dark'] .fret-number, html[data-theme='dark'] .string-name { fill: #b5c8d2; }
-html[data-theme='dark'] .tone-chip.root { color: var(--root); border-color: #75483d; }
+html[data-theme='dark'] .tone-chip.root { color: var(--root); border-color: #7a3640; }
 html[data-theme='dark'] .tone-chip.added { color: var(--added); border-color: #365b70; }
 html[data-theme='dark'] .marks-list button { background: #2a2923; border-color: #6f5c39; color: #e2d3b5; }
 html[data-theme='dark'] .guide-content dd, html[data-theme='dark'] .guide-footnote, html[data-theme='dark'] .page-footer, html[data-theme='dark'] .tone-chip > span { color: var(--muted); }
@@ -258,8 +260,8 @@ html[data-theme='dark'] .note-node.lucky-charm[data-charm-degree='1'] { --marker
 .tone-chip { display: flex; align-items: center; gap: 12px; justify-content: center; min-height: 42px; min-width: 68px; padding: 9px 13px; background: #fff; border: 1px solid #d6e2e8; border-radius: 6px; }
 .tone-chip strong { font-size: 16px; font-weight: 600; }
 .tone-chip > span { font-size: 13px; color: #667d8c; border-left: 1px solid #d5dfe5; padding-left: 10px; }
-.tone-chip.root { color: var(--root); background: #fff5ef; border-color: #ebd4c8; }
-.tone-chip.root > span { color: var(--root); border-left-color: #e7cdbc; }
+.tone-chip.root { color: var(--root); background: #fff1f2; border-color: #f2c9ce; }
+.tone-chip.root > span { color: var(--root); border-left-color: #efc2c8; }
 .tone-chip.added { color: var(--added); background: #f0f7fc; border-color: #c9deef; }
 .tone-chip.added > span { color: var(--added); border-left-color: #c9deef; }
 .tone-actions { margin-left: auto; display: flex; gap: 15px; }
@@ -543,4 +545,65 @@ html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
   .header-actions .text-button { min-height: 44px; }
   .board-title p { display: none; }
   .minimal-studio .form-status span, .minimal-studio .note-inspector, .control-module > summary > span { font-size: 12px; }
+}
+
+/* Practice: drills, form playback and their feedback. */
+.header-actions .practice-button { background: var(--root); border-color: var(--root); color: #fff; font-weight: 600; }
+.header-actions .practice-button:hover { background: color-mix(in srgb, var(--root) 86%, #000); color: #fff; }
+.header-actions .practice-button.is-active { background: var(--surface); border-color: var(--root); color: var(--root); }
+html[data-theme='dark'] .header-actions .practice-button:not(.is-active) { color: #1a0d10; }
+.play-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-left: 4px; padding: 6px 14px 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; }
+.play-button svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.play-button:hover { border-color: var(--accent); }
+.play-button.is-playing { border-color: var(--accent); color: var(--accent); }
+
+.drill-bar { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 12px 28px; margin-top: 16px; padding: 18px 20px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); transition: border-color .3s, box-shadow .3s; }
+.drill-bar.is-complete { border-color: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 18%, transparent); }
+.drill-prompt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.drill-eyebrow, .drill-where { color: var(--muted); font-size: 15px; }
+.drill-prompt strong { font-size: 30px; line-height: 1; letter-spacing: -.5px; color: var(--ink); }
+.drill-prompt em { padding: 3px 8px; border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 12px; font-style: normal; font-weight: 600; }
+.drill-progress { display: flex; flex-wrap: wrap; gap: 6px; max-width: 160px; }
+.drill-progress i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); transition: background .2s, border-color .2s; }
+.drill-progress i.done { border-color: var(--good); background: var(--good); animation: pip-pop .35s ease-out; }
+.drill-stats { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.drill-streak { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 20px; font-weight: 700; }
+.drill-streak svg { width: 22px; height: 22px; }
+.drill-streak.is-hot { color: var(--hot); }
+.drill-streak.is-hot svg { fill: color-mix(in srgb, var(--hot) 35%, transparent); }
+.drill-streak b { display: inline-block; min-width: 1ch; animation: streak-bump .3s ease-out; }
+.drill-actions { display: flex; gap: 4px; }
+.drill-feedback { grid-column: 1 / -1; margin: 0; min-height: 18px; color: var(--muted); font-size: 13px; }
+.drill-bar.is-complete .drill-feedback { color: var(--good); font-weight: 600; }
+.drill-empty { margin: 0; color: var(--muted); font-size: 14px; }
+
+.drill-zone rect { fill: color-mix(in srgb, var(--focus) 7%, transparent); stroke: color-mix(in srgb, var(--focus) 30%, transparent); stroke-width: 1; stroke-dasharray: 4 4; }
+.is-drilling .note-node.is-hidden:hover .note-symbol, .is-drilling .note-node.is-hidden:focus-visible .note-symbol { visibility: hidden; }
+.note-node .note-symbol { transform-box: fill-box; transform-origin: center; }
+.note-burst { fill: none; stroke: var(--good); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.is-drill-found .note-symbol { animation: note-pop .38s cubic-bezier(.3, 1.6, .5, 1); }
+.is-drill-found .note-burst { animation: note-burst .55s ease-out; }
+.drill-complete .is-drill-found .note-symbol { animation: note-cheer .6s ease-in-out; }
+.note-node.is-drill-miss { --marker: var(--muted); --marker-fill: var(--surface); }
+.is-drill-miss .note-face { stroke-width: 1.5; stroke-dasharray: none; }
+.miss-cross { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.is-drill-miss .note-symbol { animation: note-shake .4s ease-in-out; }
+.is-playing .note-symbol { transform: scale(1.3); transition: transform .08s; }
+.is-playing .note-burst { stroke: var(--accent); animation: note-burst .45s ease-out; }
+
+@keyframes note-pop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
+@keyframes note-burst { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
+@keyframes note-cheer { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.35); } }
+@keyframes note-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
+@keyframes pip-pop { 0% { transform: scale(.3); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes streak-bump { 0% { transform: translateY(4px) scale(1.4); opacity: .4; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .note-symbol, .note-burst, .drill-progress i, .drill-streak b { animation: none !important; transition: none !important; }
+}
+@media (max-width: 760px) {
+  .drill-bar { grid-template-columns: 1fr auto; padding: 14px; gap: 10px 16px; }
+  .drill-prompt strong { font-size: 24px; }
+  .drill-progress { order: 3; max-width: none; }
+  .drill-stats { order: 4; justify-self: end; }
+  .drill-actions { grid-row: 1; grid-column: 2; }
 }

@@ -32,4 +32,4 @@ export function notePresentation(note: Note, s: State, shapes: Shape[] = [], stu
 }
 
 // Degree identity stays consistent between major and minor scales.
-export const degreeColor = (degree: number) => ['#d47b22', '#e3b341', '#a365b5', '#67a7a1', '#58a86c', '#bf7a47', '#8b86c8'][degree - 1] ?? '#e8edf2';
+export const degreeColor = (degree: number) => ['#d7263d', '#e3b341', '#a365b5', '#67a7a1', '#58a86c', '#bf7a47', '#8b86c8'][degree - 1] ?? '#e8edf2';

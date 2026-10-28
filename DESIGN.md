@@ -9,7 +9,7 @@ Implemented: custom notes; minor/major pentatonic and blues; major; natural mino
 ## Visual grammar
 
 - One continuous studio panel: study heading, consolidated controls, fretboard canvas, tone palette, and inspection footer. A deep blue header and restrained instrument colors establish hierarchy.
-- Root markers use amber with a contrasting center dot, including in Dots mode. Other notes are neutral unless degree colors are active. Pentatonic tones are solid. Added scale tones are hollow. Manual marks add an independent amber ring.
+- Root markers use red with a contrasting center dot, including in Dots mode. Other notes are neutral unless degree colors are active. Pentatonic tones are solid. Added scale tones are hollow. Manual marks add an independent amber ring.
 - Rectangle outlines are rust and stack outlines blue. Both use unfilled paths with non-scaling strokes and a narrow neck-colored underlay to separate them from strings and fret wires. Straight diagonal rails join the shifted G–B endpoints. Each position assigns a string to one block, avoiding overlapping red and blue edges. Outer-string fragments use open rails and short continuation stubs. Pattern-string filters remove whole patterns touching excluded strings.
 - The selected form's scale tones are prominent. Whole map adds other scale tones at low opacity. Outline visibility never hides notes. Unrelated chromatic notes are hidden by default and can be shown separately.
 - Position, Shape and Diagonal select the study geometry; arrows select the next or previous available form. Ghost forms displays violet dashed outlines of adjacent forms to visualize the interlocking puzzle across the neck. Skeleton joins roots across the neck in violet. Warp marks the G–B tuning shift with a red dotted line and a +1 label in the string-name gutter, clear of the notes. The hover tooltip is a one-line chip sized to its text and placed between strings, clear of the hovered note and its neighbors. These overlays do not change shape geometry. The nut, fret numbers, inlays, and increasing string weights preserve orientation.
@@ -19,6 +19,14 @@ Implemented: custom notes; minor/major pentatonic and blues; major; natural mino
 - String names have their own Display toggle. It leaves row spacing unchanged.
 - The note palette combines pitch selection with interval information. Editing it explicitly changes the study to Custom notes and disables shape overlays, so stale scale names cannot misrepresent the board.
 - A selected-position summary appears in one line. Mark chips appear only when there are marked notes. Secondary settings remain in Display; spatial filters expand from Focus.
+
+## Practice and sound
+
+- Sound is synthesized in the browser with a Karplus–Strong plucked string (`src/components/audio.ts`); there are no audio files. Plucks are tuned with a playback-rate correction, so even short delay lines stay in tune. A wrong drill tap plays a short muted thud.
+- Play runs the active form's visible notes from low string to high, each string left to right, then back down. The sounding note scales up with an accent ring. Changing form stops playback.
+- Drills (`src/core/drill.ts`) pick one pitch from the current selection and target every position of it either along one string or within the active form. Form drills appear only in Position, Shape and Diagonal views, and alternate randomly with string drills. Focus limits both. A new prompt never repeats the previous one.
+- While drilling, the board is rendered from a quiet copy of the state: skeleton, ghost forms, triads, marks, degree isolation, whole map and outlines are off, and hidden notes have no names in their accessible labels, titles or tooltips. A dashed zone shows where to search. Found notes pop in with a green burst; the whole set bounces when the round completes.
+- The streak counts correct taps in a row and resets on a miss. The best streak and the sound preference are device preferences in local storage, outside the shared view state.
 
 ## Musical model
 
