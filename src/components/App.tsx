@@ -317,6 +317,7 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, 
         { value: 'stack', label: <><i className="shape-icon stack" />Stack</> },
       ]} onChange={value => dispatch({ type: 'shape-kind', value })} />}
       {scale.family && <button type="button" className="connect-button" aria-pressed={connected} onClick={onConnect} title="Outline the neighboring forms to see how they connect">Connect positions</button>}
+      <label className="neck-length"><span>Neck</span><select aria-label="Neck length" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>{[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}</select></label>
       {state.studyMode === 'all' && scale.family && <span className="form-hint">Hover a note to highlight its shapes</span>}
     </div>
   </section>;

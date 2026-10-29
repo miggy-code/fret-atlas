@@ -26,7 +26,7 @@ test('all patterns shows the whole scale and retains both colors on shared rails
 test('A skeleton exactly matches the eight observed reference connections regardless of form or map layer',()=>{
   const expected=['5:0>3:2','3:2>1:5','3:2>6:5','1:5>4:7','6:5>4:7','4:7>2:10','2:10>5:12','5:12>3:14'].sort();
   for(const studyMode of ['position','shape','diagonal','all'] as const) for(const wholeMap of [false,true]) {
-    const s={...defaultState(),studyMode,wholeMap,form:3};
+    const s={...{ ...defaultState(), frets: 15 },studyMode,wholeMap,form:3};
     assert.deepEqual(rootConnections(s).map(({a,b})=>`${a.id}>${b.id}`).sort(),expected);
   }
 });
@@ -81,10 +81,10 @@ test('derived study data matches the public selectors across study modes',()=>{
 
 test('single shapes and diagonals match the reference topology, including edge fragments',()=>{
   for(const shapeKind of ['rectangle','stack'] as const) {
-    const s={...defaultState(),studyMode:'shape' as const,shapeKind};
+    const s={...{ ...defaultState(), frets: 15 },studyMode:'shape' as const,shapeKind};
     for(const c of studyChoices(s)) { assert.equal(c.shapes.length,1); assert.equal(c.shapes[0].kind,shapeKind); }
   }
-  const rectangle={...defaultState(),studyMode:'diagonal' as const};
+  const rectangle={...{ ...defaultState(), frets: 15 },studyMode:'diagonal' as const};
   const rectangles=studyChoices(rectangle);
   assert.deepEqual(rectangles.map(c=>c.shapes[0].id),['rectangle:6:0','rectangle:7:5','rectangle:6:12']);
   assert.deepEqual(rectangles[0].shapes.map(s=>s.id),['rectangle:6:0','rectangle:4:2','rectangle:2:5']);
