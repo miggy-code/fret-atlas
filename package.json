@@ -12,6 +12,7 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
+    "@clerk/react": "^6.18.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
