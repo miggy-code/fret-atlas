@@ -121,20 +121,26 @@ test('one form renders cleanly; independent pattern and warp toggles persist wit
   expect(rectangles).toBe(2);
   expect(stacks).toBe(1);
   expect(dots).toBe(12);
-  await openOverlays(page);
-  await page.getByRole('button',{name:'Rectangles',exact:true}).click();
+  // Rectangles and stacks are chosen in one place: the form bar.
+  const families=page.getByRole('group',{name:'Pattern families',exact:true});
+  await expect(page.getByRole('group',{name:'Pattern outlines'})).toHaveCount(0);
+  await families.getByRole('button',{name:'Stacks',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(0);
   await expect(page.locator('.shape-outline.stack')).toHaveCount(stacks);
-  await page.getByRole('button',{name:'Stacks',exact:true}).click();
-  await expect(page.locator('.shape-outline')).toHaveCount(0);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
+  await openOverlays(page);
   await toggle(page,'Warp').uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   await page.reload();
   await openOverlays(page);
   await expect(toggle(page,'Warp')).not.toBeChecked();
-  for (const name of ['Rectangles','Stacks']) await expect(page.getByRole('button',{name,exact:true})).toHaveAttribute('aria-pressed','false');
-  await page.getByRole('button',{name:'Rectangles',exact:true}).click();
+  await expect(families.getByRole('button',{name:'Stacks',exact:true})).toHaveAttribute('aria-pressed','true');
+  // Shape view keeps its chosen family even though the filter excludes rectangles.
+  await page.getByRole('button',{name:'Shape',exact:true}).click();
+  await expect(page.locator('.shape-outline.rectangle')).toHaveCount(1);
+  await expect(page.locator('.board-notice')).toHaveCount(0);
+  await page.getByRole('button',{name:'Position',exact:true}).click();
+  await families.getByRole('button',{name:'Rectangles',exact:true}).click();
   await expect(page.locator('.shape-outline.rectangle')).toHaveCount(rectangles);
   await page.locator('[data-note-id="1:5"]').hover();
   await expect(page.locator('.shape-outline.is-emphasized')).toHaveCount(1);
@@ -309,13 +315,14 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
 
 test('triad highlighting is independent, optional, persistent, and available with custom notes', async ({page})=>{
   await page.goto('/');
-  await openPractice(page);
-  const triad=page.getByRole('group',{name:'Triad highlight',exact:true});
-  await expect(triad.getByRole('button',{name:'Off',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:'Show tones',exact:true})).toHaveAttribute('aria-pressed','false');
   await expect(page.locator('#scale option[value$="-triad"]')).toHaveCount(0);
   const scale=await page.locator('#scale').inputValue();
   const patterns=await page.locator('.shape-outline').count();
-  await triad.getByRole('button',{name:'Major',exact:true}).click();
+  await page.getByLabel('Chord quality').selectOption('major');
+  await page.getByRole('button',{name:'Show tones',exact:true}).click();
+  // Chord tones are not a panel setting, so no panel reports a change.
+  await expect(page.locator('em.modified-badge')).toHaveCount(0);
   await expect(page.locator('#scale')).toHaveValue(scale);
   await expect(page.locator('.shape-outline')).toHaveCount(patterns);
   const added=page.locator('[data-note-id="1:9"]');
@@ -324,23 +331,22 @@ test('triad highlighting is independent, optional, persistent, and available wit
   await added.click();
   await expect(added.locator('.triad-halo')).toHaveCount(1);
   await expect(added).toHaveAttribute('aria-pressed','true');
-  await page.locator('#triad-root').selectOption('0');
+  await page.getByLabel('Chord root').selectOption('0');
   await page.reload();
-  await openPractice(page);
-  await expect(page.locator('#triad-root')).toHaveValue('0');
+  await expect(page.getByLabel('Chord root')).toHaveValue('0');
   await expect(page.locator('.triad-legend')).toHaveText('C major triad');
   await page.getByRole('button',{name:'Customize notes',exact:true}).click();
   const custom=await page.locator('.tone-chip[aria-pressed="true"]').count();
-  await triad.getByRole('button',{name:'Minor',exact:true}).click();
+  await page.getByLabel('Chord quality').selectOption('minor');
   await expect(page.locator('.tone-chip[aria-pressed="true"]')).toHaveCount(custom);
   await page.locator('#root').selectOption('2');
   await expect(page.locator('.triad-legend')).toHaveText('C minor triad');
   for(const width of [320,390,768]) {
     await page.setViewportSize({width,height:844});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    await expect(page.locator('#triad-root')).toBeVisible();
+    await expect(page.getByLabel('Chord root')).toBeVisible();
   }
-  await triad.getByRole('button',{name:'Off',exact:true}).click();
+  await page.getByRole('button',{name:'Hide tones',exact:true}).click();
   await expect(page.locator('.triad-halo')).toHaveCount(0);
   await expect(page.locator('.marks-list button')).toHaveCount(1);
 });

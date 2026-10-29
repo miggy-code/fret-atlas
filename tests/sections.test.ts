@@ -71,8 +71,7 @@ test('sectionModified is false by default and true only for the section that cha
     ['note-view', reducer(defaultState(), { type: 'note-view', value: 'notes' })],
     ['note-view', reducer(defaultState(), { type: 'isolate-tone', value: 7 })],
     ['overlays', reducer(defaultState(), { type: 'toggle', key: 'skeleton' })],
-    ['overlays', reducer(defaultState(), { type: 'pattern', value: 'stack' })],
-    ['practice', reducer(defaultState(), { type: 'triad', value: 'minor' })],
+    ['practice', reducer(defaultState(), { type: 'toggle', key: 'focus' })],
     ['instrument', reducer(defaultState(), { type: 'toggle', key: 'leftHanded' })],
   ];
   for (const [section, s] of cases) for (const other of SECTIONS) assert.equal(sectionModified(s, other), other === section, `${section} change seen by ${other}`);
@@ -81,9 +80,20 @@ test('sectionModified is false by default and true only for the section that cha
   s = reducer(s, { type: 'scale', value: 'major' });
   s = reducer(s, { type: 'mark', id: '1:5' });
   s = reducer(s, { type: 'study-mode', value: 'all' });
+  // Pattern families and triads live outside the panels.
+  s = reducer(s, { type: 'patterns', value: ['stack'] });
+  s = reducer(s, { type: 'triad', value: 'minor' });
   for (const section of SECTIONS) assert.equal(sectionModified(s, section), false, section);
   // Restoring a re-toggled default returns to unmodified.
   assert.equal(sectionModified(reducer(reducer(defaultState(), { type: 'toggle', key: 'skeleton' }), { type: 'toggle', key: 'skeleton' }), 'overlays'), false);
+});
+
+test('Shape and Diagonal keep their chosen family even when the family filter excludes it', () => {
+  for (const studyMode of ['shape', 'diagonal'] as const) for (const shapeKind of ['rectangle', 'stack'] as const) {
+    const other = shapeKind === 'rectangle' ? 'stack' : 'rectangle';
+    const state = { ...defaultState(), studyMode, shapeKind, patterns: [other] as State['patterns'] };
+    assert.ok(visibleShapes(state).length > 0, `${studyMode} ${shapeKind}`);
+  }
 });
 
 test('patterns action keeps only valid pattern families', () => {
@@ -139,7 +149,7 @@ test('run tones appear only in diagonal, only for active notes outside every blo
     if (kind === 'rectangle') assert.ok(runs(diagonal).length > 0, 'rectangle diagonals have continuation tones');
     else runs(diagonal);
     // Without outlines nothing can be a continuation tone.
-    assert.deepEqual(runs({ ...diagonal, patterns: [] }), []);
+    assert.deepEqual(runs({ ...diagonal, overlayRows: [] }), []);
   }
   for (const mode of ['position', 'shape', 'all', 'string', 'nps'] as const) {
     let s = reducer(defaultState(), { type: 'study-mode', value: mode });

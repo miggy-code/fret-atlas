@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { describeNote, position, scaleById } from '../core/music';
 import { nextDrill, tapResult } from '../core/drill';
-import type { Drill } from '../core/drill';
+import type { Drill, DrillRequest } from '../core/drill';
 import type { State } from '../core/state';
 import { tuningOf } from '../core/study';
 import type { Study } from '../core/study';
@@ -11,10 +11,10 @@ import { Icon } from './controls';
 const BEST_KEY = 'fret-atlas-best-streak';
 const readBest = () => { try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch { return 0; } };
 
-export interface DrillView { drill: Drill; found: string[]; miss: string | null; complete: boolean }
+export interface DrillView { drill: Drill; found: string[]; miss: string | null; complete: boolean; hint?: string; revealed: boolean }
 
 /** Runs "find every X" rounds against the current view. A new round starts whenever the view it depends on changes. */
-export function useDrill(state: State, study: Study | undefined, active: boolean, sound: boolean, onRound?: (drill: Drill) => void) {
+export function useDrill(state: State, study: Study | undefined, active: boolean, sound: boolean, onRound?: (drill: Drill) => void, request?: DrillRequest) {
   const [drill, setDrill] = useState<Drill>();
   const [found, setFound] = useState<string[]>([]);
   const [miss, setMiss] = useState<string | null>(null);
@@ -22,18 +22,24 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
   const [best, setBest] = useState(readBest);
   const [rounds, setRounds] = useState(0);
   const [feedback, setFeedback] = useState('');
+  const [hint, setHint] = useState<string>();
+  const [revealed, setRevealed] = useState(false);
+  const [assisted, setAssisted] = useState(false);
   const started = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
   const tuning = tuningOf(state);
-  const context = JSON.stringify([state.root, state.scaleId, state.customPitches, state.spelling, state.frets, state.lowest, state.fourths, state.strings, state.focus, state.from, state.to, state.studyMode, study?.id]);
+  const context = JSON.stringify([state.root, state.scaleId, state.customPitches, state.spelling, state.frets, state.lowest, state.fourths, state.strings, state.focus, state.from, state.to, state.studyMode, study?.id, request]);
 
   function begin(previous?: string) {
     clearTimers();
-    setDrill(nextDrill(state, study, previous));
+    setDrill(nextDrill(state, study, previous, Math.random, request));
     setFound([]);
     setMiss(null);
+    setHint(undefined);
+    setRevealed(false);
+    setAssisted(false);
     started.current = performance.now();
   }
 
@@ -45,7 +51,7 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
   useEffect(() => clearTimers, []);
 
   function tap(id: string) {
-    if (!drill || found.length === drill.targets.length) return;
+    if (!drill || revealed || found.length === drill.targets.length) return;
     const [string, fret] = id.split(':').map(Number);
     const note = position(string, fret, tuning);
     const result = tapResult(drill, found, id);
@@ -76,18 +82,32 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
     const seconds = ((performance.now() - started.current) / 1000).toFixed(1);
     if (sound) next.map(n => position(...(n.split(':').map(Number) as [number, number]), tuning).midi).sort((a, b) => a - b).forEach((midi, i) => pluck(midi, i * .09, .8));
     setRounds(r => r + 1);
-    onRound?.(drill);
+    if (!assisted) onRound?.(drill);
     setFeedback(`All ${drill.targets.length} in ${seconds}s${record && nextStreak > 1 ? ' · New best streak!' : ''}`);
     later(() => begin(drill.key), 1300);
   }
 
-  const view: DrillView | undefined = active && drill ? { drill, found, miss, complete: found.length === drill.targets.length } : undefined;
-  return { view, tap, skip: () => { setStreak(0); begin(drill?.key); setFeedback('Skipped'); }, streak, best, rounds, feedback };
+  const view: DrillView | undefined = active && drill ? { drill, found, miss, complete: found.length === drill.targets.length, hint, revealed } : undefined;
+  const skip = () => { setStreak(0); begin(drill?.key); setFeedback('Next prompt'); };
+  const showHint = () => {
+    const id = drill?.targets.find(target => !found.includes(target));
+    if (!id) return;
+    setHint(id);
+    setAssisted(true);
+    setFeedback('One answer is highlighted.');
+  };
+  const reveal = () => {
+    if (!drill) return;
+    setRevealed(true);
+    setAssisted(true);
+    setFeedback('Answers revealed. Choose Next when you are ready.');
+  };
+  return { view, tap, skip, hint: showHint, reveal, streak, best, rounds, feedback };
 }
 
 export function DrillBar({ session, onEnd }: { session: ReturnType<typeof useDrill>; onEnd: () => void }) {
-  const { view, streak, best, rounds, feedback, skip } = session;
-  if (!view) return <section className="drill-bar" aria-label="Practice drill"><p className="drill-empty">No notes to find in this view. Try a different scale or clear the focus.</p><button className="text-button" onClick={onEnd}>Done</button></section>;
+  const { view, streak, best, rounds, feedback, skip, hint, reveal } = session;
+  if (!view) return <section className="drill-bar" aria-label="Practice drill"><p className="drill-empty">No notes to find in this view. Try a different scale or clear the focus.</p><button className="text-button" onClick={onEnd}>End</button></section>;
   const { drill, found, complete } = view;
   return <section className={`drill-bar ${complete ? 'is-complete' : ''}`} aria-label="Practice drill">
     <div className="drill-prompt">
@@ -95,6 +115,7 @@ export function DrillBar({ session, onEnd }: { session: ReturnType<typeof useDri
       <strong>{drill.name}</strong>
       {drill.degree && <em title="Scale degree">{drill.degree}</em>}
       <span className="drill-where">{drill.where}</span>
+      {drill.group && <span className="drill-where">· {drill.group}</span>}
     </div>
     <div className="drill-progress" role="img" aria-label={`${found.length} of ${drill.targets.length} found`}>
       {drill.targets.map((_, i) => <i key={i} className={i < found.length ? 'done' : ''} />)}
@@ -105,8 +126,10 @@ export function DrillBar({ session, onEnd }: { session: ReturnType<typeof useDri
       <span>{rounds} {rounds === 1 ? 'round' : 'rounds'}</span>
     </div>
     <div className="drill-actions">
-      <button className="text-button" onClick={skip}>Skip</button>
-      <button className="text-button" onClick={onEnd}>Done</button>
+      <button className="text-button" onClick={hint} disabled={view.revealed}>Hint</button>
+      <button className="text-button" onClick={reveal} disabled={view.revealed}>Reveal</button>
+      <button className="text-button" onClick={skip}>Next</button>
+      <button className="text-button" onClick={onEnd}>End</button>
     </div>
     <p className="drill-feedback" role="status" aria-live="polite">{feedback || 'Tap the fretboard. Notes stay hidden until you find them.'}</p>
   </section>;

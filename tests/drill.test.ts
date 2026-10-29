@@ -63,3 +63,38 @@ test('taps report hits, repeats and misses',()=>{
   const wrong=Array.from({length:16},(_,f)=>`${string}:${f}`).find(id=>!drill.targets.includes(id))!;
   assert.equal(tapResult(drill,[],wrong),'miss');
 });
+
+test('targeted degree practice stays in the current form and focused strings',()=>{
+  let s=reducer(defaultState(),{type:'form',value:3});
+  s=reducer(s,{type:'string',value:1});
+  const study=activeStudy(s)!;
+  const drill=nextDrill(s,study,undefined,cycle([0]),{pitches:[s.root],label:'roots'})!;
+  assert.equal(drill.kind,'form');
+  assert.equal(drill.group,'roots');
+  assert.equal(drill.pitch,s.root);
+  assert.ok(drill.targets.length>0);
+  for(const id of drill.targets) {
+    const [string,fret]=id.split(':').map(Number);
+    assert.notEqual(string,1);
+    assert.ok(study.rows.some(row=>row.string===string&&fret>=row.left&&fret<=row.right));
+  }
+});
+
+test('targeted chord practice permits tones outside the scale across the whole neck',()=>{
+  const s=reducer(defaultState(),{type:'study-mode',value:'all'});
+  const study=activeStudy(s)!;
+  // C♯ is outside A minor pentatonic but is valid for an overlaid A major chord.
+  const drill=nextDrill(s,study,undefined,cycle([0]),{pitches:[1],label:'A major'})!;
+  assert.equal(drill.kind,'view');
+  assert.equal(drill.name,'C♯');
+  assert.ok(drill.targets.length>1);
+  assert.ok(drill.targets.some(id=>id.startsWith('1:')));
+  assert.ok(drill.targets.some(id=>id.startsWith('6:')));
+});
+
+test('targeted practice has no fallback when the requested tones are outside focus',()=>{
+  let s=reducer(defaultState(),{type:'study-mode',value:'all'});
+  s=reducer(s,{type:'range',from:0,to:0});
+  s=reducer(s,{type:'toggle',key:'focus'});
+  assert.equal(nextDrill(s,activeStudy(s),undefined,cycle([0]),{pitches:[1],label:'C♯'}),undefined);
+});

@@ -3,7 +3,7 @@ import type { CSSProperties, Dispatch, ReactNode } from 'react';
 import { describeNote, degreeLabel, LOWEST_STRING_CHOICES, pitchName, position, scaleById, SCALES, SHARPS, spellTone } from '../core/music';
 import type { Scale } from '../core/music';
 import { loadState, reducer, sectionModified, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
-import type { Action, NoteColors, NoteView, State, Triad } from '../core/state';
+import type { Action, NoteColors, NoteView, State } from '../core/state';
 import { degreeColor, notePresentation } from '../core/presentation';
 import { deriveStudy, tuningOf } from '../core/study';
 import type { Study, StudyMode } from '../core/study';
@@ -14,6 +14,7 @@ import { Fretboard } from './Fretboard';
 import { GuideDialog } from './GuideDialog';
 import { pluck } from './audio';
 import { DrillBar, useDrill } from './Drill';
+import type { DrillRequest } from '../core/drill';
 import { usePlayback } from './usePlayback';
 import { ProgressPanel, useProgress } from './Progress';
 import { levelOf, practicedForms } from '../core/progress';
@@ -30,6 +31,17 @@ export function App() {
   });
   const [sound, setSound] = useState(() => { try { return localStorage.getItem('fret-atlas-sound') !== 'off'; } catch { return true; } });
   const [practicing, setPracticing] = useState(false);
+  const [request, setRequest] = useState<DrillRequest>();
+  const [connecting, setConnecting] = useState(false);
+  // While chord tones are shown the saved triad is the chord; while hidden, this keeps the next choice.
+  const [pendingChord, setPendingChord] = useState<{ kind: 'major' | 'minor'; root: number | null }>(() => ({ kind: state.triad === 'major' ? 'major' : 'minor', root: state.triadRoot }));
+  const showChord = state.triad !== 'off';
+  const chordKind = showChord ? state.triad as 'major' | 'minor' : pendingChord.kind;
+  const chordRootSetting = showChord ? state.triadRoot : pendingChord.root;
+  const chordRoot = chordRootSetting ?? state.root;
+  const chordSounds = useRef<(() => void)[]>([]);
+  const drillContainer = useRef<HTMLDivElement>(null);
+  const practiceTrigger = useRef('');
   const [fitNeck, setFitNeck] = useState(false);
   const [inspected, setInspected] = useState<string | null>(null);
   const [storageWorks, setStorageWorks] = useState(true);
@@ -40,16 +52,18 @@ export function App() {
   const shareTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
-  const { choices, study, ghosts } = useMemo(() => deriveStudy(state), [state]);
-  const shapes = useMemo(() => visibleShapes(state, study), [state, study]);
+  // Connecting from another view borrows Position with ghost forms until the next view change.
+  const viewState = useMemo<State>(() => connecting ? { ...state, studyMode: 'position', ghostForms: true } : state, [state, connecting]);
+  const { choices, study, ghosts } = useMemo(() => deriveStudy(viewState), [viewState]);
+  const shapes = useMemo(() => visibleShapes(viewState, study), [viewState, study]);
   const progress = useProgress();
   // Progress tracks the five pentatonic positions, so only Position view counts toward it.
   const family = scale.family;
   const formStudy = family && state.studyMode === 'position' ? study : undefined;
-  const drill = useDrill(state, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); });
+  const drill = useDrill(viewState, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); }, request);
   const playback = usePlayback(sound);
   // A drill hides every hint that would give the answer away.
-  const boardState = useMemo<State>(() => practicing ? { ...state, skeleton: false, ghostForms: false, triad: 'off', marks: [], isolatedTones: [], wholeMap: false, context: false } : state, [state, practicing]);
+  const boardState = useMemo<State>(() => practicing ? { ...viewState, skeleton: false, ghostForms: false, triad: 'off', marks: [], isolatedTones: [], wholeMap: false, context: false } : viewState, [viewState, practicing]);
   const inspection = inspected ? describeNote(position(...(inspected.split(':').map(Number) as [number, number]), tuning), state.root, scale, state.spelling) : undefined;
 
   useEffect(() => {
@@ -60,7 +74,14 @@ export function App() {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
     try { localStorage.setItem('fret-atlas-theme', darkMode ? 'dark' : 'light'); } catch { /* The visual preference is optional. */ }
   }, [darkMode]);
-  useEffect(() => () => clearTimeout(shareTimer.current), []);
+  // The controls that start a drill unmount while it runs, so focus returns to the remounted one by id.
+  useEffect(() => {
+    if (practicing) { drillContainer.current?.focus(); return; }
+    if (!practiceTrigger.current) return;
+    (document.getElementById(practiceTrigger.current) ?? guideButton.current)?.focus();
+    practiceTrigger.current = '';
+  }, [practicing]);
+  useEffect(() => () => { clearTimeout(shareTimer.current); chordSounds.current.forEach(stop => stop()); }, []);
   // Six seconds with a form on screen counts as having seen it.
   useEffect(() => {
     if (!family || !formStudy || practicing) return;
@@ -82,9 +103,42 @@ export function App() {
     if (levelOf(progress.progress, family, root, form) < 2 && practicedForms(progress.progress, family, root) === 4) notify(`All five forms of ${pitchName(root, state.spelling)} ${family} practiced`);
   }
   function togglePractice() {
+    if (!practicing) practiceTrigger.current = 'practice-toggle';
     playback.stop();
+    chordSounds.current.forEach(stop => stop()); chordSounds.current = [];
     setInspected(null);
+    setRequest(undefined);
     setPracticing(value => !value);
+  }
+  function startFind(next: DrillRequest, trigger: string) {
+    practiceTrigger.current = trigger;
+    playback.stop(); chordSounds.current.forEach(stop => stop()); chordSounds.current = [];
+    setInspected(null); setRequest(next); setPracticing(true);
+  }
+  function hearChord() {
+    playback.stop(); chordSounds.current.forEach(stop => stop()); chordSounds.current = [];
+    if (!sound) { notify('Sound is off. Enable it in Instrument & display.'); return; }
+    chordSounds.current = chordPitches().map(pitch => pluck(48 + pitch));
+  }
+  function chordPitches() { return [0, chordKind === 'major' ? 4 : 3, 7].map(interval => chordRoot + interval); }
+  function setChord(next: { kind?: 'major' | 'minor'; root?: number }) {
+    if (!showChord) { setPendingChord(chord => ({ ...chord, ...next })); return; }
+    if (next.kind) dispatch({ type: 'triad', value: next.kind });
+    if (next.root !== undefined) dispatch({ type: 'triad-root', value: next.root });
+  }
+  function toggleChord() {
+    if (showChord) { setPendingChord({ kind: chordKind, root: state.triadRoot }); dispatch({ type: 'triad', value: 'off' }); return; }
+    dispatch({ type: 'triad', value: pendingChord.kind });
+    dispatch({ type: 'triad-root', value: pendingChord.root });
+  }
+  function toggleConnections() {
+    if (connecting) setConnecting(false);
+    else if (state.studyMode === 'position') dispatch({ type: 'toggle', key: 'ghostForms' });
+    else setConnecting(true);
+  }
+  function studyDispatch(action: Action) {
+    if (action.type === 'study-mode') setConnecting(false);
+    dispatch(action);
   }
   function markNote(id: string) {
     dispatch({ type: 'mark', id });
@@ -94,7 +148,7 @@ export function App() {
   function playForm() {
     if (playback.running) { playback.stop(); return; }
     const notes = [6, 5, 4, 3, 2, 1].flatMap(string => Array.from({ length: state.frets + 1 }, (_, fret) => position(string, fret, tuning)))
-      .filter(note => { const p = notePresentation(note, state, shapes, study, ghosts); return p.active && p.visible; });
+      .filter(note => { const p = notePresentation(note, viewState, shapes, study, ghosts); return p.active && p.visible; });
     const form = formStudy?.form, root = state.root;
     playback.play(notes, form ? () => practiced(form, root) : undefined);
   }
@@ -117,28 +171,40 @@ export function App() {
             <div><h1>{scale.name}</h1><p>{state.fourths ? 'All fourths' : state.lowest === 0 ? 'Standard tuning' : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p></div>
           </div>
           <div className="header-actions">
-            <button className={`text-button practice-button ${practicing ? 'is-active' : ''}`} aria-pressed={practicing} onClick={togglePractice}><Icon name="target" /><span>{practicing ? 'Stop practice' : 'Practice'}</span></button>
+            <button id="practice-toggle" className={`text-button practice-button ${practicing ? 'is-active' : ''}`} aria-pressed={practicing} onClick={togglePractice}><Icon name="target" /><span>{practicing ? 'Stop practice' : 'Practice'}</span></button>
             <button className="text-button" aria-label="Share view" onClick={share}><Icon name="link" /><span>Share</span></button>
             <button ref={guideButton} className="text-button" onClick={() => guide.current?.showModal()}><Icon name="help" /><span>Guide</span></button>
-            <button className="text-button" title="Restore every panel's defaults. Key, scale and marked notes stay." onClick={() => dispatch({ type: 'reset-view' })}><Icon name="undo" /><span>Reset view</span></button>
+            <button className="text-button" disabled={practicing} title="Restore every panel's defaults. Key, scale and marked notes stay." onClick={() => dispatch({ type: 'reset-view' })}><Icon name="undo" /><span>Reset view</span></button>
           </div>
           <span className="map-tag">{study ? `${study.label}${state.studyMode === 'shape' ? ` · ${shapeName(state.shapeKind)}` : ''}` : 'Custom map'}</span>
         </div>
-        <StudyControls state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choices.length} formLevel={family ? form => levelOf(progress.progress, family, state.root, form) : undefined} playing={playback.running} onPlay={practicing ? undefined : playForm} />
-        {practicing && <DrillBar session={drill} onEnd={togglePractice} />}
+        {!practicing && <StudyControls state={viewState} dispatch={studyDispatch} scale={scale} study={study} choiceCount={choices.length} formLevel={family ? form => levelOf(progress.progress, family, state.root, form) : undefined} playing={playback.running} onPlay={playForm} connected={viewState.studyMode === 'position' && viewState.ghostForms} onConnect={toggleConnections} />}
 
         {!practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
         {(state.studyMode === 'diagonal' || state.studyMode === 'all') && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
         <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing} onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
-          {!practicing && <BoardLegend state={state} shapes={shapes} scale={scale} />}
+          {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
         </Fretboard>
+        {practicing ? <div ref={drillContainer} tabIndex={-1}><DrillBar session={drill} onEnd={togglePractice} /></div> : <>
         <NoteViewBar state={state} dispatch={dispatch} />
-        <ToneStrip state={state} dispatch={dispatch} scale={scale} />
+        <section className="explore" aria-label="Explore">
+          <ToneStrip state={state} dispatch={dispatch} scale={scale} onFind={() => startFind({ pitches: state.isolatedTones.map(t => (state.root + t) % 12), label: 'selected degrees' }, 'find-these')} />
+          <div className="chord-row">
+            <span className="explore-label">Chord</span>
+            <span className="chord-sentence"><select aria-label="Chord root" value={chordRoot} onChange={e => setChord({ root: Number(e.target.value) })}>{SHARPS.map((_, i) => <option value={i} key={i}>{pitchName(i, state.spelling)}</option>)}</select><select aria-label="Chord quality" value={chordKind} onChange={e => setChord({ kind: e.target.value as 'major' | 'minor' })}><option value="minor">minor</option><option value="major">major</option></select><span>in {pitchName(state.root, state.spelling)} {scale.name}</span></span>
+            <span className="explore-actions">
+              <button aria-pressed={showChord} onClick={toggleChord}>{showChord ? 'Hide tones' : 'Show tones'}</button>
+              <button id="find-tones" onClick={() => startFind({ pitches: chordPitches().map(pitch => pitch % 12), label: `${pitchName(chordRoot, state.spelling)} ${chordKind} chord` }, 'find-tones')}>Find tones</button>
+              <button onClick={hearChord}>Hear chord</button>
+            </span>
+          </div>
+        </section>
+        </>}
 
-        <ControlModule title="Overlays" summary="Patterns and visual guides" modified={sectionModified(state, 'overlays')} onRestore={() => dispatch({ type: 'reset-section', value: 'overlays' })}>
+        {!practicing && <><ControlModule title="Overlays" summary="Patterns and visual guides" modified={sectionModified(state, 'overlays')} onRestore={() => dispatch({ type: 'reset-section', value: 'overlays' })}>
           <Overlays state={state} dispatch={dispatch} scale={scale} />
         </ControlModule>
-        <ControlModule title="Practice tools" summary="Triads and fret/string focus" modified={sectionModified(state, 'practice')} onRestore={() => dispatch({ type: 'reset-section', value: 'practice' })}>
+        <ControlModule title="Practice tools" summary="Fret and string focus" modified={sectionModified(state, 'practice')} onRestore={() => dispatch({ type: 'reset-section', value: 'practice' })}>
           <PracticeTools state={state} dispatch={dispatch} />
         </ControlModule>
         <ControlModule title="Instrument & display" summary="Tuning, neck and appearance" className="instrument-settings" modified={sectionModified(state, 'instrument')} onRestore={() => dispatch({ type: 'reset-section', value: 'instrument' })}>
@@ -148,6 +214,7 @@ export function App() {
           <ProgressPanel progress={progress.progress} family={family} root={state.root} spelling={state.spelling} onKey={value => dispatch({ type: 'root', value })} onClear={progress.clear} />
         </ControlModule>}
 
+        </>}
         <div className="inspection-row">
           <div className="note-inspector" role="status" aria-live="polite">{inspection && inspected
             ? <><strong>{inspection.name}<small>{inspection.octave}</small></strong><span>Degree {inspection.interval}</span><span>String {inspected.split(':')[0]} · {inspected.endsWith(':0') ? 'Open' : `Fret ${inspected.split(':')[1]}`}</span></>
@@ -173,7 +240,7 @@ export function App() {
   </>;
 }
 
-function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, playing, onPlay }: Props & { scale: Scale; study: Study | undefined; choiceCount: number; formLevel?: (form: number) => number; playing: boolean; onPlay?: () => void }) {
+function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, playing, onPlay, connected, onConnect }: Props & { scale: Scale; study: Study | undefined; choiceCount: number; formLevel?: (form: number) => number; playing: boolean; onPlay: () => void; connected: boolean; onConnect: () => void }) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
@@ -199,31 +266,32 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, 
     </div>
     {!scale.family && <p className="study-availability">Position, Shape and Diagonal need a scale built on a pentatonic.</p>}
     <div className="form-bar">
-      {state.studyMode === 'all' && scale.family && <div className="form-navigation">
-        <span className="field-label">Show</span>
-        <Segments<'both' | ShapeKind> label="Pattern families" value={visibleFamilies} options={[
-          { value: 'both', label: 'Both' },
-          { value: 'rectangle', label: <><i className="shape-icon" />Rectangles</> },
-          { value: 'stack', label: <><i className="shape-icon stack" />Stacks</> },
-        ]} onChange={value => dispatch({ type: 'patterns', value: value === 'both' ? ['rectangle', 'stack'] : [value] })} />
-        <span className="form-hint">Hover a note to highlight its shapes</span>
-      </div>}
-      {state.studyMode !== 'all' && study && <div className="form-navigation">
-        <button className="icon-button" aria-label="Previous form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
-        <div className="form-status" aria-live="polite"><strong>{study.label}</strong><span>Frets {Math.max(0, Math.min(...study.rows.map(r => r.left)))}–{Math.min(state.frets, Math.max(...study.rows.map(r => r.right)))}</span></div>
-        <button className="icon-button" aria-label="Next form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
-        {onPlay && <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}><Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}</button>}
-        {scale.family && (state.studyMode === 'position' || state.studyMode === 'shape') && <div className="form-picker" role="group" aria-label="Pentatonic form">
+      {(study || state.studyMode === 'all') && <div className="form-navigation">
+        {state.studyMode !== 'all' && study && <>
+          <button className="icon-button" aria-label="Previous form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
+          <div className="form-status" aria-live="polite"><strong>{study.label}</strong><span>Frets {Math.max(0, Math.min(...study.rows.map(r => r.left)))}–{Math.min(state.frets, Math.max(...study.rows.map(r => r.right)))}</span></div>
+          <button className="icon-button" aria-label="Next form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
+        </>}
+        <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}><Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}</button>
+        {scale.family && (state.studyMode === 'position' || state.studyMode === 'shape') && study && <div className="form-picker" role="group" aria-label="Pentatonic form">
           {[1, 2, 3, 4, 5].map(form => {
             const level = state.studyMode === 'position' ? formLevel?.(form) ?? 0 : 0;
             return <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form} data-progress={['', 'seen', 'practiced'][level] || undefined} title={['', 'Seen', 'Practiced'][level] || undefined} onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>;
           })}
         </div>}
-        {(state.studyMode === 'shape' || state.studyMode === 'diagonal') && <Segments<ShapeKind> label="Shape family" value={state.shapeKind} options={[
-          { value: 'rectangle', label: <><i className="shape-icon" />Rectangle</> },
-          { value: 'stack', label: <><i className="shape-icon stack" />Stack</> },
-        ]} onChange={value => dispatch({ type: 'shape-kind', value })} />}
       </div>}
+      {/* The one place to choose rectangles or stacks: a filter in Position and Whole neck, the studied family in Shape and Diagonal. */}
+      {scale.family && ['position', 'all'].includes(state.studyMode) && <Segments<'both' | ShapeKind> label="Pattern families" value={visibleFamilies} options={[
+        { value: 'both', label: 'Both' },
+        { value: 'rectangle', label: <><i className="shape-icon" />Rectangles</> },
+        { value: 'stack', label: <><i className="shape-icon stack" />Stacks</> },
+      ]} onChange={value => dispatch({ type: 'patterns', value: value === 'both' ? ['rectangle', 'stack'] : [value] })} />}
+      {scale.family && ['shape', 'diagonal'].includes(state.studyMode) && <Segments<ShapeKind> label="Shape family" value={state.shapeKind} options={[
+        { value: 'rectangle', label: <><i className="shape-icon" />Rectangle</> },
+        { value: 'stack', label: <><i className="shape-icon stack" />Stack</> },
+      ]} onChange={value => dispatch({ type: 'shape-kind', value })} />}
+      {scale.family && <button type="button" className="connect-button" aria-pressed={connected} onClick={onConnect} title="Outline the neighboring forms to see how they connect">Connect positions</button>}
+      {state.studyMode === 'all' && scale.family && <span className="form-hint">Hover a note to highlight its shapes</span>}
     </div>
   </section>;
 }
@@ -265,12 +333,12 @@ function NoteViewBar({ state, dispatch }: Props) {
   </div>;
 }
 
-function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
+function ToneStrip({ state, dispatch, scale, onFind }: Props & { scale: Scale; onFind: () => void }) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const anyIsolated = state.isolatedTones.length > 0;
   return <div className="degree-legend">
-    <p className="degree-legend-heading">{custom ? 'Custom notes' : 'Scale degrees · click to isolate'}</p>
+    <p className="degree-legend-heading">{custom ? 'Custom notes' : <>Scale degrees<span>Click to isolate</span></>}</p>
     <section className="tone-strip" aria-label="Scale tones">
       <div className="tone-strip-heading"><h2>{custom ? 'Custom notes' : 'Scale tones'}</h2><span>{pitches.length} notes</span></div>
       <div className={`tone-sequence ${custom ? 'custom' : ''}`}>
@@ -292,7 +360,7 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
       </div>
       <div className="tone-actions">{custom
         ? <><button onClick={() => dispatch({ type: 'pitches', value: SHARPS.map((_, i) => i) })}>All</button><button onClick={() => dispatch({ type: 'pitches', value: [0, 2, 4, 5, 7, 9, 11] })}>Naturals</button><button onClick={() => dispatch({ type: 'pitches', value: [] })}>Clear</button></>
-        : <>{anyIsolated && <button className="tone-action-btn" onClick={() => dispatch({ type: 'clear-isolated-tones' })}>Show all degrees</button>}<button onClick={() => dispatch({ type: 'scale', value: 'custom' })}>Customize notes</button></>}
+        : <>{anyIsolated && <button id="find-these" onClick={onFind}>Find these</button>}{anyIsolated && <button onClick={() => dispatch({ type: 'clear-isolated-tones' })}>Show all degrees</button>}<button onClick={() => dispatch({ type: 'scale', value: 'custom' })}>Customize notes</button></>}
       </div>
     </section>
   </div>;
@@ -302,14 +370,12 @@ function Overlays({ state, dispatch, scale }: Props & { scale: Scale }) {
   return <>
     <div className="map-layers">
       {state.studyMode !== 'all' && <Toggle label="Whole map" checked={state.wholeMap} onChange={() => dispatch({ type: 'toggle', key: 'wholeMap' })} hint="Show the remaining scale notes quietly behind this form" />}
-      {state.studyMode === 'position' && scale.family && <Toggle label="Ghost forms" checked={state.ghostForms} onChange={() => dispatch({ type: 'toggle', key: 'ghostForms' })} hint="Outline the neighboring forms to see how they connect" />}
       <Toggle label="Skeleton" checked={state.skeleton} onChange={() => dispatch({ type: 'toggle', key: 'skeleton' })} hint="Connect the root notes across the neck" />
       {!state.fourths && <Toggle label="Warp" checked={state.warp} onChange={() => dispatch({ type: 'toggle', key: 'warp' })} hint="Mark the G–B tuning break where shapes shift one fret" />}
       <Toggle label="Notes outside the scale" checked={state.context} onChange={() => dispatch({ type: 'toggle', key: 'context' })} />
       {scale.tones.some(t => !t.skeleton) && <Toggle label="Pentatonic only" checked={state.hideAdded} onChange={() => dispatch({ type: 'toggle', key: 'hideAdded' })} />}
     </div>
     {scale.family && <div className="pattern-options">
-      <div className="pattern-selector" role="group" aria-label="Pattern outlines">{(['rectangle', 'stack'] as const).map(kind => <button type="button" key={kind} className={`pattern-button ${kind}`} aria-pressed={state.patterns.includes(kind)} onClick={() => dispatch({ type: 'pattern', value: kind })}><i className={`shape-icon ${kind}`} />{kind === 'rectangle' ? 'Rectangles' : 'Stacks'}</button>)}</div>
       <div className="pattern-string-settings">
         <span className="field-label">Pattern strings</span>
         <div className="row-toggles" role="group" aria-label="Pattern strings">{[1, 2, 3, 4, 5, 6].map(string => <button type="button" key={string} aria-label={`Show patterns on string ${string}`} aria-pressed={state.overlayRows.includes(string)} onClick={() => dispatch({ type: 'overlay-row', value: string })}>{string}</button>)}</div>
@@ -323,14 +389,6 @@ function PracticeTools({ state, dispatch }: Props) {
   const [focusOpen, setFocusOpen] = useState(false);
   const focused = state.focus || state.strings.length !== 6;
   return <>
-    <div className="triad-controls">
-      <span className="field-label">Triad</span>
-      <Segments<Triad> label="Triad highlight" value={state.triad} options={[{ value: 'off', label: 'Off' }, { value: 'major', label: 'Major' }, { value: 'minor', label: 'Minor' }]} onChange={value => dispatch({ type: 'triad', value })} />
-      {state.triad !== 'off' && <label className="triad-root-field"><span>Root</span><select id="triad-root" aria-label="Triad root" value={state.triadRoot ?? 'key'} onChange={event => dispatch({ type: 'triad-root', value: event.target.value === 'key' ? null : Number(event.target.value) })}>
-        <option value="key">Key · {pitchName(state.root, state.spelling)}</option>
-        {SHARPS.map((_, pitch) => <option key={pitch} value={pitch}>{pitchName(pitch, state.spelling)}</option>)}
-      </select></label>}
-    </div>
     <button className={`text-button ${focused ? 'is-active' : ''}`} onClick={() => setFocusOpen(!focusOpen)} aria-expanded={focusOpen} aria-controls="focus-panel"><Icon name="focus" />Fret & string focus{focused && <span className="active-badge" />}</button>
     {focusOpen && <section id="focus-panel" className="focus-panel" aria-label="Focus controls">
       <div className="focus-range">

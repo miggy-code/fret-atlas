@@ -152,13 +152,14 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           // While drilling, only answers already found are drawn, and nothing names a hidden note.
           const drillFound = drill?.found.includes(note.id) ?? false;
           const drillMiss = drill?.miss === note.id;
-          const visible = drill ? drillFound || drillMiss : p.visible;
+          const assisted = !!drill && (drill.hint === note.id || (drill.revealed && drill.drill.targets.includes(note.id)));
+          const visible = drill ? drillFound || drillMiss || assisted : p.visible;
           const aria = drill && !drillFound ? `String ${note.string}, ${fret === 0 ? 'open' : `fret ${fret}`}` : p.aria;
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={aria} aria-pressed={drill ? undefined : p.marked}
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={visible ? 'true' : 'false'} data-drill={drillFound ? 'found' : drillMiss ? 'miss' : undefined}
             data-charm-degree={charmDegree}
-            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${assisted ? 'is-drill-hint' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
             transform={`translate(${geo.x(fret)},${geo.y(i + 1)})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>

@@ -34,7 +34,7 @@ test('practice hides the answers, scores taps, and deals a new round', async ({ 
   await expect(bar.locator('.drill-progress i.done')).toHaveCount(1);
 
   // Skip deals a different prompt; Stop practice restores the board.
-  await bar.getByRole('button', { name: 'Skip' }).click();
+  await bar.getByRole('button', { name: 'Next' }).click();
   await expect.poll(prompt).not.toBe(first);
   await page.getByRole('button', { name: 'Stop practice' }).click();
   await expect(bar).toHaveCount(0);
@@ -93,4 +93,63 @@ test('playing a form through marks it practiced on the picker and in the key gri
   await page.reload();
   await page.locator('#root').selectOption('9');
   await expect(formOne).toHaveAttribute('data-progress', 'practiced');
+});
+
+test('selected degree practice gives hints and reveal without scoring, then restores selection', async ({ page }) => {
+  await page.goto('/');
+  const degree = page.getByRole('button', { name: /Isolate .*degree/ }).first();
+  await degree.click();
+  await page.getByRole('button', { name: 'Find these' }).click();
+  const drill = page.getByRole('region', { name: 'Practice drill' });
+  await expect(drill).toBeVisible();
+  await drill.getByRole('button', { name: 'Hint' }).click();
+  await expect(page.locator('.note-node.is-drill-hint')).toHaveCount(1);
+  await drill.getByRole('button', { name: 'Reveal' }).click();
+  expect(await page.locator('.note-node.is-drill-hint').count()).toBeGreaterThan(0);
+  await expect(drill.getByRole('img', { name: /^0 of/ })).toBeVisible();
+  await drill.getByRole('button', { name: 'End' }).click();
+  await expect(page.getByRole('button', { name: 'Find these' })).toBeFocused();
+  await expect(page.locator('.tone-chip.isolated')).toHaveCount(1);
+});
+
+test('chord targets can be outside scale and connecting restores the original view', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Whole neck', exact: true }).click();
+  const connect = page.getByRole('button', { name: 'Connect positions' });
+  await connect.click();
+  await expect(connect).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Position', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await connect.click();
+  await expect(page.getByRole('button', { name: 'Whole neck', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // Choosing a view while connecting leaves the connection view instead of being ignored.
+  await connect.click();
+  await page.getByRole('button', { name: 'Diagonal', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Diagonal', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Connect positions' })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Whole neck', exact: true }).click();
+  await page.getByLabel('Chord root').selectOption('1');
+  await page.getByLabel('Chord quality').selectOption('major');
+  await page.getByRole('button', { name: 'Find tones' }).click();
+  await expect(page.getByRole('region', { name: 'Practice drill' })).toContainText('C♯ major chord');
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Find tones' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Whole neck', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('Connect positions in Position view is the saved ghost-forms setting', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Connect positions' }).click();
+  await expect(page.locator('.shape-ghost-outline').first()).toBeAttached();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Connect positions' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('Find these stays within the current position', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Isolate .*degree/ }).first().click();
+  await page.getByRole('button', { name: 'Find these', exact: true }).click();
+  const drill = page.getByRole('region', { name: 'Practice drill' });
+  await expect(drill).toContainText('selected degrees');
+  await drill.getByRole('button', { name: 'Reveal' }).click();
+  for (const node of await page.locator('.note-node.is-drill-hint').all()) await expect(node).toHaveAttribute('data-active', 'true');
 });

@@ -48,15 +48,17 @@ export interface State {
 export const STORAGE_KEY = 'fret-atlas-v4';
 export const inFocus = (s: State, string: number, fret: number) => s.strings.includes(string) && (!s.focus || (fret >= s.from && fret <= s.to));
 export const shapeInFocus = (s: State, shape: Shape) => shape.rows.every(r => inFocus(s, r.string, r.left) && inFocus(s, r.string, r.right));
-export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shapes ?? []).filter(shape => s.patterns.includes(shape.kind) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
+// Shape and Diagonal already study one family, so the family filter only applies to Position and Whole neck.
+export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shapes ?? []).filter(shape => (s.studyMode === 'shape' || s.studyMode === 'diagonal' || s.patterns.includes(shape.kind)) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
 export { selectedPitches };
 export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
-// Each control panel restores only the settings it owns.
+// Each control panel restores only the settings it owns. Pattern families, ghost forms and triads
+// are set from the form bar and chord row, outside any panel, so no panel owns them.
 export type Section = 'note-view' | 'overlays' | 'practice' | 'instrument';
 export const SECTION_KEYS: Record<Section, (keyof State)[]> = {
   'note-view': ['labels', 'luckyCharms', 'degreeColors', 'chordColors', 'isolatedTones'],
-  overlays: ['wholeMap', 'ghostForms', 'skeleton', 'warp', 'context', 'hideAdded', 'patterns', 'overlayRows'],
-  practice: ['triad', 'triadRoot', 'focus', 'from', 'to', 'strings'],
+  overlays: ['wholeMap', 'skeleton', 'warp', 'context', 'hideAdded', 'overlayRows'],
+  practice: ['focus', 'from', 'to', 'strings'],
   instrument: ['frets', 'lowest', 'fourths', 'spelling', 'stringNames', 'leftHanded'],
 };
 export const sectionModified = (s: State, section: Section) => {
