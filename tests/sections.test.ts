@@ -71,7 +71,7 @@ test('sectionModified is false by default and true only for the section that cha
     ['note-view', reducer(defaultState(), { type: 'note-view', value: 'notes' })],
     ['note-view', reducer(defaultState(), { type: 'isolate-tone', value: 7 })],
     ['overlays', reducer(defaultState(), { type: 'toggle', key: 'skeleton' })],
-    ['practice', reducer(defaultState(), { type: 'toggle', key: 'focus' })],
+    ['focus', reducer(defaultState(), { type: 'toggle', key: 'focus' })],
     ['instrument', reducer(defaultState(), { type: 'toggle', key: 'leftHanded' })],
   ];
   for (const [section, s] of cases) for (const other of SECTIONS) assert.equal(sectionModified(s, other), other === section, `${section} change seen by ${other}`);

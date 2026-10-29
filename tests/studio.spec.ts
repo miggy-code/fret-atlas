@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 // Controls live in collapsible `details.control-module` sections; open one by its summary title.
-const openModule = async (page: Page, title: 'Overlays' | 'Practice tools' | 'Instrument & display') => {
+const openModule = async (page: Page, title: 'Overlays' | 'Focus') => {
   const module = page.locator('details.control-module').filter({ has: page.locator(':scope > summary', { hasText: title }) });
   if (!await module.evaluate(element => (element as HTMLDetailsElement).open)) {
     await module.locator(':scope > summary').click();
@@ -12,8 +12,13 @@ const openModule = async (page: Page, title: 'Overlays' | 'Practice tools' | 'In
 // Toggles with a hint include it in their accessible name, so match the label prefix.
 const toggle = (page: Page, name: string) => page.getByRole('checkbox', { name, exact: true });
 const openOverlays = (page: Page) => openModule(page, 'Overlays');
-const openPractice = (page: Page) => openModule(page, 'Practice tools');
-const openInstrument = (page: Page) => openModule(page, 'Instrument & display');
+const openFocus = (page: Page) => openModule(page, 'Focus');
+// Instrument settings live in the Settings dialog, which blocks the board until closed.
+const openInstrument = async (page: Page) => {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  return page.getByRole('dialog', { name: 'Settings' });
+};
+const closeSettings = (page: Page) => page.getByRole('button', { name: 'Close settings', exact: true }).click();
 
 test('whole neck shows the entire neck, persists, and keeps the skeleton independent',async({page})=>{
   await page.goto('/');
@@ -59,7 +64,10 @@ test('forms, isolated shapes, diagonals and map layers behave independently',asy
   const paths=()=>page.locator('.shape-outline').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('d')));
   const first=await paths();
   await page.getByRole('button',{name:'Next form',exact:true}).click();
-  await expect(page.locator('.form-status strong')).toHaveText('Form 2');
+  await expect(page.getByRole('button',{name:'Form 2',exact:true})).toHaveAttribute('aria-pressed','true');
+  // The picker already shows the form, so the status repeats only the frets.
+  await expect(page.locator('.form-status')).toHaveCount(0);
+  await expect(page.locator('.form-frets')).toHaveText(/^Frets \d+–\d+$/);
   expect(await paths()).not.toEqual(first);
   await page.getByRole('button',{name:'Previous form',exact:true}).click();
   expect(await paths()).toEqual(first);
@@ -79,7 +87,7 @@ test('forms, isolated shapes, diagonals and map layers behave independently',asy
   await toggle(page,'Skeleton').uncheck();
   await page.getByRole('button',{name:'Shape',exact:true}).click();
   // Changing view keeps the current form.
-  await expect(page.locator('.form-status strong')).toHaveText('Form 1');
+  await expect(page.getByRole('button',{name:'Form 1',exact:true})).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('.shape-outline')).toHaveCount(1);
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(4);
   await page.getByRole('button',{name:'Stack',exact:true}).click();
@@ -149,7 +157,7 @@ test('one form renders cleanly; independent pattern and warp toggles persist wit
   await expect(page.locator('.note-node[data-visible="true"]')).toHaveCount(dots);
 });
 
-test('dark mode is available in Instrument & display and persists on this device', async ({page}) => {
+test('dark mode is available in Settings and persists on this device', async ({page}) => {
   await page.goto('/');
   await openInstrument(page);
   await page.getByLabel('Dark mode',{exact:true}).check();
@@ -205,11 +213,11 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('[data-note-id="1:6"]')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('.marks-list button')).toHaveCount(2);
-  await openPractice(page);
-  await page.getByRole('button',{name:'Fret & string focus',exact:true}).click();
+  // Focus controls are open as soon as the panel is.
+  await openFocus(page);
   await page.getByRole('button',{name:'Include string 1',exact:true}).click();
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','false');
-  await page.getByRole('button',{name:'Clear focus',exact:true}).click();
+  await page.getByRole('button',{name:'Include string 1',exact:true}).click();
   await expect(page.locator('[data-note-id="1:8"]')).toHaveAttribute('data-visible','true');
   await page.getByRole('button',{name:'Include string 1',exact:true}).click();
   await openInstrument(page);
@@ -220,6 +228,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('.string-name')).toHaveCount(0);
   await page.getByLabel('String names',{exact:true}).check();
   await expect(page.locator('.string-name')).toHaveCount(6);
+  await closeSettings(page);
   await openOverlays(page);
   await page.getByLabel('Notes outside the scale',{exact:true}).check();
   expect(await page.locator('.note-node.context[data-visible="true"]').count()).toBeGreaterThan(0);
@@ -229,8 +238,11 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   // The separate Third/Fifth legend was replaced by chord-colored markers in the scale-tone strip.
   await expect(page.locator('.tone-strip .degree-marker.third')).toHaveCount(1);
   await expect(page.locator('.tone-strip .degree-marker.fifth')).toHaveCount(1);
+  await openInstrument(page);
   await page.locator('#spelling').selectOption('flats');
   await page.getByRole('button',{name:'Reset view',exact:true}).click();
+  await closeSettings(page);
+  await expect(page.getByRole('button',{name:'Settings',exact:true})).toBeFocused();
   await expect(page.locator('.marks-list button')).toHaveCount(2);
   await expect(page.locator('#scale')).toHaveValue('minor');
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','right');
@@ -245,7 +257,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await page.getByRole('button',{name:'All',exact:true}).click();
   await expect(page.locator('.tone-sequence button.selected')).toHaveCount(12);
   await page.getByRole('button',{name:'Guide',exact:true}).click();
-  await expect(page.locator('dialog')).toBeVisible();
+  await expect(page.locator('.guide-dialog:not(.settings-dialog)')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button',{name:'Guide',exact:true})).toBeFocused();
   await page.context().grantPermissions(['clipboard-read','clipboard-write']);
@@ -264,7 +276,8 @@ test('small screens contain controls and scroll only the instrument', async ({pa
     await page.setViewportSize({width,height:844});
     await page.goto('/');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    for (const name of ['Share view','Guide','Reset view']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
+    for (const name of ['Share view','Guide','Settings']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
+    for (const name of ['Explore','Practice']) await expect(page.getByRole('tab',{name})).toBeVisible();
     const region = page.locator('.board-scroll');
     expect(await region.evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
     for (const name of ['Position','Shape','Diagonal','Whole neck']) {
@@ -273,11 +286,18 @@ test('small screens contain controls and scroll only the instrument', async ({pa
     await expect(page.getByRole('group',{name:'Note view',exact:true})).toBeVisible();
     await openOverlays(page);
     for (const name of ['Whole map','Skeleton','Warp']) await expect(toggle(page,name)).toBeVisible();
-    await openPractice(page);
-    await openInstrument(page);
+    await openFocus(page);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
     for (const module of await page.locator('details.control-module').all()) {
       expect(await module.evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
+    }
+    const settings=await openInstrument(page);
+    expect(await settings.evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
+    await closeSettings(page);
+    await page.getByRole('tab',{name:'Practice'}).click();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
+    for (const option of await page.locator('.practice-option').all()) {
+      expect(await option.evaluate(el=>{const b=el.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})).toBeTruthy();
     }
   }
 });
@@ -308,6 +328,7 @@ test('old saved views migrate and pattern outlines and shift arrow mirror correc
   }
   const boundary=await page.locator('.warp-guide line').evaluate(node=>({x1:Number(node.getAttribute('x1')),x2:Number(node.getAttribute('x2'))}));
   expect(boundary.x1).toBeGreaterThan(boundary.x2);
+  await closeSettings(page);
   await toggle(page,'Warp').uncheck();
   await expect(page.locator('.warp-guide')).toHaveCount(0);
   expect(await page.locator('.shape-outline').count()).toBe(positions.length);
@@ -355,7 +376,7 @@ test('light-mode header actions keep readable contrast', async ({page}) => {
   await page.addInitScript(()=>localStorage.setItem('fret-atlas-theme','light'));
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');
-  for (const name of ['Share view','Guide','Reset view']) {
+  for (const name of ['Share view','Guide','Settings']) {
     const button=page.locator('.header-actions').getByRole('button',{name,exact:true});
     const ratio=await button.evaluate(node=>{
       const parse=(color:string)=>{const [r,g,b,a=1]=color.match(/[\d.]+/g)!.map(Number);return {r,g,b,a};};

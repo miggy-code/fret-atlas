@@ -76,6 +76,7 @@ button, select, summary, input { outline-offset: 4px; }
 button:disabled { color: #788791; }
 svg { flex-shrink: 0; }
 .header-actions { display: flex; gap: 8px; margin-left: auto; }
+.account-button { display: flex; align-items: center; min-height: 44px; padding: 0 8px; }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 11px; border-radius: 6px; color: #536b77; font-size: 14px; white-space: nowrap; }
 .text-button:hover { background: #eaf0f3; color: var(--ink); }
 .header-actions .text-button { color: var(--ink); }
@@ -656,3 +657,64 @@ html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
 .is-drilling .note-node.is-drill-hint .note-face { stroke: var(--accent); stroke-width: 3; }
 .minimal-studio .drill-bar { margin-top: 16px; padding: 16px 4px; border: 0; border-block: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
 @media (max-width: 760px) { .minimal-studio .drill-actions { flex-wrap: wrap; } }
+
+/* Explore and Practice share the header, study controls and board; only the deck below the board changes. */
+.mode-tabs { display: flex; gap: 4px; padding: 4px; margin-left: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.mode-tabs button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 18px; border-radius: 7px; color: var(--muted); font-size: 14px; font-weight: 500; }
+.mode-tabs button svg { width: 16px; height: 16px; }
+.mode-tabs button:hover { color: var(--ink); }
+.mode-tabs button[aria-selected=true] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px #2446541a; }
+.mode-tabs button[aria-selected=true] svg { color: var(--root); }
+.minimal-studio .board-heading .header-actions { margin-left: 0; order: 3; }
+#deck { animation: deck-in .22s ease-out; }
+@keyframes deck-in { from { opacity: 0; transform: translateX(12px); } }
+@media (prefers-reduced-motion: reduce) { #deck { animation: none; } }
+
+/* Form bar: ‹ 1 2 3 4 5 › with the fret range beside it. */
+.form-stepper { display: flex; align-items: center; gap: 6px; }
+.form-stepper .form-picker { padding-left: 0; border-left: 0; }
+.form-frets { margin-left: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+/* Focus is shown inline in its panel. */
+.control-body .focus-panel { padding: 0; background: transparent; border: 0; gap: 16px 32px; justify-content: flex-start; }
+html[data-theme='dark'] .control-body .focus-panel { background: transparent; }
+
+/* Practice deck */
+.practice-deck { display: grid; gap: 20px; padding: 20px 4px 24px; border-bottom: 1px solid var(--line); }
+.deck-context { margin: 0; color: var(--muted); font-size: 14px; }
+.deck-context strong { color: var(--ink); font-weight: 600; }
+.practice-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.practice-option { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.practice-option h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.practice-option p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.practice-option .start-button { margin-top: auto; align-self: flex-start; }
+.start-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px 6px 12px; border: 1px solid var(--accent); border-radius: 999px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
+.start-button svg { width: 16px; height: 16px; }
+.start-button:hover:not(:disabled) { filter: brightness(1.08); }
+.start-button:disabled { background: var(--panel); border-color: var(--line); color: var(--muted); }
+.start-button[aria-pressed=true] { background: var(--surface); color: var(--accent); }
+.degree-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.degree-picks button { display: inline-flex; align-items: baseline; gap: 5px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 13px; }
+.degree-picks button strong { color: var(--ink); font-weight: 600; }
+.degree-picks button span { font-size: 11px; }
+.degree-picks button[aria-pressed=true] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.deck-progress h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.deck-progress h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
+
+/* Settings dialog */
+.settings-section { display: grid; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.settings-section:last-child { border-bottom: 0; padding-bottom: 0; }
+.settings-section .instrument-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.settings-section p { margin: 0; color: var(--muted); font-size: 13px; }
+.settings-section .restore-button, .settings-section .reset-view { justify-self: start; }
+.settings-section .reset-view { border: 1px solid var(--line); }
+
+@media (max-width: 760px) {
+  .mode-tabs { order: 2; width: 100%; margin-left: 0; }
+  .mode-tabs button { flex: 1; justify-content: center; min-height: 44px; }
+  .form-stepper { width: 100%; }
+  .form-stepper .form-picker { flex: 1; width: auto; }
+  .form-stepper .form-picker button { flex: 1; min-width: 0; }
+  .form-frets { display: none; }
+  .degree-picks button, .start-button { min-height: 44px; }
+}
