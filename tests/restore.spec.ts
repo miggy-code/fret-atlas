@@ -20,7 +20,7 @@ test('Overlays shows Changed after a toggle and Restore defaults clears only its
   await toggle(page, 'Skeleton').check();
   await expect(badge).toHaveText('Changed');
   // Other panels are untouched.
-  for (const title of ['Practice tools', 'Instrument & display']) await expect(module(page, title).locator('em.modified-badge')).toHaveCount(0);
+  for (const title of ['Focus']) await expect(module(page, title).locator('em.modified-badge')).toHaveCount(0);
   await page.getByRole('button', { name: 'Restore Overlays defaults', exact: true }).click();
   await expect(badge).toHaveCount(0);
   await expect(toggle(page, 'Skeleton')).not.toBeChecked();
@@ -85,8 +85,9 @@ for (const leftHanded of [false, true]) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     if (leftHanded) {
-      await openModule(page, 'Instrument & display');
+      await page.getByRole('button', { name: 'Settings', exact: true }).click();
       await page.getByLabel('Left-handed', { exact: true }).check();
+      await page.getByRole('button', { name: 'Close settings', exact: true }).click();
     }
     await page.getByRole('button', { name: 'Diagonal', exact: true }).click();
     await page.getByRole('button', { name: 'Fit neck to screen', exact: true }).click();

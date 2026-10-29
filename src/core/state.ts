@@ -54,11 +54,11 @@ export { selectedPitches };
 export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
 // Each control panel restores only the settings it owns. Pattern families, ghost forms and triads
 // are set from the form bar and chord row, outside any panel, so no panel owns them.
-export type Section = 'note-view' | 'overlays' | 'practice' | 'instrument';
+export type Section = 'note-view' | 'overlays' | 'focus' | 'instrument';
 export const SECTION_KEYS: Record<Section, (keyof State)[]> = {
   'note-view': ['labels', 'luckyCharms', 'degreeColors', 'chordColors', 'isolatedTones'],
   overlays: ['wholeMap', 'skeleton', 'warp', 'context', 'hideAdded', 'overlayRows'],
-  practice: ['focus', 'from', 'to', 'strings'],
+  focus: ['focus', 'from', 'to', 'strings'],
   instrument: ['frets', 'lowest', 'fourths', 'spelling', 'stringNames', 'leftHanded'],
 };
 export const sectionModified = (s: State, section: Section) => {

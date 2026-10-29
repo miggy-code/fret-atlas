@@ -21,18 +21,20 @@ With standard tuning, **Warp** draws a thin line at the G–B boundary, marked *
 
 ## Practice
 
-- **Sound.** Tapping a note plucks it. **Play**, next to the form arrows, runs the current form up and back down the way it is fingered (low string to high) and lights each note as it sounds. Sound can be turned off in Instrument & display.
-- **Practice** in the board header starts "Find every…" drills. Each drill names one note, such as *Find every C (♭3) in Form 2* or *Find every E on the G string*, and highlights where to look. Notes, outlines and other hints stay hidden until you find them. A correct tap reveals the note with a pluck; a wrong one shows a cross and tells you which note it was. Finishing a round plays every answer and deals the next prompt. The flame counts correct taps in a row, and your best streak is saved on this device. Drills follow the current key, scale, form and focus.
+The board header switches between **Explore** and **Practice**. Both share the key, scale, view, form and board; only the panel below the board changes.
 
-- **Progress.** In Position view, a form you've had on screen for a few seconds gets a hollow dot in the 1–5 picker. A form you've played through or finished a drill in gets a filled dot. The **Progress** panel at the bottom shows a ring for each of the 12 keys (minor and major are tracked separately); click a key to study it. Progress is saved on this device only.
+- **Sound.** Tapping a note plucks it. In Explore, **Play**, next to the form arrows, runs the current form up and back down the way it is fingered (low string to high) and lights each note as it sounds. **Hear chord** plays the chord in the Chord row. Sound can be turned off in Settings.
+- **Drills.** The Practice tab offers **Find notes**, **Find scale degrees** (pick the degrees there), **Find chord tones**, and **Play through**. Each drill names one note, such as *Find every C (♭3) in Form 2* or *Find every E on the G string*, and highlights where to look. Notes, outlines and other hints stay hidden until you find them. A correct tap reveals the note with a pluck; a wrong one shows a cross and tells you which note it was. Finishing a round plays every answer and deals the next prompt. The flame counts correct taps in a row, and your best streak is saved on this device. Drills follow the current key, scale, form and focus.
 
-These extras sit around the atlas and never change it: closing Practice restores your view exactly, and none of them alter the saved or shared view.
+- **Progress.** In Position view, a form you've had on screen for a few seconds counts as seen; a form you've played through from Practice or finished a drill in counts as practiced. Progress appears only in the Practice tab: as dots on the 1–5 picker and as a ring for each of the 12 keys (minor and major are tracked separately); click a key to study it. Progress is saved on this device only.
+
+These extras sit around the atlas and never change it: ending a drill restores your view exactly, and none of them alter the saved or shared view.
 
 ## Workspace
 
 The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, **Warp**, and **Pentatonic only** control how much context surrounds the active form.
 
-The modular controls hold secondary settings such as labels, overlays, focus, display options, and scale tones. **Share**, **Guide**, and **Reset view** are in the board header. Each settings panel shows **Changed** when it differs from its defaults and offers **Restore defaults** for just that panel; Reset view restores them all. Key, scale, custom notes and marks always stay. Dark mode lives in Instrument & display.
+Below the board, Explore holds note view, scale degrees, the Chord row, and the **Overlays** and **Focus** panels. **Share**, **Guide**, and **Settings** are in the board header; Settings holds tuning, frets, spelling, handedness, dark mode, sound and **Reset view**. Each panel shows **Changed** when it differs from its defaults and offers **Restore defaults** for just that panel; Reset view restores them all. Key, scale, custom notes and marks always stay.
 
 Your view, selected form, overlays, and marked notes are saved in browser local storage. **Share** copies a URL that contains the current view, so it can be reopened or sent to someone else.
 
@@ -50,6 +52,12 @@ Open [http://127.0.0.1:4177](http://127.0.0.1:4177). To choose a different port:
 ```sh
 npm run dev -- --port 4178
 ```
+
+### Accounts
+
+To enable sign-in, create a [Clerk application](https://dashboard.clerk.com/), copy `.env.example` to `.env.local`, and set `VITE_CLERK_PUBLISHABLE_KEY` to its publishable key. Set the same variable in the production build environment and configure the production domain in Clerk. Restart the dev server after changing it. Without a key, the atlas works as before and account controls are hidden.
+
+Accounts currently provide sign-in and account management only. Views and progress remain on the device and are not linked to an account. Premium subscriptions, server-side authorization, and cross-device sync are not implemented. A future backend must verify Clerk session tokens and enforce entitlements on the server; the same Clerk application can support mobile clients.
 
 Available checks:
 
