@@ -36,7 +36,7 @@ test('spelling uses one letter per scale degree', () => {
 test('17 frets is a valid neck length and survives restore', () => {
   assert.equal(reducer(defaultState(), { type: 'frets', value: 17 }).frets, 17);
   assert.equal(restoreState({ ...defaultState(), frets: 17 }).frets, 17);
-  assert.equal(reducer(defaultState(), { type: 'frets', value: 18 }).frets, 15);
+  assert.equal(reducer(defaultState(), { type: 'frets', value: 18 }).frets, defaultState().frets);
 });
 
 // ---- Guitar-only extensions: tunings, extra pentatonics, One string, 3NPS, degree colors ----

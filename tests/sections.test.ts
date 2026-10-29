@@ -108,7 +108,7 @@ test('patterns action keeps only valid pattern families', () => {
 });
 
 test('whole neck adds partial shapes that run past the nut and the last fret', () => {
-  const s = reducer(defaultState(), { type: 'study-mode', value: 'all' });
+  const s = reducer({ ...defaultState(), frets: 15 }, { type: 'study-mode', value: 'all' });
   const shapes = activeStudy(s)!.shapes;
   const pastNut = shapes.filter(shape => shape.rows.some(row => row.left < 0));
   const pastEnd = shapes.filter(shape => shape.rows.some(row => row.right > s.frets));

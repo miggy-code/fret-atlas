@@ -22,6 +22,7 @@ const closeSettings = (page: Page) => page.getByRole('button', { name: 'Close se
 
 test('whole neck shows the entire neck, persists, and keeps the skeleton independent',async({page})=>{
   await page.goto('/');
+  await page.getByLabel('Neck length').selectOption('15');
   await openOverlays(page);
   await toggle(page,'Skeleton').check();
   const connections=()=>page.locator('.root-skeleton line').evaluateAll(nodes=>nodes.map(n=>[n.getAttribute('data-from'),n.getAttribute('data-to')]));
@@ -61,6 +62,7 @@ test('whole neck shows the entire neck, persists, and keeps the skeleton indepen
 
 test('forms, isolated shapes, diagonals and map layers behave independently',async({page})=>{
   await page.goto('/');
+  await page.getByLabel('Neck length').selectOption('15');
   const paths=()=>page.locator('.shape-outline').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('d')));
   const first=await paths();
   await page.getByRole('button',{name:'Next form',exact:true}).click();

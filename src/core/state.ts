@@ -66,7 +66,7 @@ export const sectionModified = (s: State, section: Section) => {
   return SECTION_KEYS[section].some(key => JSON.stringify(s[key]) !== JSON.stringify(defaults[key]));
 };
 export function defaultState(): State {
-  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 15, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
+  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 12, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
 }
 const isRecord = (raw: unknown): raw is Record<string, unknown> => !!raw && typeof raw === 'object' && !Array.isArray(raw);
 const integer = (value: unknown, low: number, high: number) => typeof value === 'number' && Number.isInteger(value) && value >= low && value <= high;

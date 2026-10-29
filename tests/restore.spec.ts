@@ -112,6 +112,7 @@ for (const leftHanded of [false, true]) {
 
 test('hover tooltip text stays inside its box and clear of the hovered note ring', async ({ page }) => {
   await page.goto('/');
+  await page.getByLabel('Neck length').selectOption('15');
   await page.getByRole('button', { name: 'Whole neck', exact: true }).click();
   for (const id of ['1:5', '3:7', '2:15']) {
     await page.locator(`[data-note-id="${id}"]`).hover();
