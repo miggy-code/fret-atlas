@@ -57,7 +57,7 @@ npm run dev -- --port 4178
 
 To enable sign-in, create a [Clerk application](https://dashboard.clerk.com/), copy `.env.example` to `.env.local`, and set `VITE_CLERK_PUBLISHABLE_KEY` to its publishable key. Set the same variable in the production build environment and configure the production domain in Clerk. Restart the dev server after changing it. Without a key, the atlas works as before and account controls are hidden.
 
-Accounts currently provide sign-in and account management only. Views and progress remain on the device and are not linked to an account. Premium subscriptions, server-side authorization, and cross-device sync are not implemented. A future backend must verify Clerk session tokens and enforce entitlements on the server; the same Clerk application can support mobile clients.
+Signed-in development accounts can sync their view, preferences, and progress. On first sign-in the app asks whether to import the device copy and retains that copy. Local changes are queued when offline, and conflicting settings or progress resets require a choice. The footer reports sync status. Local-only use remains available when signed out. Premium subscriptions are not implemented.
 
 Available checks:
 
@@ -76,3 +76,11 @@ Fret Atlas was informed by [Fret Science's Scale Visualizer](https://fretscience
 ## Development notes
 
 See [DESIGN.md](./DESIGN.md) for the musical model, visual grammar, and verification scope.
+
+### Development sync database
+
+The development Supabase project is configured locally with `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local`. These are public client values; never put a secret or service-role key in Vite variables. The migration in `supabase/migrations/` sets up owner-scoped data and atomic revision and reset operations.
+
+The development Clerk application is linked and its native Supabase integration has been configured. The `clerk-deletion` Edge Function verifies Clerk webhook signatures and invokes an idempotent database deletion operation. The development Clerk `user.deleted` webhook and `CLERK_WEBHOOK_SIGNING_SECRET` are configured; a signed synthetic deletion event was processed successfully. Keep the signing secret out of the repository. The database retains a hashed deletion marker to prevent old tokens from recreating deleted data; its retention policy needs a decision before launch.
+
+Before launch, verify sync and deletion with real Clerk sessions on multiple devices, including retries, and decide retention and support policies. See [Supabase's Clerk integration guide](https://supabase.com/docs/guides/auth/third-party/clerk).

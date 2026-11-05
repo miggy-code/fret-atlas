@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
 import { Show, SignInButton, UserButton } from '@clerk/react';
 import { describeNote, degreeLabel, LOWEST_STRING_CHOICES, pitchName, position, scaleById, SCALES, SHARPS, spellTone } from '../core/music';
 import type { Scale } from '../core/music';
-import { loadState, reducer, sectionModified, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
+import { loadState, reducer, restoreState, sectionModified, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
 import type { Action, NoteColors, NoteView, State } from '../core/state';
 import { degreeColor, notePresentation } from '../core/presentation';
 import { deriveStudy, tuningOf } from '../core/study';
@@ -21,18 +21,28 @@ import type { DrillRequest } from '../core/drill';
 import { usePlayback } from './usePlayback';
 import { useProgress } from './Progress';
 import { levelOf, practicedForms } from '../core/progress';
+import type { Progress } from '../core/progress';
 
 const scaleOptions = SCALES.filter(scale => !scale.id.endsWith('-triad'));
 const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
 type Props = { state: State; dispatch: Dispatch<Action> };
 
-export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) {
-  const [state, dispatch] = useReducer(reducer, undefined, loadState);
+export interface AccountView {
+  settings: Record<string, unknown>;
+  progress: Progress;
+  status: string;
+  onSettings: (settings: Record<string, unknown>) => void;
+  onProgress: (progress: Progress) => void;
+  onClear: () => void;
+}
+export function App({ accountsEnabled = false, account }: { accountsEnabled?: boolean; account?: AccountView }) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => account ? restoreState(account.settings.view) : loadState());
   const [darkMode, setDarkMode] = useState(() => {
+    if (account) return account.settings.theme === 'dark';
     try { const theme = localStorage.getItem('fret-atlas-theme'); return theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; }
     catch { return false; }
   });
-  const [sound, setSound] = useState(() => { try { return localStorage.getItem('fret-atlas-sound') !== 'off'; } catch { return true; } });
+  const [sound, setSound] = useState(() => { if (account) return account.settings.sound !== 'off'; try { return localStorage.getItem('fret-atlas-sound') !== 'off'; } catch { return true; } });
   const [tab, setTab] = useState<'explore' | 'practice'>('explore');
   const [practicing, setPracticing] = useState(false);
   // Practice picks its own degrees (intervals from the root), apart from Explore's isolation, so practicing never changes the map.
@@ -65,7 +75,7 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
   const viewState = useMemo<State>(() => connecting ? { ...state, studyMode: 'position', ghostForms: true } : state, [state, connecting]);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(viewState), [viewState]);
   const shapes = useMemo(() => visibleShapes(viewState, study), [viewState, study]);
-  const progress = useProgress();
+  const progress = useProgress(account && { initial: account.progress, onChange: account.onProgress, onClear: account.onClear });
   // Progress tracks the five pentatonic positions, so only Position view counts toward it.
   const family = scale.family;
   const formStudy = family && state.studyMode === 'position' ? study : undefined;
@@ -75,13 +85,14 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
   const boardState = useMemo<State>(() => practicing ? { ...viewState, skeleton: false, ghostForms: false, triad: 'off', marks: [], isolatedTones: [], wholeMap: false, context: false } : viewState, [viewState, practicing]);
   const inspection = inspected ? describeNote(position(...(inspected.split(':').map(Number) as [number, number]), tuning), state.root, scale, state.spelling) : undefined;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (account) { account.onSettings({ view: state, theme: darkMode ? 'dark' : 'light', sound: sound ? 'on' : 'off' }); return; }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); setStorageWorks(true); }
     catch { setStorageWorks(false); }
-  }, [state]);
+  }, [state, darkMode, sound]);
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
-    try { localStorage.setItem('fret-atlas-theme', darkMode ? 'dark' : 'light'); } catch { /* The visual preference is optional. */ }
+    if (!account) try { localStorage.setItem('fret-atlas-theme', darkMode ? 'dark' : 'light'); } catch { /* The visual preference is optional. */ }
   }, [darkMode]);
   // The controls that start a drill unmount while it runs, so focus returns to the remounted one by id.
   useEffect(() => {
@@ -99,7 +110,7 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
   }, [family, formStudy?.id, state.root, practicing]);
   // A playing run belongs to the form it started on.
   useEffect(() => { playback.stop(); }, [study?.id]);
-  useEffect(() => { try { localStorage.setItem('fret-atlas-sound', sound ? 'on' : 'off'); } catch { /* The sound preference is optional. */ } }, [sound]);
+  useEffect(() => { if (!account) try { localStorage.setItem('fret-atlas-sound', sound ? 'on' : 'off'); } catch { /* The sound preference is optional. */ } }, [sound]);
 
   function notify(message: string) {
     setShareMessage(message);
@@ -201,7 +212,7 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
           {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
         </Fretboard>
         {!practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
-        {tab === 'practice' ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress} onClearProgress={progress.clear}
+        {tab === 'practice' ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress} onClearProgress={progress.clear} synced={!!account}
             chord={{ root: chordRoot, kind: chordKind }} onChord={setChord} degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
             onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
           : <>
@@ -242,7 +253,7 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
       </section>}
       {manualLink && <label className="manual-link">View link<input readOnly value={manualLink} onFocus={e => e.target.select()} /></label>}
       <footer className="page-footer">
-        <span>{storageWorks ? 'Saved on this device' : 'Storage unavailable · use Share view'}</span>
+        <span role="status">{account ? account.status : storageWorks ? 'Saved on this device' : 'Storage unavailable · use Share view'}</span>
       </footer>
     </main>
     {shareMessage && <div className="toast" role="status">{shareMessage}</div>}

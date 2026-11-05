@@ -125,6 +125,7 @@ test('forms, isolated shapes, diagonals and map layers behave independently',asy
 
 test('one form renders cleanly; independent pattern and warp toggles persist without hiding notes', async ({page}) => {
   await page.goto('/');
+  await expect(page.locator('.fretboard')).toBeVisible();
   const dots=await page.locator('.note-node[data-visible="true"]').count();
   const rectangles=await page.locator('.shape-outline.rectangle').count();
   const stacks=await page.locator('.shape-outline.stack').count();
@@ -187,6 +188,7 @@ test('pattern lines share joins and render behind opaque note badges', async ({p
   await expect(page.locator('.shape-halo')).toHaveCount(await page.locator('.shape-outline').count());
   await expect(page.locator('.pattern-layer.rectangle .shape-outline')).toHaveCount(await page.locator('.shape-outline.rectangle').count());
   await expect(page.locator('.pattern-layer.stack .shape-outline')).toHaveCount(await page.locator('.shape-outline.stack').count());
+  await expect(page.locator('.shape-outline.stack').first()).toHaveCSS('opacity', '1');
   const style = await page.locator('.shape-outline.stack').first().evaluate(node => {
     const computed = getComputedStyle(node);
     return { width: computed.strokeWidth, dash: computed.strokeDasharray, opacity: computed.opacity };

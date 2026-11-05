@@ -16,8 +16,8 @@ type Chord = { root: number; kind: 'major' | 'minor' };
  * The Practice tab: every drill, play-through credit and progress in one place, so the atlas in
  * Explore stays complete without it. Each drill practices the view chosen above the board.
  */
-export function PracticeDeck({ state, dispatch, scale, study, family, progress, onClearProgress, chord, onChord, degrees, onDegrees, playing, onFindNotes, onFind, onPlayThrough }: {
-  state: State; dispatch: Dispatch<Action>; scale: Scale; study: Study | undefined; family: Family | undefined; progress: Progress; onClearProgress: () => void;
+export function PracticeDeck({ state, dispatch, scale, study, family, progress, onClearProgress, synced, chord, onChord, degrees, onDegrees, playing, onFindNotes, onFind, onPlayThrough }: {
+  state: State; dispatch: Dispatch<Action>; scale: Scale; study: Study | undefined; family: Family | undefined; progress: Progress; onClearProgress: () => void; synced?: boolean;
   chord: Chord; onChord: (next: Partial<Chord>) => void; degrees: number[]; onDegrees: (intervals: number[]) => void; playing: boolean;
   onFindNotes: () => void; onFind: (request: DrillRequest, trigger: string) => void; onPlayThrough: () => void;
 }) {
@@ -63,7 +63,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
     </div>
     {family && <section className="deck-progress" aria-label="Progress">
       <h3>Progress <span>{practicedForms(progress, family, state.root)} of 5 forms practiced in {pitchName(state.root, state.spelling)} {family}</span></h3>
-      <ProgressPanel progress={progress} family={family} root={state.root} spelling={state.spelling} onKey={value => dispatch({ type: 'root', value })} onClear={onClearProgress} />
+      <ProgressPanel progress={progress} family={family} root={state.root} spelling={state.spelling} onKey={value => dispatch({ type: 'root', value })} onClear={onClearProgress} synced={synced} />
     </section>}
   </section>;
 }

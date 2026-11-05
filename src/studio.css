@@ -316,6 +316,7 @@ kbd { font-family: inherit; font-size: 12px; min-width: 18px; text-align: center
   .tone-strip { gap: 18px; }
 }
 @media (max-width: 980px) {
+  .board-heading { flex-wrap: wrap; }
   .study-primary { flex-wrap: wrap; gap: 16px; }
   .musical-controls { flex: 1; }
   .label-controls { flex: 1; }
