@@ -191,7 +191,10 @@ export function reducer(s: State, action: Action): State {
       return { ...s, form: next.form, studyFret: next.anchor };
     }
     case 'root': return integer(action.value, 0, 11) ? { ...s, root: mod(action.value), studyFret: null } : s;
-    case 'scale': return SCALES.some(scale => scale.id === action.value) ? { ...s, scaleId: action.value, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
+    case 'scale': {
+      const scale = SCALES.find(item => item.id === action.value);
+      return scale ? { ...s, scaleId: action.value, studyMode: !scale.family && action.value !== 'custom' && ['shape', 'diagonal'].includes(s.studyMode) ? 'position' : s.studyMode, studyFret: null, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
+    }
     case 'isolate-tone': return { ...s, isolatedTones: toggleItem(s.isolatedTones, action.value).sort((a, b) => a - b) };
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
     case 'pattern': return { ...s, patterns: toggleItem(s.patterns, action.value) };

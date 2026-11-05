@@ -29,7 +29,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
   const interval = (pitch: number) => (pitch - state.root + 12) % 12;
   const chosen = tones.filter(t => degrees.includes(interval(t.pitch)));
   const where = study ? `${study.label}` : 'the visible neck';
-  const canPlayThrough = !!family && state.studyMode === 'position' && !!study;
+  const canPlayThrough = state.studyMode === 'position' && !!study;
 
   return <section className="practice-deck" aria-label="Practice">
     <p className="deck-context">Practicing <strong>{pitchName(state.root, state.spelling)} {scale.name}</strong> in <strong>{where}</strong>. Change the view above the board.</p>
@@ -57,7 +57,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
       </article>
       <article className="practice-option">
         <h3>Play through</h3>
-        <p>{canPlayThrough ? 'Hear this form up and back. Finishing it counts as practiced.' : 'Choose a Position form on a pentatonic scale to play it through for credit.'}</p>
+        <p>{canPlayThrough ? family ? 'Hear this form up and back. Finishing it counts as practiced.' : 'Hear this position up and back.' : 'Choose a Position to play it through.'}</p>
         <button className="start-button" aria-pressed={playing} disabled={!canPlayThrough} onClick={onPlayThrough}><Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play through'}</button>
       </article>
     </div>

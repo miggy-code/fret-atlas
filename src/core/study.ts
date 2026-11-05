@@ -20,6 +20,19 @@ const FORMS = [
 
 export const tuningOf = (s: Pick<State, 'lowest' | 'fourths'>): Tuning => tuningFor(s.lowest, s.fourths);
 
+// Keep added tones close to the form's overall hand position, without changing its outlines.
+function scaleRows(rows: ShapeRow[], s: State, tuning: Tuning): ShapeRow[] {
+  const added = scaleById(s.scaleId).tones.filter(t => !t.skeleton).map(t => mod(s.root + t.semitones));
+  const left = Math.max(0, Math.min(...rows.map(row => row.left)) - 1);
+  const right = Math.min(s.frets, Math.max(...rows.map(row => row.right)) + 1);
+  return rows.map(row => {
+    const from = Math.max(left, row.left - 2), to = Math.min(right, row.right + 2);
+    const nearby = Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i)
+      .filter(fret => added.includes(position(row.string, fret, tuning).pitch));
+    return { ...row, left: Math.max(0, Math.min(row.left, ...nearby)), right: Math.min(s.frets, Math.max(row.right, ...nearby)) };
+  }).filter(row => row.left <= row.right);
+}
+
 // Where the minor tonic sits on the lowest string: lowering the guitar moves it up the neck.
 const lowStringTonic = (s: State) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? 9 : 0) - 4 + s.lowest);
 
@@ -58,6 +71,12 @@ export function studyChoices(s: State): Study[] {
   if (s.studyMode === 'string') return stringChoices(s);
   if (s.studyMode === 'nps') return npsChoices(s, tuning);
   const scale = scaleById(s.scaleId);
+  if (!scale.family && s.scaleId !== 'custom' && s.studyMode === 'position') {
+    return Array.from({ length: Math.ceil((s.frets + 1) / 3) }, (_, i) => {
+      const left = i * 3, right = Math.min(s.frets, left + 4);
+      return { id: `position:${left}`, form: 1, anchor: left, label: `Position ${left}–${right}`, rows: Array.from({ length: 6 }, (_, j) => ({ string: j + 1, left, right })), shapes: [] };
+    });
+  }
   if (!scale.family) return [];
   const tonic = lowStringTonic(s);
   const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:true,tuning}));
@@ -82,7 +101,7 @@ export function studyChoices(s: State): Study[] {
     return completeChains.sort((a,b)=>a[0].from-b[0].from).map((shapes,i)=>({
       id:`diagonal:${shapes[0].id}`,form:i+1,anchor:Math.max(0,shapes[0].from),label:`Diagonal ${i+1}`,
       // The upper row of each rectangle adds the next tone for the diagonal run.
-      rows:shapes.flatMap(shape=>shape.rows.map(row=>({...row,right:row.right+(s.shapeKind==='rectangle' && row.string===Number(shape.id.split(':')[1])-1?2:0)}))),shapes,
+      rows:scaleRows(shapes.flatMap(shape=>shape.rows.map(row=>({...row,right:row.right+(s.shapeKind==='rectangle' && row.string===Number(shape.id.split(':')[1])-1?2:0)}))),s,tuning),shapes,
     }));
   }
   // The forms are written for standard tuning; all fourths raises the two highest strings by one fret's pitch.
@@ -93,12 +112,12 @@ export function studyChoices(s: State): Study[] {
     for (let octave = -2; octave <= 2; octave++) {
       const base = tonic + 12 * octave;
       const rows = form.map(([left,right],index)=>({string:index+1,left:base+left+offsets[index],right:base+right+offsets[index]}));
-      if (rows.some(row=>row.left<0) || rows.every(row=>row.right>s.frets)) continue;
+      if (rows.some(row=>row.right<0) || rows.every(row=>row.left>s.frets)) continue;
       const positionShapes = allShapes.filter(shape=>shape.rows.every(row=>rows.some(r=>r.string===row.string && r.left===row.left && r.right===row.right)));
       const shape = positionShapes.filter(shape=>shape.kind===s.shapeKind).sort((a,b)=>b.rows.length-a.rows.length || a.rows[0].string-b.rows[0].string)[0];
       const shapes = s.studyMode === 'shape' ? shape ? [shape] : [] : positionShapes;
       if (!shapes.length) continue;
-      choices.push({id:`${i+1}:${base}`,form:i+1,anchor:rows[5].left,label:`Form ${i+1}`,rows:s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,shapes});
+      choices.push({id:`${i+1}:${base}`,form:i+1,anchor:Math.max(0,rows[5].left),label:`Form ${i+1}`,rows:scaleRows(s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,s,tuning),shapes});
     }
   });
   return choices.sort((a,b)=>a.anchor-b.anchor);
@@ -107,8 +126,8 @@ export function studyChoices(s: State): Study[] {
 export function activeStudyFromChoices(s: State, choices: Study[]): Study | undefined {
   const sameForm = choices.filter(choice=>choice.form===s.form);
   const candidates = sameForm.length ? sameForm : choices;
-  const preferred = s.studyFret ?? lowStringTonic(s);
-  return [...candidates].sort((a,b)=>Math.abs(a.anchor-preferred)-Math.abs(b.anchor-preferred))[0];
+  const preferred = s.studyFret ?? (scaleById(s.scaleId).family ? lowStringTonic(s) : 0);
+  return [...candidates].sort((a,b)=>Math.abs(a.anchor-preferred)-Math.abs(b.anchor-preferred) || b.anchor-a.anchor)[0];
 }
 
 export function activeStudy(s: State): Study | undefined {

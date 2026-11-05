@@ -12,7 +12,7 @@ export interface Drill { key: string; kind: DrillKind; pitch: number; name: stri
 export type TapResult = 'hit' | 'repeat' | 'miss';
 
 // Forms are the point of the app, so form drills only appear in the views that show one.
-export const formDrillAvailable = (s: State, study?: Study) => !!study && !!scaleById(s.scaleId).family && ['position', 'shape', 'diagonal'].includes(s.studyMode);
+export const formDrillAvailable = (s: State, study?: Study) => !!study && (s.studyMode === 'position' && s.scaleId !== 'custom' || !!scaleById(s.scaleId).family && ['shape', 'diagonal'].includes(s.studyMode));
 
 function candidates(s: State, study?: Study, request?: DrillRequest) {
   const scale = scaleById(s.scaleId);

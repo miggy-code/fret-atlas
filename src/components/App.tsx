@@ -277,7 +277,7 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, 
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
   const sevenNotes = new Set(pitches).size === 7;
   const views: { value: StudyMode; label: string; disabled?: boolean; hint?: string }[] = [
-    { value: 'position', label: 'Position', disabled: !scale.family, hint: familyHint },
+    { value: 'position', label: 'Position', disabled: custom, hint: custom ? 'Choose a named scale' : undefined },
     { value: 'shape', label: 'Shape', disabled: !scale.family, hint: familyHint },
     { value: 'diagonal', label: 'Diagonal', disabled: !scale.family, hint: familyHint },
     { value: 'all', label: 'Whole neck' },
@@ -295,7 +295,7 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, 
       </div>
       <Segments<StudyMode> label="Study view" value={state.studyMode} options={views} onChange={value => dispatch({ type: 'study-mode', value })} />
     </div>
-    {!scale.family && <p className="study-availability">Position, Shape and Diagonal need a scale built on a pentatonic.</p>}
+    {!scale.family && <p className="study-availability">Shape and Diagonal need a scale built on a pentatonic.{!custom && ' Position shows a nearby fret range.'}</p>}
     <div className="form-bar">
       {(study || state.studyMode === 'all') && <div className="form-navigation">
         {state.studyMode !== 'all' && study && (() => {

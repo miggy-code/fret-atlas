@@ -23,6 +23,40 @@ test('all patterns shows the whole scale and retains both colors on shared rails
   assert.equal(restoreState(JSON.parse(JSON.stringify(s))).studyMode,'all');
 });
 
+test('scale positions include nearby added tones while retaining pentatonic shapes', () => {
+  const blues = { ...defaultState(), scaleId: 'minor-blues' };
+  for (const [string, fret] of [[5, 6], [3, 8], [2, 4]]) {
+    const note = notePresentation(position(string, fret), blues);
+    assert.equal(note.visible, true, `${string}:${fret}`);
+    assert.equal(note.kind, 'added');
+  }
+  assert.equal(notePresentation(position(2, 4), { ...blues, hideAdded: true }).visible, false);
+  assert.equal(notePresentation(position(2, 4), defaultState()).visible, false);
+  assert.equal(notePresentation(position(1, 9), blues).visible, false); // F♯ is not in A blues
+  const minor = { ...defaultState(), scaleId: 'minor' };
+  assert.equal(notePresentation(position(2, 6), minor).visible, true); // F on the B string
+});
+
+test('open position retains playable notes at the nut without including distant open strings', () => {
+  const s = { ...defaultState(), root: 3, scaleId: 'minor-blues', frets: 24 };
+  const study = studyChoices(s).find(choice => choice.id === '1:-1');
+  assert.ok(study, 'E-flat minor form crossing the nut is available');
+  assert.ok(study.rows.every(row => row.left >= 0));
+  assert.equal(notePresentation(position(5, 0), s, study.shapes, study).visible, true); // A: blue note
+  assert.equal(notePresentation(position(6, 0), s, study.shapes, study).visible, false); // E outside the scale
+  assert.equal(notePresentation(position(5, 0), defaultState()).visible, false);
+});
+
+test('scales without pentatonic shapes offer bounded, navigable positions', () => {
+  const s = { ...defaultState(), root: 0, scaleId: 'whole-tone', frets: 12 };
+  const study = activeStudy(s)!;
+  assert.equal(study.label, 'Position 0–4');
+  assert.equal(notePresentation(position(6, 0), s).visible, true); // E is in C whole tone
+  assert.equal(notePresentation(position(6, 5), s).visible, false);
+  const next = reducer(s, { type: 'study-step', direction: 1 });
+  assert.equal(activeStudy(next)!.label, 'Position 3–7');
+});
+
 test('A skeleton exactly matches the eight observed reference connections regardless of form or map layer',()=>{
   const expected=['5:0>3:2','3:2>1:5','3:2>6:5','1:5>4:7','6:5>4:7','4:7>2:10','2:10>5:12','5:12>3:14'].sort();
   for(const studyMode of ['position','shape','diagonal','all'] as const) for(const wholeMap of [false,true]) {
@@ -38,9 +72,9 @@ test('all five forms transpose to valid pentatonic endpoints in every key and sc
     assert.equal(new Set(choices.map(c=>c.form)).size,5);
     const pitches=scale.tones.filter(t=>t.skeleton).map(t=>mod(root+t.semitones));
     for(const c of choices) {
-      assert.equal(c.rows.length,6);
-      for(const row of c.rows) for(const fret of [row.left,row.right].filter(f=>f<=24)) {
-        assert.ok(pitches.includes(position(row.string,fret).pitch),`${scale.id} / ${root} / ${c.id}`);
+      for(const shape of c.shapes) for(const id of shape.endpoints) {
+        const [string, fret] = id.split(':').map(Number);
+        if (fret >= 0 && fret <= 24) assert.ok(pitches.includes(position(string,fret).pitch),`${scale.id} / ${root} / ${c.id}`);
       }
       // Each string belongs to exactly one block within a position; no overpainted edges.
       for(let string=1;string<=6;string++) assert.ok(c.shapes.filter(shape=>shape.rows.some(r=>r.string===string)).length<=1);

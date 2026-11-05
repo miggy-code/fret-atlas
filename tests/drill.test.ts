@@ -80,6 +80,15 @@ test('targeted degree practice stays in the current form and focused strings',()
   }
 });
 
+test('form drills include adjacent blues notes and open-position notes', () => {
+  const blues = { ...defaultState(), scaleId: 'minor-blues' };
+  const blueNotes = nextDrill(blues, activeStudy(blues), undefined, () => 0, { pitches: [3], label: 'blue note' })!;
+  assert.deepEqual(blueNotes.targets.sort(), ['2:4', '3:8', '5:6']);
+  const open = { ...blues, root: 3, studyFret: 0 };
+  const openNotes = nextDrill(open, activeStudy(open), undefined, () => 0, { pitches: [9], label: 'blue note' })!;
+  assert.ok(openNotes.targets.includes('5:0'));
+});
+
 test('targeted chord practice permits tones outside the scale across the whole neck',()=>{
   const s=reducer(defaultState(),{type:'study-mode',value:'all'});
   const study=activeStudy(s)!;
