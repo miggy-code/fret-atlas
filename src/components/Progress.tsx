@@ -27,7 +27,7 @@ export function FormRing({ progress, family, root }: { progress: Progress; famil
 export function ProgressPanel({ progress, family, root, spelling, onKey, onClear }: { progress: Progress; family: Family; root: number; spelling: Spelling; onKey: (root: number) => void; onClear: () => void }) {
   const total = practicedTotal(progress, family);
   return <div className="progress-panel">
-    <p className="progress-intro">A form counts as practiced when you play it through or finish a drill in it, in Position view. Pick a key to study it.</p>
+    <p className="progress-intro">Choose a key below to study it and see its form progress. A form counts as practiced when you play it through or finish an unassisted drill in Position view.</p>
     <div className="key-grid" role="group" aria-label={`${family === 'minor' ? 'Minor' : 'Major'} keys`}>
       {SHARPS.map((_, key) => {
         const done = practicedForms(progress, family, key);

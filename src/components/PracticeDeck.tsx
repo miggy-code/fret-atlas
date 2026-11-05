@@ -37,14 +37,14 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
       <article className="practice-option">
         <h3>Find notes</h3>
         <p>One note at a time, everywhere it appears on a string or in this form.</p>
-        <button id="find-notes" className="start-button" onClick={onFindNotes}><Icon name="target" />Start</button>
+        <button id="find-notes" className="start-button" onClick={onFindNotes}><Icon name="target" />Find notes</button>
       </article>
       <article className="practice-option">
         <h3>Find scale degrees</h3>
         <div className="degree-picks" role="group" aria-label="Degrees to find">{tones.map(t => <button key={t.pitch} type="button" aria-pressed={degrees.includes(interval(t.pitch))} onClick={() => onDegrees(degrees.includes(interval(t.pitch)) ? degrees.filter(d => d !== interval(t.pitch)) : [...degrees, interval(t.pitch)])}>
           <strong>{t.name}</strong>{t.label && <span>{t.label}</span>}
         </button>)}</div>
-        <button id="find-degrees" className="start-button" disabled={!chosen.length} onClick={() => onFind({ pitches: chosen.map(t => t.pitch), label: 'selected degrees' }, 'find-degrees')}><Icon name="target" />Start</button>
+        <button id="find-degrees" className="start-button" disabled={!chosen.length} onClick={() => onFind({ pitches: chosen.map(t => t.pitch), label: 'selected degrees' }, 'find-degrees')}><Icon name="target" />Find selected degrees</button>
       </article>
       <article className="practice-option">
         <h3>Find chord tones</h3>
@@ -53,7 +53,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
           <select aria-label="Chord root" value={chord.root} onChange={e => onChord({ root: Number(e.target.value) })}>{SHARPS.map((_, i) => <option value={i} key={i}>{pitchName(i, state.spelling)}</option>)}</select>
           <select aria-label="Chord quality" value={chord.kind} onChange={e => onChord({ kind: e.target.value as Chord['kind'] })}><option value="minor">minor</option><option value="major">major</option></select>
         </div>
-        <button id="find-chord" className="start-button" onClick={() => onFind({ pitches: [0, chord.kind === 'major' ? 4 : 3, 7].map(n => (chord.root + n) % 12), label: `${pitchName(chord.root, state.spelling)} ${chord.kind} chord` }, 'find-chord')}><Icon name="target" />Start</button>
+        <button id="find-chord" className="start-button" onClick={() => onFind({ pitches: [0, chord.kind === 'major' ? 4 : 3, 7].map(n => (chord.root + n) % 12), label: `${pitchName(chord.root, state.spelling)} ${chord.kind} chord` }, 'find-chord')}><Icon name="target" />Find chord tones</button>
       </article>
       <article className="practice-option">
         <h3>Play through</h3>

@@ -100,7 +100,7 @@ test('forms, isolated shapes, diagonals and map layers behave independently',asy
   // Shape -> Diagonal selects the diagonal containing the current shape.
   await expect(page.locator(`.shape-outline[data-shape-id="${stackId}"]`)).toHaveCount(1);
   const diagonal=Number((await page.locator('.form-status strong').textContent())!.match(/^Diagonal (\d+)$/)![1]);
-  await page.getByRole('button',{name:'Next form',exact:true}).click();
+  await page.getByRole('button',{name:'Next diagonal',exact:true}).click();
   const nextLabel=`Diagonal ${diagonal+1}`;
   await expect(page.locator('.form-status strong')).toHaveText(nextLabel);
   await expect(page.locator(`.shape-outline[data-shape-id="${stackId}"]`)).toHaveCount(0);
@@ -286,6 +286,21 @@ test('small screens contain controls and scroll only the instrument', async ({pa
       await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     }
     await expect(page.getByRole('group',{name:'Note view',exact:true})).toBeVisible();
+    if (width <= 390) {
+      for (const name of ['Lucky Charms', 'Root highlight', 'Scale degrees', 'Chord tones']) {
+        const button = page.getByRole('button', { name, exact: true });
+        const fitsOnOneLine = await button.evaluate(el => {
+          const node = [...el.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.textContent?.trim());
+          if (!node) return false;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const lines = [...range.getClientRects()];
+          const bounds = el.getBoundingClientRect();
+          return lines.length === 1 && lines[0].left >= bounds.left && lines[0].right <= bounds.right;
+        });
+        expect(fitsOnOneLine, `${name} should fit on one line at ${width}px`).toBe(true);
+      }
+    }
     await openOverlays(page);
     for (const name of ['Whole map','Skeleton','Warp']) await expect(toggle(page,name)).toBeVisible();
     await openFocus(page);

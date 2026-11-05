@@ -1,0 +1,55 @@
+{
+  "pageOverflowX": 0,
+  "unevenRows": [
+    {
+      "container": "div.header-actions \"ShareGuideSettings\"",
+      "children": 3,
+      "widths": [
+        87,
+        89,
+        103
+      ]
+    },
+    {
+      "container": "div.mode-tabs \"ExplorePractice\"",
+      "children": 2,
+      "widths": [
+        85,
+        115
+      ]
+    },
+    {
+      "container": "div.musical-controls \"KeyCC♯DD♯EFF♯GG♯AA♯BScaleMinor\"",
+      "children": 2,
+      "widths": [
+        111,
+        267
+      ]
+    },
+    {
+      "container": "div.legend-items \"RectangleStackWarp · +1 fret o\"",
+      "children": 3,
+      "widths": [
+        80,
+        49,
+        159
+      ]
+    },
+    {
+      "container": "div.chord-sentence \"CC♯DD♯EFF♯GG♯AA♯Bminormajor\"",
+      "children": 2,
+      "widths": [
+        80,
+        100
+      ]
+    }
+  ],
+  "overflowSpills": [],
+  "wrappedControls": [
+    "button \"1\"",
+    "button \"2\"",
+    "button \"3\"",
+    "button \"4\"",
+    "button \"5\""
+  ]
+}

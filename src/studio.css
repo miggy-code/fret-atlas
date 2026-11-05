@@ -425,6 +425,9 @@ kbd { font-family: inherit; font-size: 12px; min-width: 18px; text-align: center
   .form-hint { display: none; }
   .map-layers { width: 100%; gap: 18px; }
 }
+@media (max-width: 480px) {
+  .note-view-bar .segmented { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* Scale degree isolation */
 .tone-chip.scale-tone-chip { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease; border: 1px solid #c9d8df; }

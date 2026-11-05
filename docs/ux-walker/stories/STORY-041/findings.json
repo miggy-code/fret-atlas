@@ -1,0 +1,18 @@
+[
+  {
+    "id": "F-STORY-041-001",
+    "severity": "low",
+    "category": "layout",
+    "criterion": "Text fit & wrap",
+    "score": "warn",
+    "description": "At 390px wide, the Note view and color option buttons wrap labels such as “Lucky Charms” and “Root highlight” onto two lines. The words remain readable and do not overflow, but the controls become taller and the row is denser.",
+    "expected": "Responsive controls should keep labels legible with consistent button rhythm.",
+    "actual": "Several option labels wrap to a second line in the mobile layout; the board and page have no horizontal overflow.",
+    "screenshot": "screenshots/mobile-check.png",
+    "suggested_fix": "Consider a single-column or horizontally scrollable option group at narrow widths, or reserve enough button width for these labels.",
+    "files_likely_involved": [
+      "src/components/NoteViewBar.tsx",
+      "src/styles.css"
+    ]
+  }
+]

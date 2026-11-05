@@ -1,0 +1,16 @@
+[
+  {
+    "id": "F-STORY-015-1",
+    "story_id": "STORY-015",
+    "severity": "medium",
+    "category": "disclosure",
+    "criterion": "Scope of Reset view",
+    "score": "warn",
+    "description": "The catalog says Reset view restores visual/instrument defaults, but after Reset view the header still says All fourths. The retained tuning appears intentional according to the project test expectation, so the catalog wording conflicts with observed product behavior.",
+    "expected": "The catalog and app copy should state whether Reset view preserves instrument tuning.",
+    "actual": "After Reset view and closing Settings, the board header still said All fourths; the note mark, A key, and Minor pentatonic scale remained.",
+    "screenshot": "screenshots/step-3.png",
+    "suggested_fix": "Clarify the Reset view scope in the UX catalog and user-facing description; decide whether all-fourths tuning is included.",
+    "files_likely_involved": []
+  }
+]

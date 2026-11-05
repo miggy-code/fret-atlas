@@ -34,7 +34,7 @@ These extras sit around the atlas and never change it: ending a drill restores y
 
 The board supports standard tuning or all fourths, 12 to 24 frets, left-handed display, string and fret focus, note/interval labels, degree colors, a triad overlay, custom note sets, and marked fingerings. **Whole map**, **Skeleton**, **Warp**, and **Pentatonic only** control how much context surrounds the active form.
 
-Below the board, Explore holds note view, scale degrees, the Chord row, and the **Overlays** and **Focus** panels. **Share**, **Guide**, and **Settings** are in the board header; Settings holds tuning, frets, spelling, handedness, dark mode, sound and **Reset view**. Each panel shows **Changed** when it differs from its defaults and offers **Restore defaults** for just that panel; Reset view restores them all. Key, scale, custom notes and marks always stay.
+Below the board, Explore holds note view, scale degrees, the Chord row, and the **Overlays** and **Focus** panels. **Share**, **Guide**, and **Settings** are in the board header; Settings holds tuning, frets, spelling, handedness, dark mode, sound and **Reset view**. Each panel shows **Changed** when it differs from its defaults and offers **Restore defaults** for just that panel; Reset view restores display settings while preserving tuning, key, scale, custom notes and marks. Theme and sound are device preferences and also stay.
 
 Your view, selected form, overlays, and marked notes are saved in browser local storage. **Share** copies a URL that contains the current view, so it can be reopened or sent to someone else.
 

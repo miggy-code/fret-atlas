@@ -1,0 +1,416 @@
+{
+  "runs": [
+    {
+      "timestamp": "2026-11-05T16:06:18.865190+00:00",
+      "url": "http://127.0.0.1:4177",
+      "stories_walked": 50,
+      "stories_skipped": 0,
+      "findings_total": 2,
+      "quick_fixes_applied": 1,
+      "issues_filed": 0,
+      "note": "Desktop geometry replays and outstanding rechecks added; see latest-report.md for visual review limits."
+    }
+  ],
+  "stories": {
+    "STORY-001": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-002": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-003": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-004": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-005": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-006": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-007": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-008": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-009": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-010": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-011": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-012": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-013": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-014": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-015": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 1,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Independent recheck captured; see story report."
+    },
+    "STORY-016": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-017": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-018": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-019": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-020": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-021": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-022": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-023": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-024": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-025": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-026": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-027": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Independent recheck captured; see story report."
+    },
+    "STORY-028": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-029": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-030": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-031": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-032": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-033": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-034": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-035": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-036": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-037": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-038": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-039": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-040": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-041": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 1,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-042": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-043": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-044": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-045": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-046": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-047": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-048": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-049": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    },
+    "STORY-050": {
+      "last_walked": "2026-11-05T16:06:18.865190+00:00",
+      "status": "pass",
+      "findings_count": 0,
+      "source_files_hash": null,
+      "fixes_merged_since": false,
+      "note": "Per-state geometry coverage incomplete; see latest-report.md"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "pageOverflowX": 0,
+  "unevenRows": [
+    {
+      "container": "div.header-actions \"ShareGuideSettings\"",
+      "children": 3,
+      "widths": [
+        87,
+        89,
+        103
+      ]
+    },
+    {
+      "container": "div.mode-tabs \"ExplorePractice\"",
+      "children": 2,
+      "widths": [
+        87,
+        113
+      ]
+    },
+    {
+      "container": "div.musical-controls \"KeyCC♯DD♯EFF♯GG♯AA♯BScaleMinor\"",
+      "children": 2,
+      "widths": [
+        111,
+        267
+      ]
+    },
+    {
+      "container": "div.legend-items \"RectangleStackWarp · +1 fret o\"",
+      "children": 4,
+      "widths": [
+        80,
+        49,
+        159,
+        61
+      ]
+    },
+    {
+      "container": "div.tone-sequence \"A1C♭3D4E5G♭7\"",
+      "children": 5,
+      "widths": [
+        103,
+        113,
+        107,
+        105,
+        113
+      ]
+    },
+    {
+      "container": "div.map-layers \"Whole mapShow the remaining sc\"",
+      "children": 4,
+      "widths": [
+        94,
+        77,
+        58,
+        168
+      ]
+    },
+    {
+      "container": "div.marks-list \"E4S1 · OpenG4S1 · F3\"",
+      "children": 2,
+      "widths": [
+        137,
+        122
+      ]
+    }
+  ],
+  "overflowSpills": [
+    {
+      "el": "text \"G4 · Deg ♭7\"",
+      "spillPx": 6
+    }
+  ],
+  "wrappedControls": [
+    "button \"1\"",
+    "button \"2\"",
+    "button \"3\"",
+    "button \"4\"",
+    "button \"5\""
+  ]
+}

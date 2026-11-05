@@ -195,13 +195,13 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
         {!practicing && <StudyControls state={viewState} dispatch={studyDispatch} scale={scale} study={study} choiceCount={choices.length} formLevel={family && tab === 'practice' ? form => levelOf(progress.progress, family, state.root, form) : undefined} playing={playback.running} onPlay={tab === 'explore' ? () => playForm() : undefined} connected={viewState.studyMode === 'position' && viewState.ghostForms} onConnect={toggleConnections} />}
 
         {!practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
+        {practicing && <div id="deck" role="tabpanel" aria-labelledby="practice-tab" ref={drillContainer} tabIndex={-1}><DrillBar session={drill} onEnd={endPractice} /></div>}
         {(state.studyMode === 'diagonal' || state.studyMode === 'all') && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
         <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing} onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
           {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
         </Fretboard>
-        <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
-        {practicing ? <div ref={drillContainer} tabIndex={-1}><DrillBar session={drill} onEnd={endPractice} /></div>
-          : tab === 'practice' ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress} onClearProgress={progress.clear}
+        {!practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
+        {tab === 'practice' ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress} onClearProgress={progress.clear}
             chord={{ root: chordRoot, kind: chordKind }} onChord={setChord} degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
             onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
           : <>
@@ -220,11 +220,11 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
         <ControlModule title="Overlays" summary="Patterns and visual guides" modified={sectionModified(state, 'overlays')} onRestore={() => dispatch({ type: 'reset-section', value: 'overlays' })}>
           <Overlays state={state} dispatch={dispatch} scale={scale} />
         </ControlModule>
-        <ControlModule title="Focus" summary="Limit the frets and strings in view" modified={sectionModified(state, 'focus')} onRestore={() => dispatch({ type: 'reset-section', value: 'focus' })}>
+        <ControlModule title="Focus" summary="Limit notes and drills by fret and string" modified={sectionModified(state, 'focus')} onRestore={() => dispatch({ type: 'reset-section', value: 'focus' })}>
           <FocusControls state={state} dispatch={dispatch} />
         </ControlModule>
         </>}
-        </div>
+        </div>}
         <div className="inspection-row">
           <div className="note-inspector" role="status" aria-live="polite">{inspection && inspected
             ? <><strong>{inspection.name}<small>{inspection.octave}</small></strong><span>Degree {inspection.interval}</span><span>String {inspected.split(':')[0]} · {inspected.endsWith(':0') ? 'Open' : `Fret ${inspected.split(':')[1]}`}</span></>
@@ -253,7 +253,7 @@ export function App({ accountsEnabled = false }: { accountsEnabled?: boolean }) 
         {sectionModified(state, 'instrument') && <RestoreButton label="Instrument & display" onClick={() => dispatch({ type: 'reset-section', value: 'instrument' })} />}
       </section>
       <section className="settings-section" aria-label="Reset">
-        <p>Restore every display setting to its default. Key, scale and marked notes stay.</p>
+        <p>Restore display settings to their defaults. Tuning, key, scale and marked notes stay.</p>
         <button className="text-button reset-view" onClick={() => dispatch({ type: 'reset-view' })}><Icon name="undo" /><span>Reset view</span></button>
       </section>
     </SettingsDialog>
@@ -292,14 +292,14 @@ function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, 
           const picker = !!scale.family && (state.studyMode === 'position' || state.studyMode === 'shape');
           // With the 1–5 picker the form number is already visible, so the status shows only the frets.
           return <div className="form-stepper">
-            <button className="icon-button" aria-label="Previous form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
+            <button className="icon-button" aria-label={`Previous ${state.studyMode === 'shape' ? 'shape' : state.studyMode === 'diagonal' ? 'diagonal' : 'form'}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
             {picker
               ? <div className="form-picker" role="group" aria-label="Pentatonic form">{[1, 2, 3, 4, 5].map(form => {
                 const level = state.studyMode === 'position' ? formLevel?.(form) ?? 0 : 0;
                 return <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form} data-progress={['', 'seen', 'practiced'][level] || undefined} title={['', 'Seen', 'Practiced'][level] || undefined} onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>;
               })}</div>
               : <div className="form-status" aria-live="polite"><strong>{study.label}</strong><span>{frets}</span></div>}
-            <button className="icon-button" aria-label="Next form" disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
+            <button className="icon-button" aria-label={`Next ${state.studyMode === 'shape' ? 'shape' : state.studyMode === 'diagonal' ? 'diagonal' : 'form'}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
             {picker && <span className="form-frets" aria-live="polite">{frets}</span>}
           </div>;
         })()}

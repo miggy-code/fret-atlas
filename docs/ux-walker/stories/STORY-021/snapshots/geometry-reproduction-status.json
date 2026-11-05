@@ -1,0 +1,7 @@
+{
+  "story": "STORY-021",
+  "url": "http://127.0.0.1:4177",
+  "viewport": "1280x800",
+  "status": "partial",
+  "limitation": "The report\u2019s completed \u201cAll 3\u201d answer state was not recreated. The deterministic target selection is not exposed by the prompt UI; the saved evidence is the active Find notes prompt only."
+}

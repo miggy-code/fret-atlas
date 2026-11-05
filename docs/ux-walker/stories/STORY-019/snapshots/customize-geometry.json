@@ -1,0 +1,51 @@
+{
+  "pageOverflowX": 0,
+  "unevenRows": [
+    {
+      "container": "div.header-actions \"ShareGuideSettings\"",
+      "children": 3,
+      "widths": [
+        87,
+        89,
+        103
+      ]
+    },
+    {
+      "container": "div.mode-tabs \"ExplorePractice\"",
+      "children": 2,
+      "widths": [
+        87,
+        113
+      ]
+    },
+    {
+      "container": "div.musical-controls \"ReferenceCC♯DD♯EFF♯GG♯AA♯BScal\"",
+      "children": 2,
+      "widths": [
+        153,
+        267
+      ]
+    },
+    {
+      "container": "div.tone-actions \"AllNaturalsClear\"",
+      "children": 3,
+      "widths": [
+        41,
+        77,
+        58
+      ]
+    },
+    {
+      "container": "div.map-layers \"Whole mapShow the remaining sc\"",
+      "children": 4,
+      "widths": [
+        94,
+        77,
+        58,
+        168
+      ]
+    }
+  ],
+  "overflowSpills": [],
+  "wrappedControls": []
+}

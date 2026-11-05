@@ -94,13 +94,13 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
     if (!id) return;
     setHint(id);
     setAssisted(true);
-    setFeedback('One answer is highlighted.');
+    setFeedback('One answer is highlighted. Assisted rounds do not count toward form progress.');
   };
   const reveal = () => {
     if (!drill) return;
     setRevealed(true);
     setAssisted(true);
-    setFeedback('Answers revealed. Choose Next when you are ready.');
+    setFeedback('Answers revealed. Assisted rounds do not count toward form progress. Choose Next when you are ready.');
   };
   return { view, tap, skip, hint: showHint, reveal, streak, best, rounds, feedback };
 }

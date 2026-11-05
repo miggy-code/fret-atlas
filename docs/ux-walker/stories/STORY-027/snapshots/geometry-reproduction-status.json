@@ -1,0 +1,7 @@
+{
+  "story": "STORY-027",
+  "url": "http://127.0.0.1:4177",
+  "viewport": "1280x800",
+  "status": "partial",
+  "limitation": "The Form 2 prompt was recreated, but target completion and the resulting 1-of-5 credit were not recreated in this run. The report\u2019s final credit claim remains not independently screenshot-verified."
+}

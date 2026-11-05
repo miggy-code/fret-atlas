@@ -118,6 +118,7 @@ test('selected degree practice gives hints and reveal without scoring, and leave
   await expect(drill).toBeVisible();
   await drill.getByRole('button', { name: 'Hint' }).click();
   await expect(page.locator('.note-node.is-drill-hint')).toHaveCount(1);
+  await expect(drill.getByRole('status')).toContainText('Assisted rounds do not count toward form progress');
   await drill.getByRole('button', { name: 'Reveal' }).click();
   expect(await page.locator('.note-node.is-drill-hint').count()).toBeGreaterThan(0);
   await expect(drill.getByRole('img', { name: /^0 of/ })).toBeVisible();

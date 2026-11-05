@@ -1,0 +1,189 @@
+{
+  "state": "Form 2 drill started",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "scroll": {
+    "width": 1280,
+    "height": 890
+  },
+  "elements": [
+    {
+      "tag": "MAIN",
+      "role": null,
+      "text": "A\nMinor pentatonic\n\nStandard tuning · High strings above · Nut left\n\nShare\nGuide",
+      "x": 0,
+      "y": -60,
+      "width": 1280,
+      "height": 890.4,
+      "right": 1280,
+      "bottom": 830.4
+    },
+    {
+      "tag": "SECTION",
+      "role": null,
+      "text": "A\nMinor pentatonic\n\nStandard tuning · High strings above · Nut left\n\nShare\nGuide",
+      "x": 32,
+      "y": -28,
+      "width": 1216,
+      "height": 806.4,
+      "right": 1248,
+      "bottom": 778.4
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Share",
+      "x": 953.6,
+      "y": -22.4,
+      "width": 86.7,
+      "height": 40,
+      "right": 1040.2,
+      "bottom": 17.6
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Guide",
+      "x": 1048.2,
+      "y": -22.4,
+      "width": 88.7,
+      "height": 40,
+      "right": 1137,
+      "bottom": 17.6
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Settings",
+      "x": 1145,
+      "y": -22.4,
+      "width": 103,
+      "height": 40,
+      "right": 1248,
+      "bottom": 17.6
+    },
+    {
+      "tag": "BUTTON",
+      "role": "tab",
+      "text": "Explore",
+      "x": 724.9,
+      "y": -20.4,
+      "width": 85.1,
+      "height": 36,
+      "right": 810,
+      "bottom": 15.6
+    },
+    {
+      "tag": "BUTTON",
+      "role": "tab",
+      "text": "Practice",
+      "x": 814,
+      "y": -20.4,
+      "width": 114.5,
+      "height": 36,
+      "right": 928.6,
+      "bottom": 15.6
+    },
+    {
+      "tag": "SECTION",
+      "role": null,
+      "text": "Find every\nA\n1\nin Form 2\n· selected degrees\n0\nBest 0\n0 rounds\nHint\nReveal\nNext\nE",
+      "x": 44,
+      "y": 63.3,
+      "width": 1216,
+      "height": 104,
+      "right": 1260,
+      "bottom": 167.3
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Hint",
+      "x": 1033.8,
+      "y": 80.3,
+      "width": 48.4,
+      "height": 40,
+      "right": 1082.2,
+      "bottom": 120.3
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Reveal",
+      "x": 1086.2,
+      "y": 80.3,
+      "width": 63.3,
+      "height": 40,
+      "right": 1149.5,
+      "bottom": 120.3
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Next",
+      "x": 1153.5,
+      "y": 80.3,
+      "width": 51.8,
+      "height": 40,
+      "right": 1205.3,
+      "bottom": 120.3
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "End",
+      "x": 1209.3,
+      "y": 80.3,
+      "width": 46.7,
+      "height": 40,
+      "right": 1256,
+      "bottom": 120.3
+    },
+    {
+      "tag": "DIV",
+      "role": "region",
+      "text": "OPEN\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\ne\nB\nG\nD\nA\nE\n+1",
+      "x": 49,
+      "y": 216.3,
+      "width": 1182,
+      "height": 497.1,
+      "right": 1231,
+      "bottom": 713.4
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Close guide",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "right": 0,
+      "bottom": 0
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Close settings",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "right": 0,
+      "bottom": 0
+    },
+    {
+      "tag": "BUTTON",
+      "role": null,
+      "text": "Reset view",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "right": 0,
+      "bottom": 0
+    }
+  ]
+}
