@@ -56,6 +56,26 @@ test('imports device data, syncs edits, retains failures and isolates accounts',
   expect(rows.user_a.settings.view).toMatchObject({ leftHanded: true });
 });
 
+test('declining the device import adopts the account settings without a second question', async ({ page }) => {
+  const row = { user_id: 'user_a', settings: { view: { leftHanded: true }, theme: 'dark', sound: 'on' }, settings_revision: 3, progress: { 'minor:9:1': 2 }, reset_generation: 0 };
+  const uploads: Record<string, unknown>[] = [];
+  await page.route('https://sync.test/rest/v1/rpc/sync_change', async route => {
+    const operation = route.request().postDataJSON();
+    if (operation.operation === 'settings') { uploads.push(operation.data); row.settings = operation.data; row.settings_revision++; }
+    await route.fulfill({ json: { status: 'ok', row } });
+  });
+  const dialogs: string[] = [];
+  page.on('dialog', dialog => { dialogs.push(dialog.message()); dialog.dismiss(); });
+  await page.goto('/tests/sync-harness.html?user=user_a');
+  await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
+  expect(dialogs).toHaveLength(1);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  // Only the account's own settings, normalized by the app, may be written back; never device defaults.
+  for (const upload of uploads) expect(upload).toMatchObject({ view: { leftHanded: true }, theme: 'dark' });
+  const cache = await page.evaluate(() => JSON.parse(localStorage.getItem('fret-atlas-account:user_a')!));
+  expect(cache).toMatchObject({ settingsPending: false, progress: { 'minor:9:1': 2 } });
+});
+
 test('retains stale offline progress until the user resolves a reset', async ({ page }) => {
   const operations: string[] = [];
   const row = { user_id: 'user_a', settings: { view: {}, theme: 'light', sound: 'on' }, settings_revision: 2, progress: {}, reset_generation: 1 };

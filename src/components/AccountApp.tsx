@@ -23,7 +23,8 @@ function initialCache(userId: string): AccountCache {
   }
   const cache: AccountCache = {
     settings: { view: useDevice ? loadState() : defaultState(), theme: useDevice ? (localStorage.getItem('fret-atlas-theme') ?? 'light') : 'light', sound: useDevice ? (localStorage.getItem('fret-atlas-sound') ?? 'on') : 'on' },
-    progress, settingsRevision: null, resetGeneration: null, settingsPending: true,
+    // A declined import only has defaults, so the account's settings win without a second question.
+    progress, settingsRevision: null, resetGeneration: null, settingsPending: useDevice,
     progressPending: useDevice && Object.keys(progress).length > 0, resetPending: false,
   };
   writeAccountCache(localStorage, userId, cache);

@@ -1061,4 +1061,4 @@ The catalog retains stories that touch the same control when their user goal dif
 
 - Add deterministic browser fixtures for malformed share URLs and legacy local-storage migration before walking those recovery cases.
 - Add an explicit end-to-end first-session story that combines orientation, a form change, one inspected note, and a short drill. The present catalog covers those actions independently, but not as one long newcomer journey.
-- Optional Clerk sign-in is excluded from core coverage because it does not change access, workspace persistence, or practice behavior. Add account-specific stories only once accounts own user data or entitlements.
+- Optional Clerk sign-in and account sync are covered by `tests/sync.spec.ts` rather than these stories. Add account stories (first-sign-in import, conflict choices, sync status) to the walk plan before launch.

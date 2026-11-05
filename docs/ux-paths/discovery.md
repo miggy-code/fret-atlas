@@ -10,7 +10,7 @@ Single-page, client-side guitar-fretboard study web app. It runs entirely in the
 - Browser local storage for workspace, theme, sound, and progress
 - SVG fretboard with mouse, touch, and keyboard note interaction
 - Web Audio synthesis for note/chord playback
-- Optional Clerk account controls when a publishable key is configured; accounts do not currently own or sync data
+- Optional Clerk accounts when a publishable key is configured; signed-in view, preferences and progress sync through Supabase
 
 ## User Roles
 
@@ -18,7 +18,7 @@ Single-page, client-side guitar-fretboard study web app. It runs entirely in the
 - Returning learner: reopens a saved device workspace or a shared URL and continues a study session.
 - Deliberate practicer: selects a drill, finds notes on the board, and tracks form progress by key.
 - Advanced explorer: compares rectangle/stack geometry, alternate tunings, note representations, triads, and focused ranges.
-- Signed-in user (optional): can sign in/out and manage their Clerk account. Sign-in does not change Atlas data behavior.
+- Signed-in user (optional): can sign in/out, manage their Clerk account, and sync view, preferences and progress across devices. Signed-out use stays local to the device.
 
 ## Feature Map
 
@@ -78,7 +78,7 @@ The single workspace has no routes or sidebar. The header provides Share, Guide,
 
 ## Integrations
 
-- Optional Clerk authentication for sign-in/account controls only.
+- Optional Clerk authentication; Supabase stores owner-scoped sync data verified from the Clerk session token.
 - Browser Clipboard API for Share, with a visible fallback field when copying fails.
 - Browser Web Audio API for synthesized playback.
 
