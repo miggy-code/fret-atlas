@@ -43,8 +43,9 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
     catch { return false; }
   });
   const [sound, setSound] = useState(() => { if (account) return account.settings.sound !== 'off'; try { return localStorage.getItem('fret-atlas-sound') !== 'off'; } catch { return true; } });
-  const [tab, setTab] = useState<'explore' | 'practice'>('explore');
-  const [practicing, setPracticing] = useState(false);
+  const [mode, setMode] = useState<'explore' | 'practice' | 'drill'>('explore');
+  const tab = mode === 'explore' ? 'explore' : 'practice';
+  const practicing = mode === 'drill';
   // Practice picks its own degrees (intervals from the root), apart from Explore's isolation, so practicing never changes the map.
   // It lives here because the Practice deck unmounts while a drill runs.
   const [practiceDegrees, setPracticeDegrees] = useState<number[]>([0]);
@@ -127,16 +128,16 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   function startFind(next: DrillRequest | undefined, trigger: string) {
     practiceTrigger.current = trigger;
     stopSounds();
-    setInspected(null); setRequest(next); setPracticing(true);
+    setInspected(null); setRequest(next); setMode('drill');
   }
   function endPractice() {
     stopSounds();
-    setRequest(undefined); setPracticing(false);
+    setRequest(undefined); setMode('practice');
   }
   function chooseTab(next: 'explore' | 'practice') {
     if (practicing) { practiceTrigger.current = ''; endPractice(); }
     stopSounds();
-    setTab(next);
+    setMode(next);
   }
   function hearChord() {
     stopSounds();

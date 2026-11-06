@@ -20,3 +20,28 @@ test('settings require a choice when the server revision has changed or the loca
   assert.deepEqual(reconcileSettings('local', 4, 'remote', 4, true), { kind: 'upload', value: 'local', expectedRevision: 4 });
   assert.deepEqual(reconcileSettings('local', 3, 'remote', 4, false), { kind: 'remote', value: 'remote', revision: 4 });
 });
+
+import { reconcileAccount } from '../src/core/sync';
+import type { AccountCache } from '../src/core/sync-cache';
+import type { SyncRow } from '../src/core/sync-api';
+
+test('account reconciliation requires both conflict decisions and preserves pending edits when chosen', () => {
+  const cache: AccountCache = { settings: { theme: 'dark' }, progress: { 'minor:9:1': 2 }, settingsRevision: 1, resetGeneration: 1, settingsPending: true, progressPending: true, resetPending: false };
+  const remote: SyncRow = { user_id: 'user_1', settings: { theme: 'light' }, settings_revision: 2, progress: {}, reset_generation: 2 };
+  assert.deepEqual(reconcileAccount(cache, remote), { kind: 'conflict', conflict: 'settings' });
+  assert.deepEqual(reconcileAccount(cache, remote, { settings: true }), { kind: 'conflict', conflict: 'progress-reset' });
+  const keep = reconcileAccount(cache, remote, { settings: true, 'progress-reset': true });
+  assert.equal(keep.kind, 'ready');
+  if (keep.kind !== 'ready') throw new Error('expected ready');
+  assert.equal(keep.cache.settingsRevision, 2);
+  assert.equal(keep.cache.resetGeneration, 2);
+  assert.equal(keep.cache.progress['minor:9:1'], 2);
+  assert.equal(keep.cache.progressPending, true);
+  const discard = reconcileAccount(cache, remote, { settings: false, 'progress-reset': false });
+  assert.equal(discard.kind, 'ready');
+  if (discard.kind !== 'ready') throw new Error('expected ready');
+  assert.deepEqual(discard.cache.settings, { theme: 'light' });
+  assert.deepEqual(discard.cache.progress, {});
+  assert.equal(discard.cache.settingsPending, false);
+  assert.equal(discard.cache.progressPending, false);
+});

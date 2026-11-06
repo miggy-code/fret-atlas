@@ -3,15 +3,13 @@ import { useAuth, UserButton } from '@clerk/react';
 import { App } from './App';
 import { defaultState, loadState } from '../core/state';
 import { restoreProgress } from '../core/progress';
-import { mergeProgress } from '../core/sync';
+import { SyncCoordinator } from '../core/sync-coordinator';
 import { readAccountCache, writeAccountCache } from '../core/sync-cache';
 import type { AccountCache } from '../core/sync-cache';
 import { syncChange } from '../core/sync-api';
-import type { SyncRow } from '../core/sync-api';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 function initialCache(userId: string): AccountCache {
   const saved = readAccountCache(localStorage, userId);
@@ -74,147 +72,37 @@ function AccountLoader({ userId, getToken, syncUrl, syncKey, showAccount }: { us
 }
 
 function AccountSession({ userId, getToken, syncUrl, syncKey, showAccount, initial }: { userId: string; getToken: () => Promise<string | null>; syncUrl?: string; syncKey?: string; showAccount: boolean; initial: AccountCache }) {
-  const cache = useRef<AccountCache | null>(initial);
-  const [status, setStatus] = useState('Sync pending');
-  const [version, setVersion] = useState(0);
-  const [wake, setWake] = useState(0);
-  const stopped = useRef(false);
-  const busy = useRef(false);
-  const queued = useRef(false);
-  const resetSerial = useRef(0);
-  const wakeRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const rerender = () => setVersion(v => v + 1);
-  const schedule = () => { clearTimeout(wakeRef.current); wakeRef.current = setTimeout(() => setWake(n => n + 1), 500); };
-  const save = (next: AccountCache) => {
-    try { writeAccountCache(localStorage, userId, next); cache.current = next; return true; }
-    catch { setStatus('Storage unavailable · changes cannot be synced'); return false; }
-  };
-  const onSettings = (settings: Record<string, unknown>) => {
-    const current = cache.current;
-    if (!current || equal(current.settings, settings)) return;
-    if (save({ ...current, settings, settingsPending: true })) { setStatus('Sync pending'); schedule(); }
-  };
-  const onProgress = (progress: AccountCache['progress']) => {
-    const current = cache.current;
-    if (!current || equal(current.progress, progress)) return;
-    if (save({ ...current, progress, progressPending: true })) { setStatus('Sync pending'); schedule(); }
-  };
-  const onClear = () => {
-    const current = cache.current;
-    if (!current) return;
-    if (save({ ...current, progress: {}, progressPending: false, resetPending: true })) { resetSerial.current++; setStatus('Sync pending'); schedule(); }
-  };
+  const [view, setView] = useState({ cache: initial, status: 'Sync pending', version: 0 });
+  const tokenRef = useRef(getToken);
+  tokenRef.current = getToken;
+  const [coordinator] = useState(() => new SyncCoordinator(initial, {
+    save: next => writeAccountCache(localStorage, userId, next),
+    call: async (operation, current) => {
+      const result = await syncChange(syncUrl!, syncKey!, async () => {
+        const token = await tokenRef.current();
+        if (!token || !current()) return null;
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.sub !== userId) throw new Error('Account changed');
+        } catch { throw new Error('Account changed'); }
+        return token;
+      }, operation);
+      if (result.row.user_id !== userId) throw new Error('Account mismatch');
+      return result;
+    },
+    confirm: conflict => window.confirm(conflict === 'settings'
+      ? 'The account has different saved settings. Select OK to keep this device’s settings, or Cancel to use the account settings.'
+      : 'Progress was cleared on another device. Select OK to keep this device’s pending changes, or Cancel to use the account progress.'),
+    update: (cache, status, displayChanged) => setView(previous => ({ cache, status, version: previous.version + (displayChanged ? 1 : 0) })),
+  }, !!syncUrl && !!syncKey));
 
   useEffect(() => {
-    stopped.current = false;
-    const online = () => setWake(n => n + 1);
+    coordinator.start();
+    const online = () => coordinator.wake();
     window.addEventListener('online', online);
-    const interval = setInterval(online, 30000);
-    return () => { stopped.current = true; clearTimeout(wakeRef.current); clearInterval(interval); window.removeEventListener('online', online); };
-  }, []);
+    return () => { window.removeEventListener('online', online); coordinator.stop(); };
+  }, [coordinator]);
 
-  useEffect(() => {
-    if (!cache.current || !syncUrl || !syncKey) { if (!syncUrl || !syncKey) setStatus('Sync unavailable · missing configuration'); return; }
-    if (busy.current) { queued.current = true; return; }
-    busy.current = true;
-    const run = async () => {
-      const call = async (operation: Parameters<typeof syncChange>[3]) => {
-        if (stopped.current) throw new Error('Account changed');
-        const result = await syncChange(syncUrl, syncKey, async () => {
-          const token = await getToken();
-          if (!token || stopped.current) return null;
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-            if (payload.sub !== userId) throw new Error('Account changed');
-          } catch { throw new Error('Account changed'); }
-          return token;
-        }, operation);
-        if (result.row.user_id !== userId) throw new Error('Account mismatch');
-        return result;
-      };
-      const apply = (next: AccountCache, display = false) => {
-        if (stopped.current) return false;
-        if (!save(next)) throw new Error('Local storage unavailable');
-        if (display) rerender();
-        return true;
-      };
-      let response = await call({ operation: 'initialize' });
-      if (stopped.current) return;
-      let remote: SyncRow = response.row;
-      if (remote.user_id !== userId) throw new Error('Account mismatch');
-      let current = cache.current!;
-      if (current.settingsPending && (current.settingsRevision === null ? remote.settings_revision > 0 : current.settingsRevision !== remote.settings_revision)) {
-        const keep = window.confirm('The account has different saved settings. Select OK to keep this device’s settings, or Cancel to use the account settings.');
-        current = keep ? { ...current, settingsRevision: remote.settings_revision } : { ...current, settings: remote.settings, settingsRevision: remote.settings_revision, settingsPending: false };
-        apply(current, !keep);
-      } else if (!current.settingsPending) {
-        const changed = !equal(current.settings, remote.settings) && remote.settings_revision > 0;
-        current = { ...current, settings: changed ? remote.settings : current.settings, settingsRevision: remote.settings_revision };
-        apply(current, changed);
-      } else if (current.settingsRevision === null) {
-        current = { ...current, settingsRevision: remote.settings_revision };
-        apply(current);
-      }
-      current = cache.current!;
-      const generationChanged = current.resetGeneration !== null && current.resetGeneration !== remote.reset_generation;
-      const importedAfterReset = current.resetGeneration === null && current.progressPending && remote.reset_generation > 0;
-      if ((generationChanged && (current.progressPending || current.resetPending)) || importedAfterReset) {
-        const keep = window.confirm('Progress was cleared on another device. Select OK to keep this device’s pending changes, or Cancel to use the account progress.');
-        current = keep ? { ...current, resetGeneration: remote.reset_generation } : { ...current, progress: remote.progress, resetGeneration: remote.reset_generation, progressPending: false, resetPending: false };
-        apply(current, !keep);
-      } else if (generationChanged || (current.resetGeneration === null && !current.progressPending)) {
-        current = { ...current, progress: remote.progress, resetGeneration: remote.reset_generation };
-        apply(current, !equal(cache.current!.progress, remote.progress));
-      } else if (current.resetPending) {
-        current = { ...current, resetGeneration: remote.reset_generation };
-        apply(current);
-      } else {
-        const merged = mergeProgress(current.progress, remote.progress);
-        const changed = !equal(current.progress, merged);
-        current = { ...current, progress: merged, resetGeneration: remote.reset_generation };
-        apply(current, changed);
-      }
-      current = cache.current!;
-      if (current.settingsPending) {
-        const sent = current.settings;
-        response = await call({ operation: 'settings', data: sent, expected: current.settingsRevision! });
-        if (stopped.current) return;
-        if (response.status !== 'ok') { schedule(); return; }
-        current = cache.current!;
-        apply({ ...current, settingsRevision: response.row.settings_revision, settingsPending: !equal(current.settings, sent) });
-      }
-      current = cache.current!;
-      if (current.resetPending) {
-        const serial = resetSerial.current;
-        response = await call({ operation: 'reset', expected: current.resetGeneration! });
-        if (stopped.current) return;
-        if (response.status !== 'ok') { schedule(); return; }
-        current = cache.current!;
-        apply({ ...current, resetGeneration: response.row.reset_generation, resetPending: resetSerial.current !== serial, progressPending: Object.keys(current.progress).length > 0 });
-      }
-      current = cache.current!;
-      if (current.resetPending) { schedule(); return; }
-      if (current.progressPending) {
-        const sent = current.progress;
-        response = await call({ operation: 'progress', data: sent, expected: current.resetGeneration! });
-        if (stopped.current) return;
-        if (response.status !== 'ok') { schedule(); return; }
-        current = cache.current!;
-        if (current.resetPending) { schedule(); return; }
-        const merged = mergeProgress(current.progress, response.row.progress);
-        const changed = !equal(current.progress, merged);
-        apply({ ...current, progress: merged, progressPending: !equal(current.progress, sent) }, changed);
-      }
-      current = cache.current!;
-      if (current.settingsPending || current.progressPending || current.resetPending) { setStatus('Sync pending'); schedule(); }
-      else setStatus('Synced');
-    };
-    run().catch((error: unknown) => { if (!stopped.current) setStatus(error instanceof Error && error.message === 'Local storage unavailable' ? 'Storage unavailable · changes cannot be synced' : 'Sync failed · changes saved on this device'); }).finally(() => {
-      busy.current = false;
-      if (queued.current && !stopped.current) { queued.current = false; schedule(); }
-    });
-  }, [wake]);
-
-  if (!cache.current) return <p role="alert">{status}</p>;
-  return <App key={version} accountsEnabled={showAccount} account={{ settings: cache.current.settings, progress: cache.current.progress, status, onSettings, onProgress, onClear }} />;
+  return <App key={view.version} accountsEnabled={showAccount} account={{ settings: view.cache.settings, progress: view.cache.progress, status: view.status,
+    onSettings: value => coordinator.settings(value), onProgress: value => coordinator.progress(value), onClear: () => coordinator.clear() }} />;
 }

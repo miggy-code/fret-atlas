@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { describeNote, position, scaleById } from '../core/music';
-import { nextDrill, tapResult } from '../core/drill';
+import { nextDrill } from '../core/drill';
 import type { Drill, DrillRequest } from '../core/drill';
+import { transitionDrill, initialDrillSession } from '../core/drill-session';
+import type { DrillEvent } from '../core/drill-session';
 import type { State } from '../core/state';
 import { tuningOf } from '../core/study';
 import type { Study } from '../core/study';
@@ -15,16 +17,9 @@ export interface DrillView { drill: Drill; found: string[]; miss: string | null;
 
 /** Runs "find every X" rounds against the current view. A new round starts whenever the view it depends on changes. */
 export function useDrill(state: State, study: Study | undefined, active: boolean, sound: boolean, onRound?: (drill: Drill) => void, request?: DrillRequest) {
-  const [drill, setDrill] = useState<Drill>();
-  const [found, setFound] = useState<string[]>([]);
-  const [miss, setMiss] = useState<string | null>(null);
-  const [streak, setStreak] = useState(0);
-  const [best, setBest] = useState(readBest);
-  const [rounds, setRounds] = useState(0);
-  const [feedback, setFeedback] = useState('');
-  const [hint, setHint] = useState<string>();
-  const [revealed, setRevealed] = useState(false);
-  const [assisted, setAssisted] = useState(false);
+  const [session, setSession] = useState(() => initialDrillSession(readBest()));
+  const sessionRef = useRef(session);
+  const { phase, streak, best, rounds, feedback } = session;
   const started = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
@@ -32,76 +27,50 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
   const tuning = tuningOf(state);
   const context = JSON.stringify([state.root, state.scaleId, state.customPitches, state.spelling, state.frets, state.lowest, state.fourths, state.strings, state.focus, state.from, state.to, state.studyMode, study?.id, request]);
 
-  function begin(previous?: string) {
+  function send(event: DrillEvent) {
+    const transition = transitionDrill(sessionRef.current, event);
+    sessionRef.current = transition.state;
+    setSession(transition.state);
+    for (const effect of transition.effects) {
+      const midi = (id: string) => position(...(id.split(':').map(Number) as [number, number]), tuning).midi;
+      if (effect.kind === 'record') {
+        try { localStorage.setItem(BEST_KEY, String(effect.best)); } catch { /* The record is optional. */ }
+      } else if (effect.kind === 'miss') {
+        if (sound) thud();
+        later(() => send({ type: 'clear-miss', id: effect.id }), 650);
+      } else if (effect.kind === 'repeat') { if (sound) pluck(midi(effect.id), 0, .5); }
+      else if (effect.kind === 'hit') { if (sound) pluck(midi(effect.id)); }
+      else if (effect.kind === 'complete') {
+        if (sound) effect.found.map(midi).sort((a, b) => a - b).forEach((note, i) => pluck(note, i * .09, .8));
+        if (effect.credit) onRound?.(effect.drill);
+        later(() => begin(effect.drill.key), 1300);
+      }
+    }
+  }
+  function begin(previous?: string, feedback?: string, resetStreak = false) {
     clearTimers();
-    setDrill(nextDrill(state, study, previous, Math.random, request));
-    setFound([]);
-    setMiss(null);
-    setHint(undefined);
-    setRevealed(false);
-    setAssisted(false);
+    send({ type: 'begin', drill: nextDrill(state, study, previous, Math.random, request), feedback, resetStreak });
     started.current = performance.now();
   }
 
   useEffect(() => {
-    if (active) { begin(); setFeedback(''); }
-    else { clearTimers(); setDrill(undefined); }
-    // Starting over on every relevant view change keeps the answers honest.
+    if (active) begin(undefined, '');
+    else { clearTimers(); send({ type: 'stop' }); }
+    return clearTimers;
   }, [active, context]);
-  useEffect(() => clearTimers, []);
 
   function tap(id: string) {
-    if (!drill || revealed || found.length === drill.targets.length) return;
-    const [string, fret] = id.split(':').map(Number);
-    const note = position(string, fret, tuning);
-    const result = tapResult(drill, found, id);
-    if (result === 'repeat') { if (sound) pluck(note.midi, 0, .5); return; }
-    if (result === 'miss') {
-      if (sound) thud();
-      setStreak(0);
-      setMiss(id);
-      later(() => setMiss(current => current === id ? null : current), 650);
-      setFeedback(`That's ${describeNote(note, state.root, scaleById(state.scaleId), state.spelling).name}. Keep looking for ${drill.name}.`);
-      return;
-    }
-    const next = [...found, id];
-    const nextStreak = streak + 1;
-    const record = nextStreak > best;
-    setFound(next);
-    setStreak(nextStreak);
-    if (record) {
-      setBest(nextStreak);
-      try { localStorage.setItem(BEST_KEY, String(nextStreak)); } catch { /* The record is optional. */ }
-    }
-    if (next.length < drill.targets.length) {
-      if (sound) pluck(note.midi);
-      setFeedback(`${next.length} of ${drill.targets.length}`);
-      return;
-    }
-    // Round complete: play every answer low to high, then deal the next prompt.
-    const seconds = ((performance.now() - started.current) / 1000).toFixed(1);
-    if (sound) next.map(n => position(...(n.split(':').map(Number) as [number, number]), tuning).midi).sort((a, b) => a - b).forEach((midi, i) => pluck(midi, i * .09, .8));
-    setRounds(r => r + 1);
-    if (!assisted) onRound?.(drill);
-    setFeedback(`All ${drill.targets.length} in ${seconds}s${record && nextStreak > 1 ? ' · New best streak!' : ''}`);
-    later(() => begin(drill.key), 1300);
+    const current = sessionRef.current.phase;
+    if (current.kind !== 'finding') return;
+    const note = position(...(id.split(':').map(Number) as [number, number]), tuning);
+    send({ type: 'tap', id, seconds: ((performance.now() - started.current) / 1000).toFixed(1), missFeedback: `That's ${describeNote(note, state.root, scaleById(state.scaleId), state.spelling).name}. Keep looking for ${current.drill.name}.` });
   }
 
-  const view: DrillView | undefined = active && drill ? { drill, found, miss, complete: found.length === drill.targets.length, hint, revealed } : undefined;
-  const skip = () => { setStreak(0); begin(drill?.key); setFeedback('Next prompt'); };
-  const showHint = () => {
-    const id = drill?.targets.find(target => !found.includes(target));
-    if (!id) return;
-    setHint(id);
-    setAssisted(true);
-    setFeedback('One answer is highlighted. Assisted rounds do not count toward form progress.');
-  };
-  const reveal = () => {
-    if (!drill) return;
-    setRevealed(true);
-    setAssisted(true);
-    setFeedback('Answers revealed. Assisted rounds do not count toward form progress. Choose Next when you are ready.');
-  };
+  const view: DrillView | undefined = active && (phase.kind === 'finding' || phase.kind === 'complete' || phase.kind === 'revealed')
+    ? { drill: phase.drill, found: phase.found, miss: phase.miss, complete: phase.kind === 'complete', hint: phase.hint, revealed: phase.kind === 'revealed' } : undefined;
+  const skip = () => { const current = sessionRef.current.phase; begin('drill' in current ? current.drill.key : undefined, 'Next prompt', true); };
+  const showHint = () => send({ type: 'hint' });
+  const reveal = () => send({ type: 'reveal' });
   return { view, tap, skip, hint: showHint, reveal, streak, best, rounds, feedback };
 }
 
