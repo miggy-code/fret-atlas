@@ -31,13 +31,16 @@ function initialCache(userId: string): AccountCache {
 
 export function AccountsRoot() {
   const { isLoaded, userId, getToken } = useAuth();
-  if (!isLoaded) return <p role="status">Loading account…</p>;
+  const [deviceOnly, setDeviceOnly] = useState(false);
+  if (deviceOnly || !isLoaded) return <div onPointerDownCapture={() => setDeviceOnly(true)} onKeyDownCapture={() => setDeviceOnly(true)}><App /></div>;
   return userId ? <AccountApp key={userId} userId={userId} getToken={getToken} /> : <App accountsEnabled />;
 }
 
 export function AccountApp({ userId, getToken, syncUrl = url, syncKey = key, showAccount = true }: { userId: string; getToken: () => Promise<string | null>; syncUrl?: string; syncKey?: string; showAccount?: boolean }) {
   const [access, setAccess] = useState<'checking' | 'ready' | 'busy' | 'unsupported'>('checking');
+  const [deviceOnly, setDeviceOnly] = useState(false);
   useEffect(() => {
+    if (deviceOnly) return;
     let active = true;
     let release: (() => void) | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
@@ -54,19 +57,17 @@ export function AccountApp({ userId, getToken, syncUrl = url, syncKey = key, sho
     }).catch(() => { if (active) setAccess('unsupported'); });
     acquire(false);
     return () => { active = false; clearTimeout(retry); release?.(); };
-  }, [userId]);
-  if (access === 'checking') return <p role="status">Loading account…</p>;
+  }, [userId, deviceOnly]);
+  if (deviceOnly || access === 'checking') return <div onPointerDownCapture={() => setDeviceOnly(true)} onKeyDownCapture={() => setDeviceOnly(true)}><App /></div>;
   if (access !== 'ready') return <div role="alert"><p>{access === 'busy' ? 'This account is open in another tab. Close that tab and reload to protect pending changes.' : 'This browser cannot safely coordinate account data between tabs. Use a current browser or sign out.'}</p>{showAccount && <UserButton />}</div>;
   return <AccountLoader userId={userId} getToken={getToken} syncUrl={syncUrl} syncKey={syncKey} showAccount={showAccount} />;
 }
 
 function AccountLoader({ userId, getToken, syncUrl, syncKey, showAccount }: { userId: string; getToken: () => Promise<string | null>; syncUrl?: string; syncKey?: string; showAccount: boolean }) {
-  const [initial, setInitial] = useState<{ cache: AccountCache | null; error: string } | null>(null);
-  useEffect(() => {
-    try { setInitial({ cache: initialCache(userId), error: '' }); }
-    catch { setInitial({ cache: null, error: 'Account storage is unavailable or damaged. Your saved data has been preserved.' }); }
-  }, [userId]);
-  if (!initial) return <p role="status">Loading account…</p>;
+  const [initial] = useState<{ cache: AccountCache | null; error: string }>(() => {
+    try { return { cache: initialCache(userId), error: '' }; }
+    catch { return { cache: null, error: 'Account storage is unavailable or damaged. Your saved data has been preserved.' }; }
+  });
   if (!initial.cache) return <p role="alert">{initial.error}</p>;
   return <AccountSession userId={userId} getToken={getToken} syncUrl={syncUrl} syncKey={syncKey} showAccount={showAccount} initial={initial.cache} />;
 }
