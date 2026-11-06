@@ -63,7 +63,7 @@
 **Ideal path**: 2 steps; reload and open Practice.
 **Alternate paths**: None found.
 ### Steps
-1. Reload Fret Atlas → stored workspace and progress are restored.
+1. Reload Fretory → stored workspace and progress are restored.
 2. Choose **Practice** → Form markers and the key-grid counts show previous credit.
 3. Select a previously practiced key → its form ring retains completed segments.
 ### Variations

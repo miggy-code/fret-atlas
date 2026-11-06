@@ -11,7 +11,7 @@
 **Alternate paths**: The learner can open Guide for an explanation, or inspect a fretboard note directly.
 
 ### Steps
-1. Open Fret Atlas → the header identifies A minor and the Study controls show Key A, Scale Minor pentatonic, and Position.
+1. Open Fretory → the header identifies A minor and the Study controls show Key A, Scale Minor pentatonic, and Position.
 2. Hover or focus a visible fretboard note → its pitch, octave, degree, and string/fret appear in the inspector and tooltip.
 
 ### Variations

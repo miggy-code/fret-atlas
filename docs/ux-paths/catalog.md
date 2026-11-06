@@ -1,4 +1,4 @@
-# UX Path Catalog: Fret Atlas
+# UX Path Catalog: Fretory
 
 Generated: 2026-11-05
 
@@ -59,7 +59,7 @@ The catalog retains stories that touch the same control when their user goal dif
 **Alternate paths**: The learner can open Guide for an explanation, or inspect a fretboard note directly.
 
 ### Steps
-1. Open Fret Atlas → the header identifies A minor and the Study controls show Key A, Scale Minor pentatonic, and Position.
+1. Open Fretory → the header identifies A minor and the Study controls show Key A, Scale Minor pentatonic, and Position.
 2. Hover or focus a visible fretboard note → its pitch, octave, degree, and string/fret appear in the inspector and tooltip.
 
 ### Variations
@@ -626,7 +626,7 @@ The catalog retains stories that touch the same control when their user goal dif
 **Ideal path**: 2 steps; reload and open Practice.
 **Alternate paths**: None found.
 ### Steps
-1. Reload Fret Atlas → stored workspace and progress are restored.
+1. Reload Fretory → stored workspace and progress are restored.
 2. Choose **Practice** → Form markers and the key-grid counts show previous credit.
 3. Select a previously practiced key → its form ring retains completed segments.
 ### Variations
@@ -795,7 +795,7 @@ The catalog retains stories that touch the same control when their user goal dif
 **Topic**: Sharing and persistence recovery
 **Persona**: Student receiving a teacher’s link
 **Goal**: Load the teacher’s map and keep local sound/theme/progress.
-**Preconditions**: A valid Fret Atlas URL contains `atlas` state.
+**Preconditions**: A valid Fretory URL contains `atlas` state.
 **Ideal path**: 1 step; open the URL.
 **Alternate paths**: None found.
 ### Steps
@@ -834,7 +834,7 @@ The catalog retains stories that touch the same control when their user goal dif
 **Ideal path**: 1 step; revisit the app.
 **Alternate paths**: A shared URL supersedes saved workspace on startup.
 ### Steps
-1. Reopen Fret Atlas → the latest key, scale, view, controls, and marks reappear.
+1. Reopen Fretory → the latest key, scale, view, controls, and marks reappear.
 ### Variations
 - Legacy stored shapes are migrated where valid.
 - With no stored state, A minor pentatonic Form 1 is shown.

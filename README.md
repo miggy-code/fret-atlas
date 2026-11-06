@@ -1,6 +1,6 @@
-# Fret Atlas
+# Fretory
 
-Fret Atlas is a focused guitar-fretboard workspace for learning how pentatonic positions, rectangles, stacks, and diagonal patterns connect. The neck is the center of the interface; controls are grouped into small modules so the study view stays readable.
+Fretory is a focused guitar-fretboard workspace for learning how pentatonic positions, rectangles, stacks, and diagonal patterns connect. The neck is the center of the interface; controls are grouped into small modules so the study view stays readable.
 
 **Stack:** React 19, TypeScript, and Vite, with unit tests on `node:test` and browser tests in Playwright.
 
@@ -71,7 +71,7 @@ npm run test:browser
 
 ## Credit
 
-Fret Atlas was informed by [Fret Science's Scale Visualizer](https://fretscience.com/tools/scale-visualizer), created by [Keith Martin](https://fretscience.com/). It is an independent study tool and has no affiliation with Fret Science or Keith Martin.
+Fretory was informed by [Fret Science's Scale Visualizer](https://fretscience.com/tools/scale-visualizer), created by [Keith Martin](https://fretscience.com/). It is an independent study tool and has no affiliation with Fret Science or Keith Martin.
 
 ## Development notes
 

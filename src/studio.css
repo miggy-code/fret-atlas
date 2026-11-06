@@ -85,6 +85,8 @@ svg { flex-shrink: 0; }
 .header-actions .text-button:hover { background: var(--panel); color: var(--ink); }
 .header-actions .text-button { border: 1px solid var(--line); }
 .workspace { max-width: 1536px; margin: auto; padding: 28px 36px 20px; }
+.wordmark { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.6px; line-height: 1; }
+.wordmark img { width: 32px; height: 32px; }
 .board-card { background: var(--surface); border: 1px solid #d1dfe5; border-radius: 16px; box-shadow: 0 8px 32px #163c4908; }
 .board-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 28px; }
 .board-title { display: flex; align-items: center; gap: 16px; }

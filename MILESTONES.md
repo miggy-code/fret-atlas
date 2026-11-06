@@ -1,4 +1,4 @@
-# Fret Atlas rebuild
+# Fretory rebuild
 
 The user approved staged implementation on 2026-09-13. Stop at the first
 visual checkpoint before broadening the remaining viewing modes. Full parity

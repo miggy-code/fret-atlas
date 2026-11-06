@@ -1,4 +1,4 @@
-# Fret Atlas: integrated scale and shape workspace
+# Fretory: integrated scale and shape workspace
 
 ## Goal and current scope
 

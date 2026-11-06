@@ -38,7 +38,7 @@
 **Topic**: Sharing and persistence recovery
 **Persona**: Student receiving a teacher’s link
 **Goal**: Load the teacher’s map and keep local sound/theme/progress.
-**Preconditions**: A valid Fret Atlas URL contains `atlas` state.
+**Preconditions**: A valid Fretory URL contains `atlas` state.
 **Ideal path**: 1 step; open the URL.
 **Alternate paths**: None found.
 ### Steps
@@ -77,7 +77,7 @@
 **Ideal path**: 1 step; revisit the app.
 **Alternate paths**: A shared URL supersedes saved workspace on startup.
 ### Steps
-1. Reopen Fret Atlas → the latest key, scale, view, controls, and marks reappear.
+1. Reopen Fretory → the latest key, scale, view, controls, and marks reappear.
 ### Variations
 - Legacy stored shapes are migrated where valid.
 - With no stored state, A minor pentatonic Form 1 is shown.

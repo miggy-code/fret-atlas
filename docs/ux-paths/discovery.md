@@ -1,4 +1,4 @@
-# App Discovery: Fret Atlas
+# App Discovery: Fretory
 
 ## Application Type
 

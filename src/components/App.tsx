@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
 import { Show, SignInButton, UserButton } from '@clerk/react';
+import logo from '../../favicon.svg';
 import { describeNote, degreeLabel, LOWEST_STRING_CHOICES, pitchName, position, scaleById, SCALES, SHARPS, spellTone } from '../core/music';
 import type { Scale } from '../core/music';
 import { loadState, reducer, restoreState, sectionModified, selectedPitches, visibleShapes, STORAGE_KEY } from '../core/state';
@@ -189,6 +190,7 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
 
   return <>
     <main className="workspace minimal-studio">
+      <div className="wordmark"><img src={logo} alt="" />Fretory</div>
       <section className="board-card" aria-label="Interactive fretboard">
         <div className="board-heading">
           <div className="board-title">
