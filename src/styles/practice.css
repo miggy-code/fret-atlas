@@ -65,6 +65,15 @@
   .drill-actions { flex-wrap: wrap; grid-row: 1; grid-column: 2; }
   .degree-picks button, .start-button { min-height: 44px; }
 }
+/* Portrait phone: the prompt, the count and the four actions fit the first screen above the board. */
+.workspace[data-orientation='vertical'] .drill-bar { grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; padding: 4px 0 0; border: 0; }
+.workspace[data-orientation='vertical'] .drill-prompt { grid-column: 1 / -1; }
+.workspace[data-orientation='vertical'] .drill-prompt strong { font-size: 26px; }
+.workspace[data-orientation='vertical'] .drill-progress { order: 0; grid-row: 2; }
+.workspace[data-orientation='vertical'] .drill-stats { order: 0; grid-row: 2; justify-self: end; }
+.workspace[data-orientation='vertical'] .drill-actions { grid-row: 3; grid-column: 1 / -1; gap: 6px; }
+.workspace[data-orientation='vertical'] .drill-actions .text-button { flex: 1; min-height: 44px; border: 1px solid var(--line); }
+.workspace[data-orientation='vertical'] .drill-feedback { grid-row: 4; min-height: 0; padding-bottom: 4px; font-size: 12px; }
 @media (prefers-reduced-motion: reduce) {
   .drill-progress i, .drill-streak b, .ring-segment { animation: none !important; transition: none !important; }
 }

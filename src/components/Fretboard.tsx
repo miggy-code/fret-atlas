@@ -2,7 +2,6 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { arrowStep, boardGeometry, ROW, shapePath, sharedShapePath } from '../core/geometry';
 import type { Point } from '../core/geometry';
-import '../styles/neck-vertical.css';
 import { position, pitchName } from '../core/music';
 import { Charm } from './Charm';
 import { degreeColor, notePresentation } from '../core/presentation';
@@ -124,9 +123,9 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const warpLabel = nameAt(warpAcross);
   // Text is positioned in screen space and never rotated; its baseline drops a little to sit centered on the point.
   const numberAt = (fret: number) => geo.project(geo.along(fret), geo.numberAcross);
-  return <div className={`board-shell ${vertical ? 'is-vertical' : ''} ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
+  return <div data-orientation={orientation} className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label={`Fretboard. Tab to a note; arrow keys navigate, Enter marks. ${vertical ? 'Scroll the page for more frets.' : 'Scroll horizontally for more frets.'}`}>
-      <svg className={`fretboard ${vertical ? 'is-vertical' : ''} ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : entering ? 'form-enter' : ''} ${drill?.complete ? 'drill-complete' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { '--board-width': vertical ? view.width : geo.width } as CSSProperties} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'} data-orientation={orientation}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : entering ? 'form-enter' : ''} ${drill?.complete ? 'drill-complete' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { '--board-width': vertical ? view.width : geo.width } as CSSProperties} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'} data-orientation={orientation}>
         <title>{vertical
           ? `Guitar fretboard, nut at top, ${state.leftHanded ? 'high' : 'low'} strings on the left`
           : `Guitar fretboard, high strings above, nut ${state.leftHanded ? 'right' : 'left'}`}</title>

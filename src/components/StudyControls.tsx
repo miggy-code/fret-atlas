@@ -25,7 +25,18 @@ interface StudyControlsProps {
 }
 
 /** Key, scale and study view, then the form bar that steps through what that view offers. */
-export function StudyControls({ state, dispatch, scale, study, choiceCount, formLevel, playing, onPlay, connected, onConnect }: StudyControlsProps) {
+export function StudyControls(props: StudyControlsProps) {
+  return <section className="study-controls" aria-label="Study controls">
+    <StudyPicker {...props} />
+    <div className="form-bar">
+      <FormNavigation {...props} withPlay />
+      <StudyOptions {...props} />
+    </div>
+  </section>;
+}
+
+/** Key, scale and study view. A phone shows these above the board and the rest elsewhere. */
+export function StudyPicker({ state, dispatch, scale }: Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale'>) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
@@ -38,8 +49,7 @@ export function StudyControls({ state, dispatch, scale, study, choiceCount, form
     { value: 'string', label: 'One string', disabled: !pitches.length },
     { value: 'nps', label: '3 notes/string', disabled: !sevenNotes, hint: sevenNotes ? undefined : 'Requires a seven-note scale' },
   ];
-  const visibleFamilies = state.patterns.length === 2 ? 'both' : state.patterns[0] ?? 'both';
-  return <section className="study-controls" aria-label="Study controls">
+  return <>
     <div className="study-primary">
       <div className="musical-controls">
         <label className="field key-field"><span>{custom ? 'Reference' : 'Key'}</span>
@@ -60,35 +70,63 @@ export function StudyControls({ state, dispatch, scale, study, choiceCount, form
     {!scale.family && <p className="study-availability">
       Shape and Diagonal need a scale built on a pentatonic.{!custom && ' Position shows a nearby fret range.'}
     </p>}
-    <div className="form-bar">
-      {(study || state.studyMode === 'all') && <div className="form-navigation">
-        {state.studyMode !== 'all' && study
-          && <FormStepper state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choiceCount} formLevel={formLevel} />}
-        {/* In Practice, Play through owns playback. */}
-        {onPlay && <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}>
-          <Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}
-        </button>}
-      </div>}
-      {/* The one place to choose rectangles or stacks: a filter in Position and Whole neck, the studied family in Shape and Diagonal. */}
-      {scale.family && ['position', 'all'].includes(state.studyMode) && <Segments<'both' | ShapeKind> label="Pattern families" value={visibleFamilies} options={[
-        { value: 'both', label: 'Both' },
-        { value: 'rectangle', label: <><i className="shape-icon" />Rectangles</> },
-        { value: 'stack', label: <><i className="shape-icon stack" />Stacks</> },
-      ]} onChange={value => dispatch({ type: 'patterns', value: value === 'both' ? ['rectangle', 'stack'] : [value] })} />}
-      {scale.family && ['shape', 'diagonal'].includes(state.studyMode) && <Segments<ShapeKind> label="Shape family" value={state.shapeKind} options={[
-        { value: 'rectangle', label: <><i className="shape-icon" />Rectangle</> },
-        { value: 'stack', label: <><i className="shape-icon stack" />Stack</> },
-      ]} onChange={value => dispatch({ type: 'shape-kind', value })} />}
-      {scale.family && <button type="button" className="connect-button" aria-pressed={connected} onClick={onConnect}
-        title="Outline the neighboring forms to see how they connect">Connect positions</button>}
-      <label className="neck-length"><span>Neck</span>
-        <select aria-label="Neck length" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
-          {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
-        </select>
-      </label>
-      {state.studyMode === 'all' && scale.family && <span className="form-hint">Hover a note to highlight its shapes</span>}
-    </div>
-  </section>;
+  </>;
+}
+
+const hasForms = (study: Study | undefined, state: State) => !!study || state.studyMode === 'all';
+
+/** The form stepper, and Play where the page keeps it beside the stepper. */
+export function FormNavigation({ state, dispatch, scale, study, choiceCount, formLevel, playing, onPlay, withPlay }: StudyControlsProps & { withPlay?: boolean }) {
+  if (!hasForms(study, state)) return null;
+  return <div className="form-navigation">
+    {state.studyMode !== 'all' && study
+      && <FormStepper state={state} dispatch={dispatch} scale={scale} study={study} choiceCount={choiceCount} formLevel={formLevel} />}
+    {withPlay && <PlayButton playing={playing} onPlay={onPlay} />}
+  </div>;
+}
+
+/** The form bar on a phone: only the stepper, attached to the board. */
+export function FormBar(props: StudyControlsProps) {
+  return <div className="form-bar"><FormNavigation {...props} /></div>;
+}
+
+// In Practice, Play through owns playback, so Explore alone passes onPlay.
+function PlayButton({ playing, onPlay }: Pick<StudyControlsProps, 'playing' | 'onPlay'>) {
+  if (!onPlay) return null;
+  return <button type="button" className={`play-button ${playing ? 'is-playing' : ''}`} aria-pressed={playing} onClick={onPlay}>
+    <Icon name={playing ? 'stop' : 'play'} />{playing ? 'Stop' : 'Play'}
+  </button>;
+}
+
+/** Pattern choices, Connect positions and neck length, beside the form stepper. */
+export function StudyOptions({ state, dispatch, scale, connected, onConnect, playing, onPlay, withPlay }: StudyControlsProps & { withPlay?: boolean }) {
+  const visibleFamilies = state.patterns.length === 2 ? 'both' : state.patterns[0] ?? 'both';
+  return <>
+    {withPlay && <PlayButton playing={playing} onPlay={onPlay} />}
+    {/* The one place to choose rectangles or stacks: a filter in Position and Whole neck, the studied family in Shape and Diagonal. */}
+    {scale.family && ['position', 'all'].includes(state.studyMode) && <Segments<'both' | ShapeKind> label="Pattern families" value={visibleFamilies} options={[
+      { value: 'both', label: 'Both' },
+      { value: 'rectangle', label: <><i className="shape-icon" />Rectangles</> },
+      { value: 'stack', label: <><i className="shape-icon stack" />Stacks</> },
+    ]} onChange={value => dispatch({ type: 'patterns', value: value === 'both' ? ['rectangle', 'stack'] : [value] })} />}
+    {scale.family && ['shape', 'diagonal'].includes(state.studyMode) && <Segments<ShapeKind> label="Shape family" value={state.shapeKind} options={[
+      { value: 'rectangle', label: <><i className="shape-icon" />Rectangle</> },
+      { value: 'stack', label: <><i className="shape-icon stack" />Stack</> },
+    ]} onChange={value => dispatch({ type: 'shape-kind', value })} />}
+    {scale.family && <button type="button" className="connect-button" aria-pressed={connected} onClick={onConnect}
+      title="Outline the neighboring forms to see how they connect">Connect positions</button>}
+    <label className="neck-length"><span>Neck</span>
+      <select aria-label="Neck length" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
+        {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
+      </select>
+    </label>
+    {state.studyMode === 'all' && scale.family && <span className="form-hint">Hover a note to highlight its shapes</span>}
+  </>;
+}
+
+/** The same choices on a phone, with Play, in a block below the board. */
+export function StudyOptionsBar(props: StudyControlsProps) {
+  return hasForms(props.study, props.state) ? <div className="study-options"><StudyOptions {...props} withPlay /></div> : null;
 }
 
 type StepperProps = Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale' | 'choiceCount' | 'formLevel'> & { study: Study };

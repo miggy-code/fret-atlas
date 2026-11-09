@@ -1,9 +1,13 @@
 /* The board: one SVG neck, its notes and pattern outlines, and the legend under it. */
 .board-shell { position: relative; margin-top: 24px; padding: 24px 16px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .board-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #9aacb8 #edf1f4; }
+/* A vertical neck fits the width and scrolls with the page, so the board is not a scroller of its own. */
+.board-shell[data-orientation='vertical'] .board-scroll { overflow: visible; }
 .fretboard { display: block; width: 100%; min-width: calc(var(--board-width, 0) * 1px); height: auto; overflow: visible; user-select: none; }
 /* On wider screens the neck may shrink to about 72% before it scrolls; phones keep full-size notes. */
 @media (min-width: 761px) { .fretboard { min-width: calc(var(--board-width, 0) * .72px); } }
+/* Vertical: as wide as the screen allows (a wide portrait window does not blow the chart up), centered. */
+.fretboard[data-orientation='vertical'] { min-width: 0; max-width: calc(var(--board-width) * 1.2px); margin-inline: auto; }
 /* A fade on the bridge side only: on the nut side it would cover the string names, and the scroll cue already says there is more. */
 .board-shell::after { content: ''; position: absolute; z-index: 4; top: 54px; bottom: 39px; right: 16px; width: 21px; background: linear-gradient(-90deg, var(--surface), transparent); opacity: 0; pointer-events: none; }
 .board-shell.has-right::after { opacity: 1; }
@@ -12,6 +16,9 @@
 
 .fret-number { font: 500 12px 'DM Sans', sans-serif; fill: var(--fret-label); }
 .open-fret { font-size: 12px; letter-spacing: .7px; }
+.fretboard[data-orientation='vertical'] .open-fret { font-size: 10px; letter-spacing: .3px; }
+/* Measures the active form for scrolling it into view; it draws nothing. */
+.form-span { fill: none; stroke: none; pointer-events: none; }
 .fret-wire { stroke: var(--fret-wire); stroke-width: 1.5; }
 .nut { stroke: var(--nut); stroke-width: 5; }
 .guitar-string { stroke: var(--string); }
@@ -139,6 +146,8 @@
   .board-shell { margin-top: 16px; padding-inline: 8px; }
   .board-shell::after { right: 8px; }
   .board-notice { margin-inline: 16px; }
+  /* A portrait phone gives the board the full screen width, undoing the page padding (12px), so the notes stay large. */
+  .board-shell[data-orientation='vertical'] { margin: 0 -12px; padding: 6px 0 4px; border-inline: 0; border-radius: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .note-symbol, .note-burst, .shape-outline, .shape-halo, .shared-rail { animation: none !important; transition: none !important; }

@@ -9,7 +9,6 @@ import type { DrillRequest } from '../core/drill';
 import { levelOf, practicedForms } from '../core/progress';
 import type { Progress } from '../core/progress';
 import { BoardLegend } from './BoardLegend';
-import { Icon } from './controls';
 import { DrillBar, useDrill } from './Drill';
 import { ExploreDeck } from './ExploreDeck';
 import { Fretboard } from './Fretboard';
@@ -18,9 +17,11 @@ import { MarksPanel } from './MarksPanel';
 import { PracticeDeck } from './PracticeDeck';
 import { useProgress } from './Progress';
 import { SettingsDialog } from './SettingsDialog';
-import { StudyControls } from './StudyControls';
+import { FormBar, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
+import { ModeTabs } from './ModeTabs';
 import { Topbar } from './Topbar';
 import { pluck } from './audio';
+import { useBoardOrientation } from './useBoardOrientation';
 import { useChord } from './useChord';
 import { usePlayback } from './usePlayback';
 import { useDevicePreferences, useSavedView } from './usePreferences';
@@ -59,6 +60,8 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   const settingsButton = useRef<HTMLButtonElement>(null);
   const chord = useChord(state, dispatch);
   const { share, manualLink } = useShare(state, notify);
+  const orientation = useBoardOrientation();
+  const vertical = orientation === 'vertical';
   const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
   // Connecting from another view borrows Position with ghost forms until the next view change.
@@ -155,8 +158,34 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
     : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`;
   const showPatternNotice = !practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length;
 
+  const studyProps = {
+    state: viewState, dispatch: studyDispatch, scale, study, choiceCount: choices.length,
+    formLevel: family && tab === 'practice' ? (form: number) => levelOf(progress.progress, family, state.root, form) : undefined,
+    playing: playback.running, onPlay: tab === 'explore' ? () => playForm() : undefined,
+    connected: viewState.studyMode === 'position' && viewState.ghostForms, onConnect: toggleConnections,
+  };
+  const patternNotice = showPatternNotice && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>;
+  const drillDeck = practicing && <div id="deck" role="tabpanel" aria-labelledby="practice-tab" ref={drillContainer} tabIndex={-1}>
+    <DrillBar session={drill} onEnd={endPractice} />
+  </div>;
+  const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing}
+    onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
+    {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
+  </Fretboard>;
+  const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
+    {tab === 'practice'
+      ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
+        onClearProgress={progress.clear} synced={!!account} chord={{ root: chord.root, kind: chord.kind }} onChord={chord.change}
+        degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
+        onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
+      : <ExploreDeck state={state} dispatch={dispatch} scale={scale} chord={{
+        kind: chord.kind, root: chord.root, shown: chord.shown, onChange: chord.change, onToggle: chord.toggle, onHear: hearChord,
+      }} />}
+  </div>;
+  const tabs = <ModeTabs tab={tab} onChoose={chooseTab} />;
+
   return <>
-    <main className="workspace">
+    <main className="workspace" data-orientation={orientation}>
       <Topbar accountsEnabled={accountsEnabled} onShare={share} guideButton={guideButton} settingsButton={settingsButton}
         onGuide={() => guide.current?.showModal()} onSettings={() => settings.current?.showModal()} />
       <section className="board-card" aria-label="Interactive fretboard">
@@ -168,37 +197,31 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
               <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
             </div>
           </div>
-          <div className="mode-tabs" role="tablist" aria-label="Mode">{(['explore', 'practice'] as const).map(value =>
-            <button key={value} id={`${value}-tab`} type="button" role="tab" aria-selected={tab === value} aria-controls="deck" onClick={() => chooseTab(value)}>
-              {value === 'explore' ? 'Explore' : <><Icon name="target" />Practice</>}
-            </button>)}
-          </div>
+          {!vertical && tabs}
         </div>
-        {!practicing && <StudyControls state={viewState} dispatch={studyDispatch} scale={scale} study={study} choiceCount={choices.length}
-          formLevel={family && tab === 'practice' ? form => levelOf(progress.progress, family, state.root, form) : undefined}
-          playing={playback.running} onPlay={tab === 'explore' ? () => playForm() : undefined}
-          connected={viewState.studyMode === 'position' && viewState.ghostForms} onConnect={toggleConnections} />}
-
-        {showPatternNotice && <div className="board-notice" role="status">No patterns fit the current strings and fret range. The notes are still shown.</div>}
-        {practicing && <div id="deck" role="tabpanel" aria-labelledby="practice-tab" ref={drillContainer} tabIndex={-1}>
-          <DrillBar session={drill} onEnd={endPractice} />
-        </div>}
-        {(state.studyMode === 'diagonal' || state.studyMode === 'all')
-          && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
-        <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing}
-          onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
-          {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
-        </Fretboard>
-        {!practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
-          {tab === 'practice'
-            ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
-              onClearProgress={progress.clear} synced={!!account} chord={{ root: chord.root, kind: chord.kind }} onChord={chord.change}
-              degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
-              onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
-            : <ExploreDeck state={state} dispatch={dispatch} scale={scale} chord={{
-              kind: chord.kind, root: chord.root, shown: chord.shown, onChange: chord.change, onToggle: chord.toggle, onHear: hearChord,
-            }} />}
-        </div>}
+        {vertical
+          // A phone reads top to bottom: pick key, scale and view, then the form attached to the board, then the board,
+          // then everything secondary. The form bar (or the drill prompt) sticks while a long neck scrolls under it.
+          ? <>
+            {!practicing && <section className="study-controls" aria-label="Study controls"><StudyPicker {...studyProps} /></section>}
+            {patternNotice}
+            <div className="board-stage">
+              {practicing ? drillDeck : <FormBar {...studyProps} />}
+              {board}
+            </div>
+            {!practicing && <StudyOptionsBar {...studyProps} />}
+            {tabs}
+            {deck}
+          </>
+          : <>
+            {!practicing && <StudyControls {...studyProps} />}
+            {patternNotice}
+            {drillDeck}
+            {(state.studyMode === 'diagonal' || state.studyMode === 'all')
+              && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
+            {board}
+            {deck}
+          </>}
         <InspectionRow inspected={inspected} state={state} tuning={tuning} scale={scale} />
       </section>
       <MarksPanel state={state} dispatch={dispatch} scale={scale} tuning={tuning} />

@@ -1,10 +1,10 @@
 /* A quiet workspace, with the instrument as the main surface. */
 .workspace { max-width: 1600px; margin: auto; padding: 32px 32px 20px; }
 
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
 .wordmark { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.6px; line-height: 1; }
 .wordmark img { width: 32px; height: 32px; }
-.header-actions { display: flex; gap: 8px; margin-left: auto; }
+.header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .header-actions .text-button { border: 1px solid var(--line); color: var(--header-button-ink); }
 .header-actions .text-button:hover { background: var(--header-button-hover-bg); color: var(--ink); }
 .account-button { display: flex; align-items: center; min-height: 44px; padding: 0 8px; }
@@ -53,9 +53,8 @@
 }
 @media (max-width: 760px) {
   .workspace { padding: 20px 12px 12px; }
-  .header-actions { flex-wrap: wrap; gap: 4px; width: 100%; justify-content: flex-start; margin-left: 0; }
+  .header-actions { gap: 4px; }
   .header-actions .text-button { min-height: 44px; padding: 7px 9px; }
-  .header-actions .text-button svg { display: none; }
   .board-heading { gap: 18px; padding-bottom: 20px; }
   .board-title p { display: none; }
   .mode-tabs { order: 2; width: 100%; margin-left: 0; }
@@ -64,6 +63,23 @@
   .keyboard-hint { display: none; }
   .page-footer { flex-wrap: wrap; gap: 7px; padding-inline: 5px; line-height: 1.7; }
 }
+/* The top bar stays on one row: icon-only actions below 520px, then the wordmark's text yields to them. */
+@media (max-width: 520px) {
+  .header-action { width: 44px; padding: 0; }
+  .header-action span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}
+@media (max-width: 359px) {
+  .wordmark-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}
+
+/* A portrait phone shows the board first: the study heading is spoken (h1) rather than shown, because the key and
+   scale selects below already display it, and Explore/Practice move below the board with the deck they switch. */
+.workspace[data-orientation='vertical'] { padding-top: 8px; }
+/* Keeps a form scrolled into view clear of the sticky form bar above it. */
+:root:has(.workspace[data-orientation='vertical']) { scroll-padding-top: 60px; scroll-padding-bottom: 12px; }
+.workspace[data-orientation='vertical'] .topbar { margin-bottom: 6px; }
+.workspace[data-orientation='vertical'] .board-heading { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.workspace[data-orientation='vertical'] .mode-tabs { order: 0; margin: 12px 0 0; }
 @media (pointer: coarse) {
   .marks-list button { min-height: 44px; }
 }

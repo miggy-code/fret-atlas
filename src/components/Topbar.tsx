@@ -15,12 +15,13 @@ interface TopbarProps {
 
 export function Topbar({ accountsEnabled, onShare, onGuide, onSettings, guideButton, settingsButton }: TopbarProps) {
   return <div className="topbar">
-    <div className="wordmark"><img src={logo} alt="" />Fretory</div>
+    <div className="wordmark"><img src={logo} alt="" /><span className="wordmark-name">Fretory</span></div>
     <div className="header-actions">
       {accountsEnabled && <AccountMenu />}
-      <button className="text-button" aria-label="Share view" onClick={onShare}><Icon name="link" /><span>Share</span></button>
-      <button ref={guideButton} className="text-button" onClick={onGuide}><Icon name="help" /><span>Guide</span></button>
-      <button ref={settingsButton} className="text-button" onClick={onSettings}><Icon name="settings" /><span>Settings</span></button>
+      {/* On narrow screens only the icons show; the labels stay as the accessible names. */}
+      <button className="text-button header-action" aria-label="Share view" onClick={onShare}><Icon name="link" /><span>Share</span></button>
+      <button ref={guideButton} className="text-button header-action" aria-label="Guide" onClick={onGuide}><Icon name="help" /><span>Guide</span></button>
+      <button ref={settingsButton} className="text-button header-action" aria-label="Settings" onClick={onSettings}><Icon name="settings" /><span>Settings</span></button>
     </div>
   </div>;
 }
