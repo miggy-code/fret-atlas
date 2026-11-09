@@ -139,12 +139,14 @@ test('clearing progress queues a reset and does not restore pre-reset progress',
     await route.fulfill({ json: { status: 'ok', row: buildSyncRow({ settings, progress: serverProgress, reset_generation: generation }) } });
   });
   await seedAccountCache(page, 'user_a', { progress: { 'minor:9:1': 2 }, resetGeneration: 0 });
-  page.on('dialog', dialog => dialog.accept());
   await page.goto('/tests/sync-harness.html?user=user_a');
   await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
   offline = true;
   await page.getByRole('tab', { name: 'Practice' }).click();
   await page.getByRole('button', { name: 'Clear progress' }).click();
+  // The account-wide wording is shown when signed in.
+  await expect(page.getByRole('dialog', { name: 'Clear all progress?' })).toContainText('every device signed in to this account');
+  await answer(page, 'Clear progress');
   await expect(page.getByRole('status').filter({ hasText: 'Sync failed' })).toBeVisible();
   const pending = await page.evaluate(() => JSON.parse(localStorage.getItem('fret-atlas-account:user_a')!));
   expect(pending.resetPending).toBe(true);

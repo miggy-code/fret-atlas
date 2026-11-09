@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SyncConflict } from '../core/sync';
+import { ChoiceDialog } from './ChoiceDialog';
 
 /** `import` is the first sign-in on a device that already holds data; the rest are conflicts found while syncing. */
 export type Decision = 'import' | SyncConflict;
@@ -36,35 +37,17 @@ const COPY: Record<Decision, Copy> = {
  */
 export function SyncDecision({ question, onAnswer }: { question: Question; onAnswer: (keepDevice: boolean) => void }) {
   const copy = COPY[question.decision];
-  const dialog = useRef<HTMLDialogElement>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
   const reminder = useRef<HTMLButtonElement>(null);
-  const opener = useRef<Element | null>(null);
   const [open, setOpen] = useState(true);
-
-  useEffect(() => {
-    const element = dialog.current;
-    if (!open || !element || element.open) return;
-    opener.current ??= document.activeElement;
-    element.showModal();
-    // The heading, not a button, takes focus: a stray Enter or Space while this appears must not answer for the person.
-    heading.current?.focus();
-  }, [open]);
-  // Answering removes the dialog, so focus goes back to where the person was before it appeared.
-  useEffect(() => () => { if (opener.current instanceof HTMLElement && opener.current.isConnected) opener.current.focus(); }, []);
+  // Taken during render, before the dialog moves focus into itself.
+  const [opener] = useState(() => document.activeElement);
+  // Answering removes everything, so focus goes back to where the person was before the question appeared.
+  useEffect(() => () => { if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); }, [opener]);
 
   return <>
-    <dialog ref={dialog} className="guide-dialog sync-decision" aria-labelledby="sync-decision-title" aria-describedby="sync-decision-body" onClose={() => { setOpen(false); reminder.current?.focus(); }}>
-      <div className="guide-content">
-        <h2 id="sync-decision-title" ref={heading} tabIndex={-1}>{copy.title}</h2>
-        <p id="sync-decision-body">{copy.body}</p>
-        <div className="decision-options">
-          <button type="button" className="decision-option" onClick={() => onAnswer(true)}><strong>{copy.keep.label}</strong><span>{copy.keep.detail}</span></button>
-          <button type="button" className="decision-option" onClick={() => onAnswer(false)}><strong>{copy.use.label}</strong><span>{copy.use.detail}</span></button>
-        </div>
-        <p className="decision-note">You can close this and decide later. Nothing is sent or discarded until you choose.</p>
-      </div>
-    </dialog>
+    <ChoiceDialog open={open} title={copy.title} body={copy.body} note="You can close this and decide later. Nothing is sent or discarded until you choose."
+      choices={[{ ...copy.keep, onChoose: () => onAnswer(true) }, { ...copy.use, onChoose: () => onAnswer(false) }]}
+      onClose={() => { setOpen(false); reminder.current?.focus(); }} />
     <div className="decision-reminder" role="status">
       <span>{copy.waiting}</span>
       <button ref={reminder} type="button" className="text-button" onClick={() => setOpen(true)}>Choose</button>
