@@ -47,8 +47,8 @@ function NoteViewBar({ state, dispatch }: Props) {
   ];
   const colors: { value: NoteColors; label: ReactNode }[] = [
     { value: 'root', label: <><span className="color-preview root-preview" aria-hidden="true">● ● ●</span>Root highlight</> },
-    { value: 'degrees', label: <><span className="color-preview degrees-preview" aria-hidden="true">● ● ●</span>Scale degrees</> },
     { value: 'chord', label: <><span className="color-preview chord-preview" aria-hidden="true">● ● ●</span>Chord tones</> },
+    { value: 'degrees', label: <><span className="color-preview degrees-preview" aria-hidden="true">● ● ●</span>Scale degrees</> },
   ];
   const view = state.luckyCharms ? 'charms' : state.labels;
   const color = state.degreeColors ? 'degrees' : state.chordColors ? 'chord' : 'root';
