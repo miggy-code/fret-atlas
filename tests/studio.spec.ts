@@ -265,9 +265,13 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await page.context().grantPermissions(['clipboard-read','clipboard-write']);
   await page.getByRole('button',{name:'Share view',exact:true}).click();
   const url = await page.evaluate(()=>navigator.clipboard.readText());
-  const shared = JSON.parse(new URL(url).searchParams.get('atlas')!);
-  expect(shared.customPitches).toHaveLength(12);
-  expect(shared.marks).toHaveLength(2);
+  expect(new URL(url).searchParams.get('atlas')).toMatch(/^v1~/);
+  // The link reopens the same setup, even in a browser with no saved view of its own.
+  const reader = await (await page.context().browser()!.newContext()).newPage();
+  await reader.goto(url);
+  await expect(reader.locator('.marks-list button')).toHaveCount(2);
+  await expect(reader.locator('.tone-sequence button.selected')).toHaveCount(12);
+  await reader.context().close();
   await page.getByRole('button',{name:'Clear marks',exact:true}).click();
   await expect(page.locator('.marks-panel')).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -475,3 +479,11 @@ for (const scale of ['minor','major']) {
     }
   });
 }
+
+test('a link shared before the compact format still opens the same view', async ({ page }) => {
+  const legacy = { version: 4, root: 2, scaleId: 'major-pentatonic', leftHanded: true, marks: ['2:5'] };
+  await page.goto(`/?atlas=${encodeURIComponent(JSON.stringify(legacy))}`);
+  await expect(page.getByRole('heading', { name: 'Major pentatonic' })).toBeVisible();
+  await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness', 'left');
+  await expect(page.locator('.marks-list button')).toHaveCount(1);
+});
