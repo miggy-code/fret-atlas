@@ -1,0 +1,145 @@
+/* The board: one SVG neck, its notes and pattern outlines, and the legend under it. */
+.board-shell { position: relative; margin-top: 24px; padding: 24px 16px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.board-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #9aacb8 #edf1f4; }
+.fretboard { display: block; width: 100%; min-width: calc(var(--board-width, 0) * 1px); height: auto; overflow: visible; user-select: none; }
+/* On wider screens the neck may shrink to about 72% before it scrolls; phones keep full-size notes. */
+@media (min-width: 761px) { .fretboard { min-width: calc(var(--board-width, 0) * .72px); } }
+/* A fade on the bridge side only: on the nut side it would cover the string names, and the scroll cue already says there is more. */
+.board-shell::after { content: ''; position: absolute; z-index: 4; top: 54px; bottom: 39px; right: 16px; width: 21px; background: linear-gradient(-90deg, var(--surface), transparent); opacity: 0; pointer-events: none; }
+.board-shell.has-right::after { opacity: 1; }
+.scroll-cue { padding: 8px 0; color: var(--muted); font-size: 12px; text-align: center; }
+.board-notice { margin: 16px 28px 0; padding: 12px 15px; border: 1px solid var(--notice-border); border-radius: 6px; background: var(--notice-bg); color: var(--notice-ink); font-size: 14px; line-height: 1.5; }
+
+.fret-number { font: 500 12px 'DM Sans', sans-serif; fill: var(--fret-label); }
+.open-fret { font-size: 12px; letter-spacing: .7px; }
+.fret-wire { stroke: var(--fret-wire); stroke-width: 1.5; }
+.nut { stroke: var(--nut); stroke-width: 5; }
+.guitar-string { stroke: var(--string); }
+.string-name { fill: var(--string-label); font-size: 12px; font-weight: 600; }
+.inlay { fill: #8fa7b3; }
+.has-patterns .guitar-string { opacity: .6; }
+.has-patterns .fret-wire { opacity: .7; }
+.warp-guide { pointer-events: none; }
+.warp-band { fill: var(--shift); opacity: .025; }
+.warp-guide line { stroke: var(--shift); stroke-width: 2; stroke-dasharray: 0.1 6; stroke-linecap: round; opacity: .85; }
+.warp-label { fill: var(--shift); font-size: 11px; font-weight: 700; }
+
+.shape-halo { fill: none; stroke: var(--neck); stroke-width: 8; stroke-linejoin: miter; stroke-linecap: butt; pointer-events: none; }
+.shape-outline { fill: none; stroke: var(--rectangle); stroke-width: 4; stroke-linejoin: miter; stroke-linecap: butt; opacity: 1; pointer-events: none; }
+.shape-outline.stack { stroke: var(--stack); }
+.shape-outline.is-emphasized { filter: brightness(.75); }
+.shared-rail { fill: none; stroke-width: 4; stroke-linecap: butt; pointer-events: none; }
+.shared-rail.rectangle { stroke: var(--rectangle); }
+.shared-rail.stack { stroke: var(--stack); stroke-dasharray: 9 9; }
+/* Whole neck draws every block, so lighter strokes let the notes lead; hovering a note isolates its shapes. */
+.is-whole-neck .shape-outline, .is-whole-neck .shared-rail { stroke-width: 2.75; opacity: .7; transition: opacity .12s; }
+.is-whole-neck .shared-rail.stack { stroke-dasharray: 14 14; }
+.is-whole-neck .shape-halo { stroke-width: 6; }
+.is-whole-neck:has(.shape-outline.is-emphasized) .shape-outline:not(.is-emphasized), .is-whole-neck:has(.shape-outline.is-emphasized) .shared-rail { opacity: .15; }
+.is-whole-neck .shape-outline.is-emphasized { opacity: 1; stroke-width: 4; filter: none; }
+.ghost-pattern-layer { pointer-events: none; }
+.shape-ghost-outline { fill: none; stroke: var(--overlay); stroke-width: 1.5; stroke-dasharray: 4 6; stroke-linecap: butt; stroke-linejoin: miter; opacity: var(--ghost-opacity); }
+.root-skeleton { pointer-events: none; }
+.root-skeleton line { stroke: var(--root); stroke-width: 2; stroke-linecap: round; opacity: .75; }
+
+/* Note identity: kind first, then the bright degree identities shared by the board and its legend. */
+.note-node { --marker: var(--note-marker); --marker-fill: var(--note-fill); --label: var(--note-label); opacity: 1; outline: none; cursor: pointer; }
+.note-node.root { --marker: var(--root); --marker-fill: var(--root); --label: var(--root-label); }
+.note-node.added { --marker: var(--added); --marker-fill: var(--added-fill); --label: var(--added); }
+.note-node.context { --marker: var(--context-marker); --marker-fill: var(--context-fill); --label: #fff; }
+.note-node.skeleton { --marker: var(--skeleton-marker); --marker-fill: var(--skeleton-marker); --label: var(--skeleton-label); }
+.note-node.context.is-triad { --marker: var(--triad); --marker-fill: var(--context-triad-fill); --label: var(--context-triad-label); }
+.has-patterns .note-node.skeleton:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--muted); --marker-fill: var(--core); --label: var(--surface); }
+/* Continuation tones on a diagonal run stay hollow so the blocks read first. */
+.has-patterns .note-node.is-run:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--core); --marker-fill: var(--neck); --label: var(--core); }
+.note-node.degree-colored, .note-node.third, .note-node.fifth, .note-node.lucky-charm[data-charm-degree] { --marker: #34424e; --marker-fill: var(--degree-color); --label: #14202a; }
+/* The degree palette's first color is the light theme's root; the root follows the theme. */
+.note-node.lucky-charm[data-charm-degree='1'] { --marker-fill: var(--root); }
+.note-hit { fill: transparent; }
+.note-face { fill: var(--marker-fill); stroke: var(--marker); stroke-width: 1; }
+.added .note-face { stroke-dasharray: 2 2; }
+.note-node.is-ghost .note-face { stroke-dasharray: 3 2; }
+.note-node.lucky-charm .note-face { stroke-width: 1.5; stroke-dasharray: none; }
+.has-patterns[data-labels='none'] .note-node.is-member .note-face { stroke-width: 1.5; }
+.note-symbol { pointer-events: none; }
+.note-node.is-background .note-symbol { opacity: .28; }
+.has-patterns .note-node.is-background .note-symbol { opacity: .16; }
+.note-node.is-background:hover .note-symbol { opacity: .75; }
+.note-node.is-ghost .note-symbol { opacity: .45; }
+.note-node.is-run .note-face { stroke-width: 1.75; }
+.triad-halo { fill: none; stroke: var(--triad); stroke-width: 2.5; stroke-linecap: round; opacity: .9; pointer-events: none; }
+.root-center { fill: #fff; stroke: #d7e9ff; stroke-width: 1; }
+.note-label { fill: var(--label); font-size: var(--note-label-size); font-weight: 600; letter-spacing: -.3px; }
+.note-interval { fill: var(--label); font-size: 12px; font-weight: 500; opacity: .75; }
+.focus-ring { fill: none; stroke: var(--focus); stroke-width: 2; opacity: 0; pointer-events: none; }
+.mark-ring { fill: none; stroke: var(--mark); stroke-width: 2; opacity: 0; pointer-events: none; }
+.is-marked .mark-ring { opacity: 1; }
+.note-node:focus-visible .focus-ring { opacity: 1; }
+/* Hover uses a ring that stays inside the note's own row, clear of the tooltip chip. */
+.note-node:hover .focus-ring { opacity: .45; }
+.is-hidden .note-symbol { visibility: hidden; }
+.is-hidden:hover .note-symbol, .is-hidden:focus-visible .note-symbol { visibility: visible; }
+.note-node.is-degree-dimmed { opacity: .2; transition: opacity .15s ease; }
+.note-node.is-degree-dimmed:hover, .note-node.is-degree-dimmed:focus { opacity: .85; }
+.note-node.is-degree-isolated .mark-ring { stroke: var(--focus); stroke-width: 2.5; stroke-dasharray: none; opacity: .9; }
+
+/* Inline note tooltip */
+.inline-note-tooltip { pointer-events: none; filter: drop-shadow(0 1px 3px var(--tooltip-shadow)); }
+.tooltip-box { fill: var(--field-bg); stroke: var(--field-border); stroke-width: 1; }
+.tooltip-line-main { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.tooltip-pitch { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.tooltip-octave { fill: var(--muted); font-size: 10px; font-weight: 500; }
+.tooltip-sep { fill: var(--muted); }
+.tooltip-degree { fill: var(--root); font-weight: 600; }
+.tooltip-member { fill: var(--accent); font-weight: 600; }
+
+/* Drill: hidden notes, the search zone, and feedback as notes are found or missed. */
+.drill-zone rect { fill: color-mix(in srgb, var(--focus) 7%, transparent); stroke: color-mix(in srgb, var(--focus) 30%, transparent); stroke-width: 1; stroke-dasharray: 4 4; }
+.is-drilling .note-node.is-hidden:hover .note-symbol, .is-drilling .note-node.is-hidden:focus-visible .note-symbol { visibility: hidden; }
+.is-drilling .note-node.is-drill-hint .note-face { stroke: var(--accent); stroke-width: 3; }
+.note-node .note-symbol { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out; }
+.note-burst { fill: none; stroke: var(--good); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.is-drill-found .note-symbol { animation: note-pop .38s cubic-bezier(.3, 1.6, .5, 1); }
+.is-drill-found .note-burst { animation: note-burst .55s ease-out; }
+.drill-complete .is-drill-found .note-symbol { animation: note-cheer .6s ease-in-out; }
+.note-node.is-drill-miss { --marker: var(--muted); --marker-fill: var(--surface); }
+.is-drill-miss .note-face { stroke-width: 1.5; stroke-dasharray: none; }
+.miss-cross { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.is-drill-miss .note-symbol { animation: note-shake .4s ease-in-out; }
+.note-node:not(.is-hidden):hover .note-symbol { transform: scale(1.12); }
+.is-playing .note-symbol, .note-node.is-playing:hover .note-symbol { transform: scale(1.3); transition-duration: .08s; }
+.is-playing .note-burst { stroke: var(--accent); animation: note-burst .45s ease-out; }
+.form-enter .shape-outline, .form-enter .shape-halo, .form-enter .shared-rail { animation: outline-in .45s ease-out both; }
+.form-enter .note-node[data-active='true']:not(.is-hidden) .note-symbol { animation: note-in .38s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--wave) * 22ms); }
+@keyframes outline-in { from { opacity: 0; } }
+@keyframes note-in { from { transform: scale(.3); opacity: 0; } }
+@keyframes note-pop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
+@keyframes note-burst { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
+@keyframes note-cheer { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.35); } }
+@keyframes note-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
+
+.board-legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 4px 4px; }
+.legend-items { display: flex; flex-wrap: wrap; gap: 16px; color: var(--quiet-ink); font-size: 12px; }
+.legend-items > span { display: flex; align-items: center; gap: 8px; }
+.legend-note { display: inline-block; width: 12px; height: 12px; border: 1px solid #a6b8c1; border-radius: 3px; background: var(--legend-fill); }
+.legend-note.added { border: 1px dashed var(--added); }
+.legend-note.marked { border: 1.5px solid var(--mark); }
+.legend-note.run { border: 1.75px solid var(--core); border-radius: 50%; background: var(--neck); }
+.legend-note.background { border-color: var(--core); border-radius: 50%; background: var(--core); opacity: .25; }
+.legend-triad { width: 12px; height: 12px; border: 2px solid var(--triad); border-radius: 50%; }
+.triad-legend { color: var(--triad); }
+.legend-outline { display: inline-block; width: 17px; height: 10px; border: 1.5px solid var(--rectangle); border-radius: 1px; }
+.legend-outline.stack { width: 10px; height: 15px; border-color: var(--stack); }
+.legend-outline.ghost { border-style: dashed; border-color: var(--overlay); }
+.legend-line { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--overlay); }
+.legend-line.skeleton { border-color: var(--root); }
+.legend-line.warp { border-top: 2px dotted var(--shift); }
+
+@media (max-width: 760px) {
+  .board-shell { margin-top: 16px; padding-inline: 8px; }
+  .board-shell::after { right: 8px; }
+  .board-notice { margin-inline: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-symbol, .note-burst, .shape-outline, .shape-halo, .shared-rail { animation: none !important; transition: none !important; }
+}

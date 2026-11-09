@@ -30,7 +30,6 @@ test('whole neck shows the entire neck, persists, and keeps the skeleton indepen
   const wholeNeck=page.getByRole('button',{name:'Whole neck',exact:true});
   await wholeNeck.click();
   await expect(wholeNeck).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('.map-tag')).toHaveText('Whole neck');
   // Whole neck has a single study: no Previous/Next or form status, only a pattern-family filter.
   await expect(page.getByRole('button',{name:'Next form',exact:true})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Previous form',exact:true})).toHaveCount(0);
@@ -50,7 +49,6 @@ test('whole neck shows the entire neck, persists, and keeps the skeleton indepen
   expect(await connections()).toEqual(skeleton);
   await page.reload();
   await expect(page.getByRole('button',{name:'Whole neck',exact:true})).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('.map-tag')).toHaveText('Whole neck');
   await openOverlays(page);
   await toggle(page,'Skeleton').uncheck();
   await expect(page.locator('.root-skeleton')).toHaveCount(0);

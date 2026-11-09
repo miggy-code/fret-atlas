@@ -1,0 +1,70 @@
+/* Practice: the deck of drills, the drill bar while one runs, and progress. */
+.practice-deck { display: grid; gap: 20px; padding: 20px 4px 24px; border-bottom: 1px solid var(--line); }
+.deck-context { margin: 0; color: var(--muted); font-size: 14px; }
+.deck-context strong { color: var(--ink); font-weight: 600; }
+.practice-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.practice-option { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.practice-option h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.practice-option p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.practice-option .start-button { align-self: flex-start; margin-top: auto; }
+.start-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px 6px 12px; border: 1px solid var(--accent); border-radius: 999px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
+.start-button svg { width: 16px; height: 16px; }
+.start-button:hover:not(:disabled) { filter: brightness(1.08); }
+.start-button:disabled { border-color: var(--line); background: var(--panel); color: var(--muted); }
+.start-button[aria-pressed=true] { background: var(--surface); color: var(--accent); }
+.degree-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.degree-picks button { display: inline-flex; align-items: baseline; gap: 5px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 13px; }
+.degree-picks button strong { color: var(--ink); font-weight: 600; }
+.degree-picks button span { font-size: 11px; }
+.degree-picks button[aria-pressed=true] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+
+.drill-bar { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 12px 28px; margin-top: 16px; padding: 16px 4px; border-block: 1px solid var(--line); }
+.drill-prompt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.drill-eyebrow, .drill-where { color: var(--muted); font-size: 15px; }
+.drill-prompt strong { color: var(--ink); font-size: 30px; line-height: 1; letter-spacing: -.5px; }
+.drill-prompt em { padding: 3px 8px; border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 12px; font-style: normal; font-weight: 600; }
+.drill-progress { display: flex; flex-wrap: wrap; gap: 6px; max-width: 160px; }
+.drill-progress i { width: 12px; height: 12px; border: 1.5px solid var(--line); border-radius: 50%; background: var(--surface); transition: background .2s, border-color .2s; }
+.drill-progress i.done { border-color: var(--good); background: var(--good); animation: pip-pop .35s ease-out; }
+.drill-stats { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.drill-streak { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 20px; font-weight: 700; }
+.drill-streak svg { width: 22px; height: 22px; }
+.drill-streak.is-hot { color: var(--hot); }
+.drill-streak.is-hot svg { fill: color-mix(in srgb, var(--hot) 35%, transparent); }
+.drill-streak b { display: inline-block; min-width: 1ch; animation: streak-bump .3s ease-out; }
+.drill-actions { display: flex; gap: 4px; }
+.drill-feedback { grid-column: 1 / -1; min-height: 18px; margin: 0; color: var(--muted); font-size: 13px; }
+.drill-bar.is-complete .drill-feedback { color: var(--good); font-weight: 600; }
+.drill-empty { margin: 0; color: var(--muted); font-size: 14px; }
+@keyframes pip-pop { 0% { transform: scale(.3); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes streak-bump { 0% { transform: translateY(4px) scale(1.4); opacity: .4; } 100% { transform: none; opacity: 1; } }
+
+.deck-progress h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.deck-progress h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
+.progress-panel { width: 100%; }
+.progress-intro { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.key-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.key-cell { display: grid; justify-items: center; gap: 2px; padding: 10px 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+.key-cell:hover { border-color: var(--accent); }
+.key-cell[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.key-cell strong { font-size: 14px; }
+.key-cell span { color: var(--muted); font-size: 11px; }
+.key-cell.is-complete strong { color: var(--good); }
+.form-ring { width: 36px; height: 36px; }
+.ring-segment { fill: none; stroke-width: 4; stroke-linecap: butt; transition: stroke .3s; }
+.ring-segment.level-0 { stroke: var(--line); }
+.ring-segment.level-1 { stroke: color-mix(in srgb, var(--good) 35%, var(--line)); }
+.ring-segment.level-2 { stroke: var(--good); }
+.progress-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+
+@media (max-width: 760px) {
+  .drill-bar { grid-template-columns: 1fr auto; gap: 10px 16px; }
+  .drill-prompt strong { font-size: 24px; }
+  .drill-progress { order: 3; max-width: none; }
+  .drill-stats { order: 4; justify-self: end; }
+  .drill-actions { flex-wrap: wrap; grid-row: 1; grid-column: 2; }
+  .degree-picks button, .start-button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drill-progress i, .drill-streak b, .ring-segment { animation: none !important; transition: none !important; }
+}

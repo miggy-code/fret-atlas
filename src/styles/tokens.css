@@ -1,0 +1,74 @@
+/* Every color the page uses comes from here; dark mode redefines the tokens, never the components. */
+:root {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #263b47; background: #eaf0f3; font-synthesis: none;
+
+  /* Palette */
+  --ink: #263b47; --muted: #637681; --line: #dce5e9; --neck: #f7f1e8; --page: #f7f8fa; --panel: #f0f2f5; --surface: #fff;
+  --root: #d7263d; --core: #4b6574; --added: #236fa8;
+  --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
+  --triad: #3d806c; --accent: #226863; --good: #1f9d63; --hot: #f0661d;
+  --degree-2: #e3b341; --degree-3: #a365b5; --degree-4: #67a7a1; --degree-5: #58a86c; --degree-6: #bf7a47; --degree-7: #8b86c8;
+  /* One "on" idiom for every toggle chip, and one filled primary action. */
+  --on-bg: color-mix(in srgb, var(--accent) 12%, var(--surface)); --on-border: color-mix(in srgb, var(--accent) 55%, var(--surface)); --on-accent: #fff;
+
+  /* Controls */
+  --quiet-ink: var(--muted);
+  --field-bg: var(--surface); --field-border: var(--line); --field-hover-bg: #ecf3f5; --field-hover-border: #9db6c0;
+  --input-border: #c4d4de; --chip-border: #cbdbe2; --check-mark: #fff;
+  --button-ink: #536b77; --button-hover-bg: #eaf0f3; --header-button-ink: var(--ink); --header-button-hover-bg: var(--panel);
+  --segment-bg: var(--panel); --segment-border: var(--line); --segment-ink: #58707c; --segment-hover-bg: #fff;
+  --segment-active-bg: var(--on-bg); --segment-active-border: var(--on-border); --segment-active-ink: var(--accent);
+  --row-toggle-bg: #f7f9fa; --row-toggle-border: #d7e1e6;
+  --panel-ink: var(--ink);
+  --kbd-bg: #f8fafb; --kbd-border: #d5e0e6;
+  --chip-divider: #d5dfe5; --isolate-glow: rgba(40, 99, 212, .18);
+  --custom-pick-bg: #314e5d;
+  --mark-chip-bg: #fcfaf6; --mark-chip-border: #ddceb5; --mark-chip-ink: var(--ink); --mark-chip-hover-bg: #f5eddf;
+  --notice-bg: #fcf8f1; --notice-border: #e4d3ba; --notice-ink: #78613a;
+  --dialog-border: #c8d2da; --guide-ink: #60727f; --guide-note-ink: #6c7c87;
+  --board-shadow: none;
+
+  /* Fretboard */
+  --fret-label: #5c7380; --string-label: #617c89; --fret-wire: #d8cebf; --nut: #b3a283; --string: #a39d94;
+  --legend-fill: #fff; --ghost-opacity: .55; --tooltip-shadow: rgba(0, 0, 0, .12);
+  --note-marker: #a6b8c1; --note-fill: #fff; --note-label: var(--core);
+  --root-label: #fff; --added-fill: #f9fcff;
+  --context-marker: #657e8c; --context-fill: #657e8c;
+  --skeleton-marker: var(--core); --skeleton-label: var(--surface);
+  --context-triad-fill: #f0f7f3; --context-triad-label: #326853;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark; color: #e5eef3; background: #10191f;
+
+  --ink: #e5e9ec; --muted: #9ca8b0; --line: #30373c; --neck: #221e1c; --page: #111416; --panel: #202528; --surface: #181d20;
+  --root: #ff5c6c; --core: #b3c3cb; --added: #78bee9;
+  --rectangle: #f07b57; --stack: #79a8eb; --shift: #ff8585; --overlay: #b7a6e4; --focus: #88c7ff; --mark: #e0b568;
+  --triad: #79bda4; --accent: #79c5b0; --good: #4fd497; --hot: #ff8a3d;
+  --on-accent: #10231e;
+
+  --quiet-ink: #b7c9d2;
+  --field-bg: #1c2b34; --field-border: #3a505c; --field-hover-bg: #304651; --field-hover-border: #3a505c;
+  --input-border: #3a505c; --chip-border: #3a505c; --check-mark: #112c25;
+  --button-ink: #b7c9d2; --button-hover-bg: #304651; --header-button-ink: #b7c9d2; --header-button-hover-bg: #304651;
+  --segment-bg: #22343e; --segment-border: #3a505c; --segment-ink: #b7c9d2; --segment-hover-bg: #304651;
+  --segment-active-bg: #2a3e49; --segment-active-border: #48616e; --segment-active-ink: #f0f7fa;
+  --row-toggle-bg: #20313b; --row-toggle-border: #3a505c;
+  --panel-ink: #bed2dc;
+  --kbd-bg: #22343e; --kbd-border: #3a505c;
+  --isolate-glow: rgba(136, 199, 255, .25);
+  --custom-pick-bg: #315c6d;
+  --mark-chip-bg: #2a2923; --mark-chip-border: #6f5c39; --mark-chip-ink: #e2d3b5; --mark-chip-hover-bg: #3a3528;
+  --notice-bg: #302920; --notice-border: #67553a; --notice-ink: #ebd0a2;
+  --dialog-border: var(--line); --guide-ink: var(--muted); --guide-note-ink: var(--muted);
+  --board-shadow: 0 8px 32px #0000002b;
+
+  --fret-label: #b5c8d2; --string-label: #b5c8d2; --fret-wire: #4a4440; --nut: #cbbfa8; --string: #9a9690;
+  --legend-fill: #1c2b34; --ghost-opacity: .65; --tooltip-shadow: rgba(0, 0, 0, .4);
+  --note-marker: #7f9daa; --note-fill: #21333d; --note-label: #dbe9ef;
+  --root-label: #10232e; --added-fill: var(--neck);
+  --context-marker: #7c99a7; --context-fill: #253943;
+  --skeleton-marker: #b3c3cb; --skeleton-label: #16242c;
+  --context-triad-fill: #214438; --context-triad-label: #b5ead7;
+}

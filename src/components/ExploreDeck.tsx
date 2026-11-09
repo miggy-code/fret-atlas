@@ -71,7 +71,6 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
   return <div className="degree-legend">
     <p className="degree-legend-heading">{custom ? 'Custom notes' : <>Scale degrees<span>Click to isolate</span></>}</p>
     <section className="tone-strip" aria-label="Scale tones">
-      <div className="tone-strip-heading"><h2>{custom ? 'Custom notes' : 'Scale tones'}</h2><span>{pitches.length} notes</span></div>
       <div className={`tone-sequence ${custom ? 'custom' : ''}`}>
         {custom
           ? SHARPS.map((_, pitch) => <button key={pitch} className={`tone-chip ${pitches.includes(pitch) ? 'selected' : ''}`}

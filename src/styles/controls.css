@@ -1,0 +1,73 @@
+/* Shared control primitives: fields, buttons, segmented choices, toggles and collapsible panels. */
+.text-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 11px; border-radius: 6px; color: var(--button-ink); font-size: 14px; white-space: nowrap; }
+.text-button:hover { background: var(--button-hover-bg); color: var(--ink); }
+
+.icon-button { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--field-border); border-radius: 7px; background: var(--field-bg); color: var(--ink); }
+.icon-button:hover:not(:disabled) { border-color: var(--field-hover-border); background: var(--field-hover-bg); }
+.icon-button:disabled { opacity: .4; }
+
+.field { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 14px; }
+.field > span, .field-label { color: var(--muted); font-size: 14px; }
+select { height: 42px; padding: 0 28px 0 12px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--field-bg); color: var(--ink); font-size: 14px; }
+
+.segmented { display: inline-flex; align-items: stretch; gap: 3px; padding: 3px; border: 1px solid var(--segment-border); border-radius: 8px; background: var(--segment-bg); }
+.segmented button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 36px; padding: 7px 12px; border: 1px solid transparent; border-radius: 5px; color: var(--segment-ink); font-size: 13px; white-space: nowrap; }
+.segmented button.active { border-color: var(--segment-active-border); background: var(--segment-active-bg); color: var(--segment-active-ink); font-weight: 600; }
+.segmented button:hover:not(:disabled):not(.active) { background: var(--segment-hover-bg); color: var(--ink); }
+.segmented button:disabled { opacity: .38; }
+.shape-icon { display: inline-block; width: 19px; height: 12px; border: 1.5px solid var(--rectangle); border-radius: 1px; }
+.shape-icon.stack { width: 13px; height: 18px; border-color: var(--stack); }
+
+.toggle { display: inline-flex; align-items: center; gap: 9px; min-height: 36px; color: var(--quiet-ink); font-size: 13px; white-space: nowrap; cursor: pointer; }
+.toggle input { appearance: none; display: grid; place-content: center; width: 17px; height: 17px; margin: 0; border: 1.5px solid #96aeb9; border-radius: 4px; background: var(--field-bg); }
+.toggle input:checked { border-color: var(--accent); background: var(--accent); }
+.toggle input:checked::after { content: ''; width: 7px; height: 4px; border-left: 1.5px solid var(--check-mark); border-bottom: 1.5px solid var(--check-mark); transform: translateY(-1px) rotate(-45deg); }
+.toggle:has(input:disabled) { color: #788b95; cursor: default; }
+.toggle input:disabled { opacity: .5; }
+.toggle-hint { display: none; }
+
+.control-module { border-top: 1px solid var(--line); }
+.control-module > summary { display: flex; align-items: center; gap: 16px; padding: 17px 4px; font-size: 13px; font-weight: 600; list-style: none; cursor: pointer; }
+.control-module > summary::-webkit-details-marker { display: none; }
+.control-module > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: 18px; font-weight: 400; }
+.control-module[open] > summary::after { content: '−'; }
+.control-module > summary > span { color: var(--muted); font-size: 12px; font-weight: 400; }
+.control-body { display: flex; flex-wrap: wrap; align-items: center; gap: 20px 28px; padding: 0 4px 24px; }
+.modified-badge { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 12px; font-style: normal; font-weight: 600; }
+.module-footer { display: flex; justify-content: flex-end; width: 100%; }
+.restore-button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 10px; border-radius: 6px; color: var(--accent); font-size: 13px; font-weight: 600; }
+.restore-button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* String choices: Pattern strings in Overlays and Strings in Focus. */
+.row-toggles { display: flex; gap: 5px; }
+.row-toggles button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 45px; height: 36px; border: 1px solid var(--row-toggle-border); border-radius: 6px; background: var(--row-toggle-bg); color: var(--quiet-ink); font-size: 14px; }
+.row-toggles button[aria-pressed=true] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
+.row-toggles button:hover { border-color: var(--accent); }
+
+/* Focus is shown inline in its panel. */
+.focus-panel { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 16px 32px; width: 100%; color: var(--panel-ink); font-size: 14px; }
+.focus-range, .focus-strings, .focus-strings > div { display: flex; align-items: center; gap: 9px; }
+.focus-range input[type=number] { width: 58px; height: 38px; padding: 5px 6px; border: 1px solid var(--input-border); border-radius: 5px; background: var(--field-bg); color: var(--ink); }
+.focus-strings button { width: 35px; height: 36px; border: 1px solid var(--chip-border); border-radius: 6px; background: var(--field-bg); color: var(--ink); }
+.focus-strings button[aria-pressed=true] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .field { gap: 8px; }
+  .toggle { flex-wrap: wrap; white-space: normal; }
+  .toggle-hint { display: block; width: 100%; margin-left: 26px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+  .control-module > summary { flex-wrap: wrap; gap: 10px; }
+  .row-toggles { flex: 1; gap: 4px; }
+  .row-toggles button { flex: 1; gap: 5px; min-width: 30px; height: 38px; }
+  .focus-strings { flex-wrap: wrap; }
+  .focus-strings > div { gap: 6px; }
+}
+@media (max-width: 390px) {
+  .shape-icon { width: 15px; }
+  .shape-icon.stack { width: 10px; }
+  .row-toggles button { min-width: 25px; }
+}
+@media (pointer: coarse) {
+  select, input[type=number] { font-size: 16px; }
+  .segmented button, .text-button, .row-toggles button, .toggle { min-height: 44px; }
+  .icon-button, .focus-strings button { min-width: 44px; min-height: 44px; }
+}

@@ -1,0 +1,21 @@
+/* Guide and Settings share one dialog frame. */
+.guide-dialog { width: calc(100% - 36px); max-width: 610px; max-height: calc(100dvh - 40px); padding: 0; border: 1px solid var(--dialog-border); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 24px 70px #1b2d4933; }
+.guide-dialog::backdrop { background: #142d4277; backdrop-filter: blur(3px); }
+.guide-content { padding: 28px 32px; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.dialog-heading h2 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
+.guide-content dt { margin-top: 22px; font-size: 16px; font-weight: 600; }
+.guide-content dd { margin: 6px 0 0; color: var(--guide-ink); font-size: 16px; line-height: 1.65; }
+.guide-footnote { padding-top: 18px; border-top: 1px solid var(--line); color: var(--guide-note-ink); font-size: 13px; line-height: 1.6; }
+
+.settings-section { display: grid; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.settings-section:last-child { padding-bottom: 0; border-bottom: 0; }
+.settings-section .instrument-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.instrument-settings .field { min-width: 150px; }
+.settings-section p { margin: 0; color: var(--muted); font-size: 13px; }
+.settings-section .restore-button, .settings-section .reset-view { justify-self: start; }
+.settings-section .reset-view { border: 1px solid var(--line); }
+
+@media (max-width: 760px) {
+  .guide-content { padding: 22px; }
+}
