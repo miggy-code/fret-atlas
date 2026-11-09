@@ -180,8 +180,8 @@ test('two devices preserve an offline settings edit until a conflict is resolved
   const b = await deviceB.newPage();
   a.on('dialog', dialog => dialog.accept());
   b.on('dialog', dialog => dialog.accept());
-  await a.goto('http://127.0.0.1:4179/tests/sync-harness.html?user=user_a');
-  await b.goto('http://127.0.0.1:4179/tests/sync-harness.html?user=user_a');
+  await a.goto(new URL('/tests/sync-harness.html?user=user_a', test.info().project.use.baseURL).href);
+  await b.goto(new URL('/tests/sync-harness.html?user=user_a', test.info().project.use.baseURL).href);
   await expect(a.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
   await expect(b.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
   offlineA = true;
