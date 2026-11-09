@@ -8,10 +8,10 @@
   --root: #d7263d; --core: #4b6574; --added: #236fa8;
   --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
   --triad: #3d806c; --accent: #226863; --good: #1f9d63; --hot: #f0661d;
-  /* Scale degrees: six hues that differ from each other, the red root, and the yellow and purple kept for chord tones.
-     They are bright fills under a dark label, so dark mode keeps the same values. */
-  --degree-1: var(--root); --degree-2: #ee8a3c; --degree-3: #9ccc3f; --degree-4: #3fae6a; --degree-5: #3cb8d6; --degree-6: #5b8def; --degree-7: #e879ad;
+  /* Scale degrees extend the chord-tone colors: the root is red, the third yellow and the fifth purple exactly as in Chord tones,
+     and the other degrees add four hues that differ from those three and from each other. Bright fills under a dark label, so dark mode keeps them. */
   --chord-third: #e3b341; --chord-fifth: #a365b5;
+  --degree-1: var(--root); --degree-2: #3fae6a; --degree-3: var(--chord-third); --degree-4: #3cb8d6; --degree-5: var(--chord-fifth); --degree-6: #5b8def; --degree-7: #ee8a3c;
   /* One "on" idiom for every toggle chip, and one filled primary action. */
   --on-bg: color-mix(in srgb, var(--accent) 12%, var(--surface)); --on-border: color-mix(in srgb, var(--accent) 55%, var(--surface)); --on-accent: #fff;
 

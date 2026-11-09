@@ -26,7 +26,7 @@ for (const theme of ['light', 'dark']) {
 }
 
 for (const theme of ['light', 'dark']) {
-  test(`scale degrees: seven distinct colors, none of them the chord-tone yellow or purple in ${theme}`, async ({ page }) => {
+  test(`scale degrees keep the chord-tone colors and only add colors for the other degrees in ${theme}`, async ({ page }) => {
     await page.addInitScript(({ theme }) => {
       localStorage.setItem('fret-atlas-theme', theme);
       localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'major' }));
@@ -36,8 +36,9 @@ for (const theme of ['light', 'dark']) {
     const fills = await page.locator('.degree-legend .degree-marker .note-face').evaluateAll(faces => faces.map(face => getComputedStyle(face).fill));
     expect(fills).toHaveLength(7);
     expect(new Set(fills).size).toBe(7);
-    expect(fills).not.toContain(rgb(THIRD));
-    expect(fills).not.toContain(rgb(FIFTH));
+    // Degrees 3 and 5 are the chord tones, so they wear the chord-tone colors; the other degrees are the additions.
+    expect(fills[2]).toBe(rgb(THIRD));
+    expect(fills[4]).toBe(rgb(FIFTH));
     // On the board every non-root note wears its degree color, not only thirds and fifths.
     const board = await page.locator('.fretboard .note-node.degree-colored .note-face').evaluateAll(faces => faces.map(face => getComputedStyle(face).fill));
     expect(new Set(board).size).toBeGreaterThan(2);
