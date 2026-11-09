@@ -44,6 +44,8 @@ export function boardGeometry(frets: number, leftHanded: boolean, orientation: O
   const alongEnd = vertical ? wire(frets) + 10 : length;
   return {
     orientation, cell, breadth, project, along, wire, across, at, rect,
+    // True when the screen reads the neck from its far end, as a left-handed horizontal board does.
+    alongReversed: !vertical && leftHanded,
     width: vertical ? breadth : length,
     height: vertical ? length : breadth,
     // What the SVG shows: the whole board, or in vertical only its used strip.
@@ -72,7 +74,10 @@ export function arrowStep(geo: BoardGeometry, key: string): { fret: number; stri
 
 export function shapeOutline(shape: Shape, geo: BoardGeometry): Point[] {
   // Straight rails through every endpoint, including the G–B tuning shift.
-  const rows = shape.rows.map(r => ({ from: geo.along(Math.min(r.left, r.right)), to: geo.along(Math.max(r.left, r.right)), across: geo.across(r.string) }));
+  // Each row is walked from its end nearer the screen's start of the neck, so a mirrored board keeps the vertex order
+  // (and so the dash phase of dashed outlines) it has always drawn.
+  const [near, far] = geo.alongReversed ? [Math.max, Math.min] : [Math.min, Math.max];
+  const rows = shape.rows.map(r => ({ from: geo.along(near(r.left, r.right)), to: geo.along(far(r.left, r.right)), across: geo.across(r.string) }));
   const first = rows[0], last = rows[rows.length - 1];
   const points: [number, number][] = [[first.from, first.across], [first.to, first.across]];
   for (let i = 1; i < rows.length; i++) points.push([rows[i].to, rows[i].across]);
