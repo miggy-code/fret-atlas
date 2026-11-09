@@ -190,18 +190,20 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
 
   return <>
     <main className="workspace minimal-studio">
-      <div className="wordmark"><img src={logo} alt="" />Fretory</div>
+      <div className="topbar">
+        <div className="wordmark"><img src={logo} alt="" />Fretory</div>
+        <div className="header-actions">
+          {accountsEnabled && <><Show when="signed-out"><SignInButton mode="modal"><button className="text-button">Sign in</button></SignInButton></Show><Show when="signed-in"><div className="account-button"><UserButton /></div></Show></>}
+          <button className="text-button" aria-label="Share view" onClick={share}><Icon name="link" /><span>Share</span></button>
+          <button ref={guideButton} className="text-button" onClick={() => guide.current?.showModal()}><Icon name="help" /><span>Guide</span></button>
+          <button ref={settingsButton} className="text-button" onClick={() => settings.current?.showModal()}><Icon name="settings" /><span>Settings</span></button>
+        </div>
+      </div>
       <section className="board-card" aria-label="Interactive fretboard">
         <div className="board-heading">
           <div className="board-title">
             <span className="tonic-badge">{pitchName(state.root, state.spelling)}</span>
             <div><h1>{scale.name}</h1><p>{state.fourths ? 'All fourths' : state.lowest === 0 ? 'Standard tuning' : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p></div>
-          </div>
-          <div className="header-actions">
-            {accountsEnabled && <><Show when="signed-out"><SignInButton mode="modal"><button className="text-button">Sign in</button></SignInButton></Show><Show when="signed-in"><div className="account-button"><UserButton /></div></Show></>}
-            <button className="text-button" aria-label="Share view" onClick={share}><Icon name="link" /><span>Share</span></button>
-            <button ref={guideButton} className="text-button" onClick={() => guide.current?.showModal()}><Icon name="help" /><span>Guide</span></button>
-            <button ref={settingsButton} className="text-button" onClick={() => settings.current?.showModal()}><Icon name="settings" /><span>Settings</span></button>
           </div>
           <div className="mode-tabs" role="tablist" aria-label="Mode">{(['explore', 'practice'] as const).map(value => <button key={value} id={`${value}-tab`} type="button" role="tab" aria-selected={tab === value} aria-controls="deck" onClick={() => chooseTab(value)}>{value === 'explore' ? 'Explore' : <><Icon name="target" />Practice</>}</button>)}</div>
           <span className="map-tag">{study ? `${study.label}${state.studyMode === 'shape' ? ` · ${shapeName(state.shapeKind)}` : ''}` : 'Custom map'}</span>

@@ -85,7 +85,8 @@ svg { flex-shrink: 0; }
 .header-actions .text-button:hover { background: var(--panel); color: var(--ink); }
 .header-actions .text-button { border: 1px solid var(--line); }
 .workspace { max-width: 1536px; margin: auto; padding: 28px 36px 20px; }
-.wordmark { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.6px; line-height: 1; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; }
+.wordmark { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -.6px; line-height: 1; }
 .wordmark img { width: 32px; height: 32px; }
 .board-card { background: var(--surface); border: 1px solid #d1dfe5; border-radius: 16px; box-shadow: 0 8px 32px #163c4908; }
 .board-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 28px; }
@@ -681,7 +682,6 @@ html[data-theme='dark'] .tooltip-box { fill: #1c2b34; stroke: #3a505c; }
 .mode-tabs button:hover { color: var(--ink); }
 .mode-tabs button[aria-selected=true] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px #2446541a; }
 .mode-tabs button[aria-selected=true] svg { color: var(--root); }
-.minimal-studio .board-heading .header-actions { margin-left: 0; order: 3; }
 #deck { animation: deck-in .22s ease-out; }
 @keyframes deck-in { from { opacity: 0; transform: translateX(12px); } }
 @media (prefers-reduced-motion: reduce) { #deck { animation: none; } }
