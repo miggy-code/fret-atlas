@@ -62,6 +62,14 @@ function AccountSession({ userId, getToken, syncUrl = url, syncKey = key, accoun
   const [shown, setShown] = useState<{ view: TabView; version: number } | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [failure, setFailure] = useState('');
+  const [waiting, setWaiting] = useState(false);
+  // A moment's wait for the leader is normal, so the footer only speaks up if it lasts.
+  const [unsaved, setUnsaved] = useState(false);
+  useEffect(() => {
+    if (!waiting) { setUnsaved(false); return; }
+    const timer = setTimeout(() => setUnsaved(true), 1000);
+    return () => clearTimeout(timer);
+  }, [waiting]);
   const tokenRef = useRef(getToken);
   tokenRef.current = getToken;
   const latest = useRef<AccountCache | null>(null);
@@ -73,6 +81,7 @@ function AccountSession({ userId, getToken, syncUrl = url, syncKey = key, accoun
       channel: () => new BroadcastChannel(`fret-atlas:${userId}`),
       // Each change from elsewhere moves the version, which tells the app to show it.
       show: (view, displayChanged) => { latest.current = view.cache; setShown(previous => ({ view, version: (previous?.version ?? 0) + (displayChanged ? 1 : 0) })); },
+      waiting: setWaiting,
       fail: () => setFailure('Account storage is unavailable or damaged. Your saved data has been preserved.'),
       lead: async changed => {
         const coordinator = new SyncCoordinator(await initialCache(userId, ask), {
@@ -119,7 +128,8 @@ function AccountSession({ userId, getToken, syncUrl = url, syncKey = key, accoun
 
   const { view, version } = shown;
   // Only the leader can answer a question, so another tab says where to look.
-  const status = view.deciding && !question ? 'Sync paused · decide in your other Fretory tab' : view.status;
+  const status = unsaved ? 'Not saved yet · waiting for your other Fretory tab'
+    : view.deciding && !question ? 'Sync paused · decide in your other Fretory tab' : view.status;
   return <>
     <App accountMenu={accountMenu} account={{
       settings: view.cache.settings, progress: view.cache.progress, version, status,

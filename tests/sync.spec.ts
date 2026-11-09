@@ -226,6 +226,32 @@ test('closing the first tab hands over to the next, which keeps syncing', async 
   await expect(next.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
 });
 
+test('a follower shows its own edit at once, and says it is not saved while the leader cannot take it', async ({ page, context }) => {
+  const server = accountServer();
+  await context.route(SYNC_URL, server.handler);
+  await context.addInitScript(settings => localStorage.setItem('fret-atlas-account:user_a', settings), cached(READY));
+  await page.goto('/tests/sync-harness.html?user=user_a');
+  await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
+  const follower = await context.newPage();
+  await follower.goto('/tests/sync-harness.html?user=user_a');
+  await expect(follower.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
+  await follower.getByRole('button', { name: 'Settings', exact: true }).click();
+
+  // The leader's page is stuck, as a busy or frozen background tab would be.
+  const stuck = page.evaluate(() => { const end = Date.now() + 4000; while (Date.now() < end) { /* hold the thread */ } });
+  await follower.getByRole('checkbox', { name: 'Left-handed' }).check();
+  // Only saving waits for the leader: the follower's own board changes now.
+  await expect(follower.locator('.fretboard')).toHaveAttribute('data-handedness', 'left', { timeout: 500 });
+  await expect(follower.getByRole('checkbox', { name: 'Left-handed' })).toBeChecked();
+  expect((server.row.settings.view as Record<string, unknown>).leftHanded).toBeUndefined();
+  await expect(follower.getByRole('status').filter({ hasText: 'Not saved yet' })).toBeVisible();
+
+  await stuck;
+  await expect.poll(() => (server.row.settings.view as Record<string, unknown>).leftHanded).toBe(true);
+  await expect(follower.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
+  await expect(follower.locator('.fretboard')).toHaveAttribute('data-handedness', 'left');
+});
+
 test('no edit is lost when two tabs change different settings', async ({ page, context }) => {
   const server = accountServer();
   await context.route(SYNC_URL, server.handler);

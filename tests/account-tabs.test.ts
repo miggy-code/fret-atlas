@@ -37,11 +37,12 @@ function world() {
   function tab() {
     const views: { view: TabView; displayChanged: boolean }[] = [];
     const failures: unknown[] = [];
+    const waits: boolean[] = [];
     let coordinator: SyncCoordinator | undefined;
     const session = new TabSession({
       locks, lock: 'lock', channel: () => new BroadcastChannel(channel),
       show: (view, displayChanged) => views.push({ view, displayChanged }),
-      fail: error => failures.push(error),
+      fail: error => failures.push(error), waiting: waiting => waits.push(waiting),
       lead: async changed => {
         // Like the app: the new leader starts from what the previous one saved.
         const current = new SyncCoordinator(stored.cache, {
@@ -63,7 +64,7 @@ function world() {
         return leader;
       },
     });
-    return { session, views, failures, last: () => views.at(-1)!.view, coordinator: () => coordinator };
+    return { session, views, failures, waits, last: () => views.at(-1)!.view, coordinator: () => coordinator };
   }
   return { tab, server, stored, calls };
 }
@@ -97,6 +98,22 @@ test('an edit made in a follower tab syncs to the account and shows in the leade
   await until(() => leader.views.some(entry => entry.displayChanged && entry.view.cache.settings.theme === 'dark'), 'the leader to show the edit');
   await until(() => follower.last().status === 'Synced', 'the follower to see the sync finish');
   assert.equal(follower.views.some(entry => entry.displayChanged), false);
+  leader.session.stop(); follower.session.stop();
+});
+
+test('a follower reports that it holds unconfirmed edits until the leader takes them', async () => {
+  const { tab } = world();
+  const leader = tab();
+  const follower = tab();
+  leader.session.start();
+  await until(() => leader.views.length > 0, 'the leader');
+  follower.session.start();
+  await until(() => follower.views.length > 0, 'the follower');
+  follower.session.edit({ settings: { theme: 'dark' } });
+  assert.deepEqual(follower.waits, [true]);
+  await until(() => follower.waits.length === 2, 'the leader to confirm');
+  assert.deepEqual(follower.waits, [true, false]);
+  assert.deepEqual(leader.waits, [], 'the leader saves its own edits and never waits');
   leader.session.stop(); follower.session.stop();
 });
 
@@ -166,7 +183,7 @@ test('a leader that cannot start reports it instead of leaving the tab waiting',
   const locks = new FakeLocks();
   const failures: unknown[] = [];
   const session = new TabSession({
-    locks, lock: 'lock', channel: () => new BroadcastChannel(`account-${Math.random()}`), show: () => {}, fail: error => failures.push(error),
+    locks, lock: 'lock', channel: () => new BroadcastChannel(`account-${Math.random()}`), show: () => {}, fail: error => failures.push(error), waiting: () => {},
     lead: async () => { throw new Error('damaged'); },
   });
   session.start();

@@ -23,6 +23,8 @@ export interface TabSessionOptions {
   /** Called with each view. `displayChanged` means a change from elsewhere that the screen should now show. */
   show: (view: TabView, displayChanged: boolean) => void;
   fail: (error: unknown) => void;
+  /** True while this tab holds edits the leader has not confirmed; only the leader saves them. */
+  waiting: (waiting: boolean) => void;
 }
 
 type Wire =
@@ -72,6 +74,7 @@ export class TabSession {
     this.release?.();
     this.release = undefined;
     this.outbox = [];
+    this.waiting();
     this.followed = '';
     this.seen = 0;
   }
@@ -80,7 +83,14 @@ export class TabSession {
     if (this.leader) { this.applyEdit(edit, this.id); return; }
     const pending = { seq: ++this.seq, edit };
     this.outbox.push(pending);
+    this.waiting();
     this.send(pending);
+  }
+
+  private reportedWaiting = false;
+  private waiting() {
+    const waiting = this.outbox.length > 0;
+    if (waiting !== this.reportedWaiting) { this.reportedWaiting = waiting; this.options.waiting(waiting); }
   }
 
   private send({ seq, edit }: { seq: number; edit: Edit }) { this.channel?.postMessage({ type: 'edit', from: this.id, seq, edit } satisfies Wire); }
@@ -97,6 +107,7 @@ export class TabSession {
     this.seen = 0;
     // What this tab edited before it led is applied first, in order.
     for (const { edit } of this.outbox.splice(0)) this.applyEdit(edit, this.id);
+    this.waiting();
     leader.start();
     this.announce();
     // Holding the lock until stop() is what keeps every other tab following.
@@ -113,6 +124,7 @@ export class TabSession {
     }
     if (this.leader) return;
     this.outbox = this.outbox.filter(pending => pending.seq > (message.applied[this.id] ?? 0));
+    this.waiting();
     const foreign = this.foreign(message.changes);
     if (message.leader !== this.followed) {
       // A new leader has not seen what is still waiting.
