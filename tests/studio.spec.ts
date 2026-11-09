@@ -273,7 +273,8 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   expect(errors).toEqual([]);
 });
 
-test('small screens contain controls and scroll only the instrument', async ({page}) => {
+// Portrait phones draw the neck vertically, so it fits their width; the 768px tablet keeps the horizontal neck, which scrolls.
+test('small screens contain controls; only a horizontal instrument scrolls sideways', async ({page}) => {
   for (const width of [320,390,768]) {
     await page.setViewportSize({width,height:844});
     await page.goto('/');
@@ -281,7 +282,7 @@ test('small screens contain controls and scroll only the instrument', async ({pa
     for (const name of ['Share view','Guide','Settings']) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     for (const name of ['Explore','Practice']) await expect(page.getByRole('tab',{name})).toBeVisible();
     const region = page.locator('.board-scroll');
-    expect(await region.evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
+    expect(await region.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(width > 600);
     for (const name of ['Position','Shape','Diagonal','Whole neck']) {
       await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
     }
@@ -417,8 +418,9 @@ test('light-mode header actions keep readable contrast', async ({page}) => {
   }
 });
 
+// Fitting serves narrow boards that stay horizontal (601–760px); a portrait phone's vertical neck already fits.
 test('fit neck applies only to wide views and normal scrolling returns in Position', async ({page}) => {
-  await page.setViewportSize({width:390,height:844});
+  await page.setViewportSize({width:680,height:900});
   await page.goto('/');
   const svgWidth=()=>page.locator('.fretboard').evaluate(n=>n.getBoundingClientRect().width);
   const regionWidth=()=>page.locator('.board-scroll').evaluate(n=>n.clientWidth);
