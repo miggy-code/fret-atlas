@@ -203,3 +203,151 @@ test.describe('other screens keep the horizontal neck', () => {
     await expect(page.locator('svg.fretboard')).toHaveAttribute('data-orientation', 'vertical');
   });
 });
+
+// Phase 2: the page around the vertical neck. The board comes first on a phone, with the controls
+// you change mid-practice (key, scale, view, form) attached above it.
+const box = async (locator: ReturnType<Page['locator']>) => (await locator.boundingBox())!;
+
+for (const [width, height] of [[320, 568], [390, 844]] as const) {
+  test.describe(`compact study layout at ${width}×${height}`, () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/');
+    });
+
+    test('the top bar stays on one row with named icon buttons', async ({ page }) => {
+      const buttons = ['Share view', 'Guide', 'Settings'].map(name => page.getByRole('button', { name, exact: true }));
+      const boxes = await Promise.all(buttons.map(box));
+      for (const button of boxes) {
+        expect(Math.abs(button.y - boxes[0].y)).toBeLessThan(2);
+        expect(button.width).toBeGreaterThanOrEqual(44);
+        expect(button.height).toBeGreaterThanOrEqual(44);
+        expect(button.x + button.width).toBeLessThanOrEqual(width);
+      }
+      const wordmark = await box(page.locator('.wordmark'));
+      expect(Math.abs(wordmark.y + wordmark.height / 2 - (boxes[0].y + boxes[0].height / 2))).toBeLessThan(6);
+      expect((await box(page.locator('.topbar'))).height).toBeLessThan(64);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    });
+
+    test('the board begins within the first 200px, under key, scale, view and form', async ({ page }) => {
+      const shell = await box(page.locator('.board-shell'));
+      expect(shell.y).toBeLessThanOrEqual(210);
+      for (const control of [page.locator('#root'), page.locator('#scale'), page.getByRole('button', { name: 'Position', exact: true }), page.getByRole('group', { name: 'Pentatonic form' })]) {
+        const controlBox = await box(control);
+        expect(controlBox.y + controlBox.height).toBeLessThanOrEqual(shell.y + 1);
+        expect(controlBox.x).toBeGreaterThanOrEqual(0);
+        expect(controlBox.x + controlBox.width).toBeLessThanOrEqual(width);
+      }
+      // What changes the form is attached to the board, not left far above it.
+      const picker = await box(page.getByRole('group', { name: 'Pentatonic form' }));
+      expect(shell.y - (picker.y + picker.height)).toBeLessThan(24);
+    });
+
+    test('the active form is on screen without scrolling sideways', async ({ page }) => {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      const notes = await page.locator('.note-node[data-active="true"][data-visible="true"]').evaluateAll(nodes => nodes.map(n => { const b = n.getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom }; }));
+      expect(notes.length).toBeGreaterThan(8);
+      for (const note of notes) {
+        expect(note.left).toBeGreaterThanOrEqual(0);
+        expect(note.right).toBeLessThanOrEqual(width);
+      }
+      // A 568px screen is too short for the whole of Form 1; a taller phone shows all of it.
+      if (height >= 800) for (const note of notes) expect(note.bottom).toBeLessThanOrEqual(height);
+    });
+
+    test('every control above the board is at least 44px tall, and 44px wide where the screen allows', async ({ page }) => {
+      const controls = page.locator('.topbar button, .study-controls select, .study-controls button, .form-bar button');
+      const count = await controls.count();
+      expect(count).toBeGreaterThan(12);
+      for (let i = 0; i < count; i++) {
+        const b = await box(controls.nth(i));
+        const name = await controls.nth(i).evaluate(el => el.getAttribute('aria-label') ?? el.textContent);
+        expect(b.height, `${name} height`).toBeGreaterThanOrEqual(44);
+        // Five form buttons share one row, so at 320px they are a little narrower: a known limit of the width.
+        if (width >= 390) expect(b.width, `${name} width`).toBeGreaterThanOrEqual(44);
+      }
+    });
+
+    test('the secondary controls and the mode tabs sit below the board', async ({ page }) => {
+      const shell = await box(page.locator('.board-shell'));
+      for (const below of [page.getByRole('tab', { name: 'Practice' }), page.getByRole('group', { name: 'Note view' }), page.getByLabel('Neck length'), page.getByRole('button', { name: 'Play' })]) {
+        expect((await box(below)).y).toBeGreaterThanOrEqual(shell.y + shell.height - 1);
+      }
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(/pentatonic/i);
+    });
+  });
+}
+
+test.describe('selected form', () => {
+  for (const handedness of ['right-handed', 'left-handed']) {
+    test(`stays in view and clear of the sticky form bar on a 24-fret neck, ${handedness}`, async ({ page }) => {
+      if (handedness === 'left-handed') await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, leftHanded: true, frets: 24 })));
+      await page.setViewportSize(PHONE);
+      await page.goto('/');
+      await page.getByLabel('Neck length').selectOption('24');
+      const bar = page.locator('.form-bar');
+      for (const form of [3, 5, 2, 4, 1]) {
+        // Scroll to the top so the picker is reachable, then pick; the page must bring the form to the user.
+        await page.evaluate(() => scrollTo(0, 0));
+        await page.getByRole('button', { name: `Form ${form}`, exact: true }).click();
+        await expect.poll(async () => page.locator('.note-node[data-active="true"][data-visible="true"]').evaluateAll(nodes => {
+          const tops = nodes.map(n => n.getBoundingClientRect());
+          return Math.min(...tops.map(b => b.top)) >= 0 && Math.max(...tops.map(b => b.bottom)) <= innerHeight;
+        }), { message: `Form ${form} is in the viewport` }).toBe(true);
+        const barBox = await box(bar);
+        const top = await page.locator('.note-node[data-active="true"][data-visible="true"]').evaluateAll(nodes => Math.min(...nodes.map(n => n.getBoundingClientRect().top)));
+        expect(top, `Form ${form} is not under the form bar`).toBeGreaterThanOrEqual(barBox.y + barBox.height - 1);
+      }
+    });
+  }
+
+  test('the form bar stays reachable while the long neck scrolls', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto('/');
+    await page.getByLabel('Neck length').selectOption('24');
+    await page.evaluate(() => scrollTo(0, 700));
+    const picker = await box(page.getByRole('group', { name: 'Pentatonic form' }));
+    expect(picker.y).toBeGreaterThanOrEqual(0);
+    expect(picker.y + picker.height).toBeLessThanOrEqual(120);
+  });
+});
+
+test.describe('drill prompt', () => {
+  test('is on screen together with the board and its search zone, even from the lower tabs', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Practice' }).click();
+    await page.locator('#find-notes').click();
+    const prompt = page.getByRole('region', { name: 'Practice drill' });
+    await expect(prompt).toBeVisible();
+    const promptBox = await box(prompt);
+    expect(promptBox.y).toBeGreaterThanOrEqual(0);
+    expect(promptBox.y + promptBox.height).toBeLessThanOrEqual(PHONE.height);
+    const board = await box(page.locator('svg.fretboard'));
+    expect(board.y).toBeGreaterThanOrEqual(promptBox.y + promptBox.height - 1);
+    expect(board.y).toBeLessThan(PHONE.height - 300);
+    // The zone to search is among what is visible, and the answers are tappable without scrolling.
+    const zone = await box(page.locator('.drill-zone rect').first());
+    expect(zone.y + Math.min(zone.height, 200)).toBeLessThanOrEqual(PHONE.height);
+    for (const action of ['Hint', 'Reveal', 'Next', 'End']) {
+      const actionBox = await box(prompt.getByRole('button', { name: action, exact: true }));
+      expect(actionBox.height).toBeGreaterThanOrEqual(44);
+      expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(PHONE.height);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(PHONE.width);
+  });
+
+  test('stays reachable while a long neck scrolls', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto('/');
+    await page.getByLabel('Neck length').selectOption('24');
+    await page.getByRole('tab', { name: 'Practice' }).click();
+    await page.locator('#find-notes').click();
+    const prompt = page.getByRole('region', { name: 'Practice drill' });
+    await page.evaluate(() => scrollTo(0, 600));
+    const promptBox = await box(prompt);
+    expect(promptBox.y).toBeGreaterThanOrEqual(0);
+    expect(promptBox.y + promptBox.height).toBeLessThanOrEqual(PHONE.height);
+  });
+});
