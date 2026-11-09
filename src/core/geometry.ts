@@ -12,6 +12,7 @@ export const EDGE = 22;
 export const GUTTER = 30;
 export const NOTE_RADIUS = 13;
 export const HIT_SIZE = 44;
+const VERTICAL_HIT = 48;
 const FOOT = 58;
 // Fret numbers and inlays sit in a margin along the neck's sides; the unused strip beside them is cropped in vertical.
 const VERTICAL_CROP = 18;
@@ -51,8 +52,9 @@ export function boardGeometry(frets: number, leftHanded: boolean, orientation: O
     labelAlong: EDGE,
     numberAcross: vertical ? breadth - VERTICAL_CROP : 22,
     inlayAcross: vertical ? VERTICAL_CROP + 9 : across(6) + 43,
-    // The invisible touch target: tiling in vertical, where strings sit close, and note-sized on a wide board.
-    hit: vertical ? { width: ROW, height: cell } : { width: HIT_SIZE, height: HIT_SIZE },
+    // The invisible touch target. Vertical spans the whole string column; its height is a little over the fret spacing
+    // so that a phone, which scales the board down, still gives a 44px target. Neighbors overlap by a few units.
+    hit: vertical ? { width: ROW, height: Math.max(cell, VERTICAL_HIT) } : { width: HIT_SIZE, height: HIT_SIZE },
   };
 }
 export type BoardGeometry = ReturnType<typeof boardGeometry>;

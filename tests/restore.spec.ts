@@ -82,7 +82,8 @@ test('Diagonal marks continuation tones and warp shows a +1 label without an arr
 
 for (const leftHanded of [false, true]) {
   test(`fit neck in Diagonal keeps six string names in view${leftHanded ? ' when mirrored' : ''}`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    // Narrow but horizontal: a portrait phone draws the neck vertically and has no fit toggle.
+    await page.setViewportSize({ width: 680, height: 900 });
     await page.goto('/');
     if (leftHanded) {
       await page.getByRole('button', { name: 'Settings', exact: true }).click();

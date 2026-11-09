@@ -106,7 +106,7 @@ test('a horizontal neck is unchanged by the vertical option, and left-handed mir
   }
 });
 
-test('every note and its touch target stay inside what the vertical board shows, and the targets tile the strings', () => {
+test('every note and its touch target stay inside what the vertical board shows', () => {
   for (const leftHanded of [false, true]) {
     const geo = boardGeometry(24, leftHanded, 'vertical');
     for (const string of STRINGS) for (let fret = 0; fret <= 24; fret++) {
@@ -114,8 +114,8 @@ test('every note and its touch target stay inside what the vertical board shows,
       assert.ok(x - geo.hit.width / 2 >= geo.box.x && x + geo.hit.width / 2 <= geo.box.x + geo.box.width, `${string}:${fret} fits across`);
       assert.ok(y - geo.hit.height / 2 >= geo.box.y && y + geo.hit.height / 2 <= geo.box.y + geo.box.height, `${string}:${fret} fits along`);
     }
-    assert.equal(geo.hit.width, ROW);
-    assert.equal(geo.hit.height, geo.cell);
+    assert.equal(geo.hit.width, ROW, 'a target spans its string column');
+    assert.ok(geo.hit.height >= geo.cell, 'targets cover the fret spacing');
     assert.ok(geo.hit.width >= 44 && geo.hit.height >= 44, 'touch targets stay 44 units');
   }
 });
