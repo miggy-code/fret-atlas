@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
-import { degreeLabel, pitchName, SHARPS, spellTone } from '../core/music';
+import { degreeLabel, pitchName, scaleById, SHARPS, spellTone } from '../core/music';
 import type { Scale } from '../core/music';
 import { sectionModified, selectedPitches } from '../core/state';
 import type { Action, NoteColors, NoteView, State } from '../core/state';
@@ -68,6 +69,9 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const anyIsolated = state.isolatedTones.length > 0;
+  // Custom notes is a detour: remember the scale it started from so there is always a way back.
+  const [cameFrom, setCameFrom] = useState<string | null>(null);
+  const backTo = scaleById(cameFrom && cameFrom !== 'custom' ? cameFrom : 'minor-pentatonic');
   return <div className="degree-legend">
     <p className="degree-legend-heading">{custom ? 'Custom notes' : <>Scale degrees<span>Click to isolate</span></>}</p>
     <section className="tone-strip" aria-label="Scale tones">
@@ -102,10 +106,11 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
           <button onClick={() => dispatch({ type: 'pitches', value: SHARPS.map((_, i) => i) })}>All</button>
           <button onClick={() => dispatch({ type: 'pitches', value: [0, 2, 4, 5, 7, 9, 11] })}>Naturals</button>
           <button onClick={() => dispatch({ type: 'pitches', value: [] })}>Clear</button>
+          <button className="primary" onClick={() => dispatch({ type: 'scale', value: backTo.id })}>Back to {backTo.name}</button>
         </>
         : <>
           {anyIsolated && <button onClick={() => dispatch({ type: 'clear-isolated-tones' })}>Show all degrees</button>}
-          <button onClick={() => dispatch({ type: 'scale', value: 'custom' })}>Customize notes</button>
+          <button onClick={() => { setCameFrom(state.scaleId); dispatch({ type: 'scale', value: 'custom' }); }}>Customize notes</button>
         </>}
       </div>
     </section>

@@ -41,6 +41,7 @@
 .chord-sentence select { height: 40px; }
 .explore-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .explore .tone-actions button, .explore-actions button, .connect-button { min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.explore .tone-actions button.primary { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .explore .tone-actions button:hover, .explore-actions button:hover, .connect-button:hover { border-color: var(--accent); }
 .explore-actions button[aria-pressed=true], .connect-button[aria-pressed=true] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
 .connect-button { min-height: 40px; }
