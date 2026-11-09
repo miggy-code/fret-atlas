@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 type IconName = 'settings' | 'link' | 'focus' | 'close' | 'help' | 'shift' | 'undo' | 'flame' | 'play' | 'stop' | 'target';
@@ -21,7 +21,14 @@ export function Icon({ name }: { name: IconName }) {
 
 export interface SegmentOption<T extends string> { value: T; label: ReactNode; disabled?: boolean; hint?: string }
 export function Segments<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: SegmentOption<T>[]; onChange: (value: T) => void }) {
-  return <div className="segmented" role="group" aria-label={label}>
+  const strip = useRef<HTMLDivElement>(null);
+  // A strip that scrolls sideways (the study views on a phone) keeps the chosen option in sight.
+  useEffect(() => {
+    const el = strip.current, chosen = el?.querySelector<HTMLElement>('.active');
+    if (!el || !chosen || el.scrollWidth <= el.clientWidth) return;
+    el.scrollLeft += chosen.getBoundingClientRect().left - el.getBoundingClientRect().left - (el.clientWidth - chosen.offsetWidth) / 2;
+  }, [value]);
+  return <div ref={strip} className="segmented" role="group" aria-label={label}>
     {options.map(option => <button key={option.value} type="button" aria-pressed={value === option.value} className={value === option.value ? 'active' : ''} disabled={option.disabled} title={option.hint} onClick={() => onChange(option.value)}>{option.label}</button>)}
   </div>;
 }
