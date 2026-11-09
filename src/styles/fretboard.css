@@ -60,6 +60,9 @@
 /* Continuation tones on a diagonal run stay hollow so the blocks read first. */
 .has-patterns .note-node.is-run:not(.is-triad):not(.degree-colored):not(.third):not(.fifth):not(.lucky-charm) { --marker: var(--core); --marker-fill: var(--neck); --label: var(--core); }
 .note-node.degree-colored, .note-node.third, .note-node.fifth, .note-node.lucky-charm[data-charm-degree] { --marker: #34424e; --marker-fill: var(--degree-color); --label: #14202a; }
+/* Chord tones keep their own two colors, so they stand out from the scale-degree palette. */
+.note-node.third { --marker-fill: var(--chord-third); }
+.note-node.fifth { --marker-fill: var(--chord-fifth); }
 /* The degree palette's first color is the light theme's root; the root follows the theme. */
 .note-node.lucky-charm[data-charm-degree='1'] { --marker-fill: var(--root); }
 .note-hit { fill: transparent; }
