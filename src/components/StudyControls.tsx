@@ -1,7 +1,7 @@
 import type { Dispatch } from 'react';
 import { pitchName, SCALES, SHARPS } from '../core/music';
 import type { Scale } from '../core/music';
-import { selectedPitches } from '../core/state';
+import { studyModeAvailable } from '../core/state';
 import type { Action, State } from '../core/state';
 import type { Study, StudyMode } from '../core/study';
 import type { ShapeKind } from '../core/shapes';
@@ -37,18 +37,17 @@ export function StudyControls(props: StudyControlsProps) {
 
 /** Key, scale and study view. A phone shows these above the board and the rest elsewhere. */
 export function StudyPicker({ state, dispatch, scale }: Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale'>) {
-  const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
-  const sevenNotes = new Set(pitches).size === 7;
-  const views: { value: StudyMode; label: string; disabled?: boolean; hint?: string }[] = [
-    { value: 'position', label: 'Position', disabled: custom, hint: custom ? 'Choose a named scale' : undefined },
-    { value: 'shape', label: 'Shape', disabled: !scale.family, hint: familyHint },
-    { value: 'diagonal', label: 'Diagonal', disabled: !scale.family, hint: familyHint },
+  const choices: { value: StudyMode; label: string; hint?: string }[] = [
+    { value: 'position', label: 'Position', hint: custom ? 'Choose a named scale' : undefined },
+    { value: 'shape', label: 'Shape', hint: familyHint },
+    { value: 'diagonal', label: 'Diagonal', hint: familyHint },
     { value: 'all', label: 'Whole neck' },
-    { value: 'string', label: 'One string', disabled: !pitches.length },
-    { value: 'nps', label: '3 notes/string', disabled: !sevenNotes, hint: sevenNotes ? undefined : 'Requires a seven-note scale' },
+    { value: 'string', label: 'One string' },
+    { value: 'nps', label: '3 notes/string', hint: 'Requires a seven-note scale' },
   ];
+  const views = choices.map(view => { const disabled = !studyModeAvailable(state, view.value); return { ...view, disabled, hint: disabled ? view.hint : undefined }; });
   return <>
     <div className="study-primary">
       <div className="musical-controls">

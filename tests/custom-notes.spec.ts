@@ -30,3 +30,14 @@ test('custom notes opened from a saved custom selection still offers a way out',
   await expect(page.locator('#scale')).not.toHaveValue('custom');
   await expect(page.getByRole('button', { name: 'Customize notes' })).toBeVisible();
 });
+
+test('the selected study view is never a disabled one', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'minor-pentatonic', studyMode: 'shape' })));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Customize notes' }).click();
+  const views = page.getByRole('group', { name: 'Study view' });
+  await expect(views.getByRole('button', { name: 'Whole neck' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(views.locator('button[aria-pressed=true]:disabled')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await expect(views.locator('button[aria-pressed=true]:disabled')).toHaveCount(0);
+});

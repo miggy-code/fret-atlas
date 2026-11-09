@@ -113,7 +113,7 @@ test('3NPS needs exactly seven scale notes; pentatonics do not offer it', () => 
   assert.equal(studyChoices({ ...defaultState(), studyMode: 'nps' }).length, 0);
 });
 test('new preferences persist and invalid values are rejected', () => {
-  const saved = restoreState({ ...defaultState(), lowest: 3, fourths: true, degreeColors: true, studyMode: 'nps' });
+  const saved = restoreState({ ...defaultState(), scaleId: 'major', lowest: 3, fourths: true, degreeColors: true, studyMode: 'nps' });
   assert.deepEqual([saved.lowest, saved.fourths, saved.degreeColors, saved.studyMode], [3, true, true, 'nps']);
   const bad = restoreState({ ...defaultState(), lowest: 99, fourths: 'yes', degreeColors: 1, studyMode: 'sideways' });
   assert.deepEqual([bad.lowest, bad.fourths, bad.degreeColors, bad.studyMode], [0, false, false, 'position']);

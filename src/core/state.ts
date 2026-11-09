@@ -71,7 +71,23 @@ export function defaultState(): State {
 const isRecord = (raw: unknown): raw is Record<string, unknown> => !!raw && typeof raw === 'object' && !Array.isArray(raw);
 const integer = (value: unknown, low: number, high: number) => typeof value === 'number' && Number.isInteger(value) && value >= low && value <= high;
 const pitchList = (raw: unknown, fallback: number[]) => Array.isArray(raw) ? [...new Set(raw.filter((p): p is number => integer(p, 0, 11)))].sort((a, b) => a - b) : fallback;
+/** Whether a study view makes sense for the current scale or custom notes; the view picker disables the rest. */
+export function studyModeAvailable(s: State, mode: StudyMode): boolean {
+  switch (mode) {
+    case 'position': return s.scaleId !== 'custom';
+    case 'shape': case 'diagonal': return !!scaleById(s.scaleId).family;
+    case 'string': return selectedPitches(s).length > 0;
+    case 'nps': return new Set(selectedPitches(s)).size === 7;
+    default: return true;
+  }
+}
+/** A disabled view must never stay selected: fall back to the nearest view the scale supports. */
+const settleStudyMode = (s: State): State => studyModeAvailable(s, s.studyMode) ? s : { ...s, studyMode: studyModeAvailable(s, 'position') ? 'position' : 'all', studyFret: null };
+
 export function restoreState(raw: unknown): State {
+  return settleStudyMode(readState(raw));
+}
+function readState(raw: unknown): State {
   const s = defaultState();
   if (!isRecord(raw)) return s;
   if (integer(raw.root, 0, 11)) s.root = raw.root as number;
@@ -160,6 +176,9 @@ export type Action =
   | { type: 'reset-section'; value: Section };
 const toggleItem = <T,>(items: T[], item: T) => items.includes(item) ? items.filter(i => i !== item) : [...items, item];
 export function reducer(s: State, action: Action): State {
+  return settleStudyMode(reduce(s, action));
+}
+function reduce(s: State, action: Action): State {
   switch (action.type) {
     case 'study-mode': {
       const current = activeStudy(s);
