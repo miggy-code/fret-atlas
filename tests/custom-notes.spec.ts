@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test('custom notes can be left to return to the scale it started from', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'dorian', root: 2 })));
   await page.goto('/');
-  const scaleSelect = page.locator('#scale');
+  const scaleSelect = page.getByRole('combobox', { name: 'Scale', exact: true });
   const before = await scaleSelect.inputValue();
   expect(before).toBe('dorian');
 
@@ -27,7 +27,7 @@ test('custom notes opened from a saved custom selection still offers a way out',
   await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'custom', customPitches: [0, 3, 7] })));
   await page.goto('/');
   await page.getByRole('button', { name: /^Back to / }).click();
-  await expect(page.locator('#scale')).not.toHaveValue('custom');
+  await expect(page.getByRole('combobox', { name: 'Scale', exact: true })).not.toHaveValue('custom');
   await expect(page.getByRole('button', { name: 'Customize notes' })).toBeVisible();
 });
 

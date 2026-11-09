@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { buildSyncRow, seedAccountCache } from './factories';
+import type { Progress } from '../src/core/progress';
 
 test('does not send an account cache with a different user token', async ({ page }) => {
   let calls = 0;
@@ -57,7 +59,7 @@ test('imports device data, syncs edits, retains failures and isolates accounts',
 });
 
 test('declining the device import adopts the account settings without a second question', async ({ page }) => {
-  const row = { user_id: 'user_a', settings: { view: { leftHanded: true }, theme: 'dark', sound: 'on' }, settings_revision: 3, progress: { 'minor:9:1': 2 }, reset_generation: 0 };
+  const row = buildSyncRow({ settings: { view: { leftHanded: true }, theme: 'dark', sound: 'on' }, settings_revision: 3, progress: { 'minor:9:1': 2 } });
   const uploads: Record<string, unknown>[] = [];
   await page.route('https://sync.test/rest/v1/rpc/sync_change', async route => {
     const operation = route.request().postDataJSON();
@@ -78,13 +80,13 @@ test('declining the device import adopts the account settings without a second q
 
 test('retains stale offline progress until the user resolves a reset', async ({ page }) => {
   const operations: string[] = [];
-  const row = { user_id: 'user_a', settings: { view: {}, theme: 'light', sound: 'on' }, settings_revision: 2, progress: {}, reset_generation: 1 };
+  const row = buildSyncRow({ settings_revision: 2, reset_generation: 1 });
   await page.route('https://sync.test/rest/v1/rpc/sync_change', async route => {
     const op = route.request().postDataJSON();
     operations.push(op.operation);
     await route.fulfill({ json: { status: 'ok', row } });
   });
-  await page.addInitScript(() => localStorage.setItem('fret-atlas-account:user_a', JSON.stringify({ settings: { view: {}, theme: 'light', sound: 'on' }, progress: { 'minor:9:1': 2 }, settingsRevision: 2, resetGeneration: 0, settingsPending: false, progressPending: true, resetPending: false })));
+  await seedAccountCache(page, 'user_a', { progress: { 'minor:9:1': 2 }, settingsRevision: 2, resetGeneration: 0, progressPending: true });
   page.on('dialog', dialog => dialog.dismiss());
   await page.goto('/tests/sync-harness.html?user=user_a');
   await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
@@ -104,9 +106,9 @@ test('settings conflict keeps the chosen device copy using the current revision'
       savedSettings = op.data;
       revision++;
     }
-    await route.fulfill({ json: { status: 'ok', row: { user_id: 'user_a', settings: savedSettings, settings_revision: revision, progress: {}, reset_generation: 0 } } });
+    await route.fulfill({ json: { status: 'ok', row: buildSyncRow({ settings: savedSettings, settings_revision: revision }) } });
   });
-  await page.addInitScript(() => localStorage.setItem('fret-atlas-account:user_a', JSON.stringify({ settings: { view: {}, theme: 'dark', sound: 'on' }, progress: {}, settingsRevision: 1, resetGeneration: 0, settingsPending: true, progressPending: false, resetPending: false })));
+  await seedAccountCache(page, 'user_a', { settings: { view: {}, theme: 'dark', sound: 'on' }, settingsRevision: 1, settingsPending: true });
   page.on('dialog', dialog => dialog.accept());
   await page.goto('/tests/sync-harness.html?user=user_a');
   await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
@@ -117,16 +119,16 @@ test('settings conflict keeps the chosen device copy using the current revision'
 test('clearing progress queues a reset and does not restore pre-reset progress', async ({ page }) => {
   let offline = false;
   let generation = 0;
-  let serverProgress: Record<string, number> = { 'minor:9:1': 2 };
+  let serverProgress: Progress = { 'minor:9:1': 2 };
   const settings = { view: {}, theme: 'light', sound: 'on' };
   await page.route('https://sync.test/rest/v1/rpc/sync_change', async route => {
     if (offline) return route.fulfill({ status: 503, body: '' });
     const op = route.request().postDataJSON();
     if (op.operation === 'reset') { expect(op.expected).toBe(generation); generation++; serverProgress = {}; }
     if (op.operation === 'progress') Object.assign(serverProgress, op.data);
-    await route.fulfill({ json: { status: 'ok', row: { user_id: 'user_a', settings, settings_revision: 1, progress: serverProgress, reset_generation: generation } } });
+    await route.fulfill({ json: { status: 'ok', row: buildSyncRow({ settings, progress: serverProgress, reset_generation: generation }) } });
   });
-  await page.addInitScript(() => localStorage.setItem('fret-atlas-account:user_a', JSON.stringify({ settings: { view: {}, theme: 'light', sound: 'on' }, progress: { 'minor:9:1': 2 }, settingsRevision: 1, resetGeneration: 0, settingsPending: false, progressPending: false, resetPending: false })));
+  await seedAccountCache(page, 'user_a', { progress: { 'minor:9:1': 2 }, resetGeneration: 0 });
   page.on('dialog', dialog => dialog.accept());
   await page.goto('/tests/sync-harness.html?user=user_a');
   await expect(page.getByRole('status').filter({ hasText: 'Synced' })).toBeVisible();
