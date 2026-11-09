@@ -173,7 +173,8 @@ export type Action =
   | { type: 'clear-marks' }
   | { type: 'lowest'; value: number }
   | { type: 'reset-view' }
-  | { type: 'reset-section'; value: Section };
+  | { type: 'reset-section'; value: Section }
+  | { type: 'restore'; value: State };
 const toggleItem = <T,>(items: T[], item: T) => items.includes(item) ? items.filter(i => i !== item) : [...items, item];
 export function reducer(s: State, action: Action): State {
   return settleStudyMode(reduce(s, action));
@@ -245,6 +246,8 @@ function reduce(s: State, action: Action): State {
       for (const key of SECTION_KEYS[action.value]) next[key] = defaults[key];
       return next as unknown as State;
     }
+    // Takes a whole view from elsewhere (the account, another tab); keeps the current object when nothing differs.
+    case 'restore': return JSON.stringify(s) === JSON.stringify(action.value) ? s : action.value;
     case 'reset-view': return { ...defaultState(), lowest: s.lowest, fourths: s.fourths, root: s.root, scaleId: s.scaleId, customPitches: s.customPitches, marks: s.marks };
   }
 }

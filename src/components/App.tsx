@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { describeNote, LOWEST_STRING_CHOICES, pitchName, position, scaleById } from '../core/music';
 import type { Scale, Tuning } from '../core/music';
 import { loadState, reducer, restoreState, visibleShapes } from '../core/state';
 import type { Action, State } from '../core/state';
+import type { SettingsDelta } from '../core/sync-edit';
 import { notePresentation } from '../core/presentation';
 import { deriveStudy, tuningOf } from '../core/study';
 import type { DrillRequest } from '../core/drill';
@@ -24,22 +26,24 @@ import { pluck } from './audio';
 import { useBoardOrientation } from './useBoardOrientation';
 import { useChord } from './useChord';
 import { usePlayback } from './usePlayback';
-import { useDevicePreferences, useSavedView } from './usePreferences';
+import { useAccountChanges, useDevicePreferences, useSavedView } from './usePreferences';
 import { useShare } from './useShare';
 
 export interface AccountView {
   settings: Record<string, unknown>;
   progress: Progress;
+  /** Changes whenever something from elsewhere (the account, another tab) should reach the screen. */
+  version: number;
   status: string;
-  onSettings: (settings: Record<string, unknown>) => void;
+  onSettings: (changes: SettingsDelta) => void;
   onProgress: (progress: Progress) => void;
   onClear: () => void;
 }
 
-export function App({ accountsEnabled = false, account }: { accountsEnabled?: boolean; account?: AccountView }) {
+export function App({ accountMenu, account }: { accountMenu?: ReactNode; account?: AccountView }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => account ? restoreState(account.settings.view) : loadState());
-  const { darkMode, sound, toggleDarkMode, toggleSound } = useDevicePreferences(account);
-  const storageWorks = useSavedView(state, darkMode, sound, account);
+  const { darkMode, sound, toggleDarkMode, toggleSound, restore: restorePreferences } = useDevicePreferences(account);
+  const { storageWorks, matched } = useSavedView(state, darkMode, sound, account);
   const [mode, setMode] = useState<'explore' | 'practice' | 'drill'>('explore');
   const tab = mode === 'explore' ? 'explore' : 'practice';
   const practicing = mode === 'drill';
@@ -73,6 +77,12 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   const family = scale.family;
   const formStudy = family && state.studyMode === 'position' ? study : undefined;
   const drill = useDrill(viewState, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); }, request);
+  useAccountChanges(account, practicing, (settings, saved) => {
+    matched(settings);
+    dispatch({ type: 'restore', value: settings.view });
+    restorePreferences(settings);
+    progress.restore(saved);
+  });
   const playback = usePlayback(sound);
   // A drill hides every hint that would give the answer away.
   const boardState = useMemo<State>(() => practicing
@@ -186,7 +196,7 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
 
   return <>
     <main className="workspace" data-orientation={orientation}>
-      <Topbar accountsEnabled={accountsEnabled} onShare={share} guideButton={guideButton} settingsButton={settingsButton}
+      <Topbar accountMenu={accountMenu} onShare={share} guideButton={guideButton} settingsButton={settingsButton}
         onGuide={() => guide.current?.showModal()} onSettings={() => settings.current?.showModal()} />
       <section className="board-card" aria-label="Interactive fretboard">
         <div className="board-heading">

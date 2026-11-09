@@ -1,10 +1,9 @@
 import { useLayoutEffect, useState } from 'react';
+import { PROGRESS_KEY } from '../core/device-copy';
 import { pitchName, SHARPS } from '../core/music';
 import type { Spelling } from '../core/music';
 import { FORMS, levelOf, practicedForms, practicedTotal, record, restoreProgress } from '../core/progress';
 import type { Family, Level, Progress } from '../core/progress';
-
-const PROGRESS_KEY = 'fret-atlas-progress';
 
 export function useProgress(account?: { initial: Progress; onChange: (progress: Progress) => void; onClear: () => void }) {
   const [progress, setProgress] = useState<Progress>(() => { if (account) return account.initial; try { return restoreProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? '{}')); } catch { return {}; } });
@@ -13,6 +12,8 @@ export function useProgress(account?: { initial: Progress; onChange: (progress: 
     progress,
     mark: (family: Family, root: number, form: number, level: Level) => setProgress(p => record(p, family, root, form, level)),
     clear: () => { account?.onClear(); setProgress({}); },
+    /** Takes progress from the account, which already holds everything this tab recorded. */
+    restore: (next: Progress) => setProgress(next),
   };
 }
 

@@ -1,11 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ClerkProvider } from '@clerk/react';
 import { App } from './components/App';
-import { AccountsRoot } from './components/AccountApp';
+import { AccountsRoot } from './components/AccountsRoot';
 import './styles/index.css';
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 createRoot(document.getElementById('app')!).render(
-  <StrictMode>{publishableKey ? <ClerkProvider publishableKey={publishableKey}><AccountsRoot /></ClerkProvider> : <App />}</StrictMode>,
+  <StrictMode>{publishableKey ? <AccountsRoot publishableKey={publishableKey} /> : <App />}</StrictMode>,
 );

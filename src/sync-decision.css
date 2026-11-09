@@ -1,0 +1,15 @@
+/* The sync decision dialog reuses .guide-dialog; these rules only add its answer buttons and the reminder shown while it is closed. */
+.sync-decision .guide-content h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: -.5px; }
+.sync-decision .guide-content h2:focus { outline: none; }
+.sync-decision .guide-content p { margin: 0; line-height: 1.6; }
+.decision-options { display: grid; gap: 10px; margin: 22px 0 16px; }
+.decision-option { display: grid; gap: 3px; width: 100%; padding: 14px 16px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.decision-option:hover { border-color: var(--on-border); background: var(--on-bg); }
+.decision-option strong { font-size: 16px; font-weight: 600; }
+.decision-option span { font-size: 14px; line-height: 1.5; color: var(--muted); }
+.decision-note { font-size: 13px; color: var(--muted); }
+.decision-reminder { position: fixed; z-index: 40; right: 16px; bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: min(420px, calc(100% - 32px)); padding: 8px 8px 8px 16px; border: 1px solid var(--on-border); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1.4; box-shadow: 0 4px 18px #172c4030; }
+.decision-reminder .text-button { flex: none; border: 1px solid var(--line); }
+@media (max-width: 640px) {
+  .decision-reminder { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+}
