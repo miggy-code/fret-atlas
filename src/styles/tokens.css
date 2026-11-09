@@ -31,6 +31,7 @@
   --notice-bg: #fcf8f1; --notice-border: #e4d3ba; --notice-ink: #78613a;
   --dialog-border: #c8d2da; --guide-ink: #60727f; --guide-note-ink: #6c7c87;
   --board-shadow: none;
+  --popover-shadow: 0 4px 18px #172c4030;
 
   /* Fretboard */
   --fret-label: #5c7380; --string-label: #617c89; --fret-wire: #d8cebf; --nut: #b3a283; --string: #a39d94;
@@ -66,6 +67,7 @@ html[data-theme='dark'] {
   --notice-bg: #302920; --notice-border: #67553a; --notice-ink: #ebd0a2;
   --dialog-border: var(--line); --guide-ink: var(--muted); --guide-note-ink: var(--muted);
   --board-shadow: 0 8px 32px #0000002b;
+  --popover-shadow: 0 4px 18px #00000066;
 
   --fret-label: #b5c8d2; --string-label: #b5c8d2; --fret-wire: #4a4440; --nut: #cbbfa8; --string: #9a9690;
   --legend-fill: #1c2b34; --ghost-opacity: .65; --tooltip-shadow: rgba(0, 0, 0, .4);

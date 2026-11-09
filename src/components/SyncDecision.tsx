@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SyncConflict } from '../core/sync';
-import '../sync-decision.css';
 
 /** `import` is the first sign-in on a device that already holds data; the rest are conflicts found while syncing. */
 export type Decision = 'import' | SyncConflict;
