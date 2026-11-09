@@ -3,7 +3,7 @@ import type { Scale } from '../core/music';
 import type { State } from '../core/state';
 import type { Shape } from '../core/shapes';
 
-export const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
+const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
 
 /** Names only the layers that are on the board right now. */
 export function BoardLegend({ state, shapes, scale }: { state: State; shapes: Shape[]; scale: Scale }) {

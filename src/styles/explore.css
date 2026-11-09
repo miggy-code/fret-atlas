@@ -1,0 +1,84 @@
+/* Explore: note view, then scale degrees and a chord (each a label, its choices, then its actions), then Overlays. */
+.note-view-bar { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 16px 0 0; }
+.note-view-bar .restore-button { align-self: center; margin-left: auto; }
+.label-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.note-view-bar .segmented { flex-wrap: wrap; }
+/* Note view and Colors keep a quiet raised chip; the previews carry the color. */
+.note-view-bar .segmented button.active { border-color: var(--on-border); background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px #2446541a; }
+.view-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--root); }
+.view-charms { color: #20a984; font-size: 11px; letter-spacing: 1px; }
+.color-preview { color: transparent; font-size: 10px; letter-spacing: 1px; background-clip: text; -webkit-background-clip: text; }
+.root-preview { background-image: linear-gradient(90deg, var(--root) 33%, #a6b7c1 33%); }
+.degrees-preview { background-image: linear-gradient(90deg, var(--degree-2) 33%, var(--degree-3) 33% 66%, var(--degree-5) 66%); }
+.chord-preview { background-image: linear-gradient(90deg, var(--root) 33%, var(--degree-3) 33% 66%, var(--degree-5) 66%); }
+
+.explore { display: grid; gap: 16px; padding: 16px 4px 20px; border-bottom: 1px solid var(--line); }
+.degree-legend { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 12px 16px; }
+.degree-legend-heading, .explore-label { margin: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+.degree-legend-heading > span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.degree-marker { flex-shrink: 0; width: 25px; height: 25px; overflow: visible; }
+.tone-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.tone-sequence { display: flex; flex-wrap: wrap; gap: 9px; }
+.tone-sequence.custom { gap: 6px; }
+.tone-chip { display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 68px; min-height: 42px; padding: 9px 13px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--field-bg); color: var(--ink); }
+.tone-chip strong { font-size: 16px; font-weight: 600; }
+.tone-chip > span { padding-left: 10px; border-left: 1px solid var(--chip-divider); color: var(--muted); font-size: 13px; }
+.tone-chip.root { color: var(--root); }
+.tone-chip.root > span { border-left-color: #efc2c8; }
+.tone-chip.added { color: var(--added); }
+.tone-chip.added > span { border-left-color: #c9deef; }
+.custom .tone-chip { min-width: 40px; padding: 8px; }
+.custom .tone-chip.selected { border-color: #314e5d; background: var(--custom-pick-bg); color: #fff; }
+/* Scale degree isolation */
+.tone-chip.scale-tone-chip { cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease; }
+.tone-chip.scale-tone-chip:hover { border-color: var(--focus); box-shadow: 0 4px 12px rgba(0, 0, 0, .08); transform: translateY(-2px); }
+.tone-chip.scale-tone-chip.isolated { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: 0 0 0 3px var(--isolate-glow); }
+.tone-chip.scale-tone-chip.dimmed { opacity: .4; }
+.tone-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chord-row { display: grid; grid-template-columns: 112px auto 1fr; align-items: center; gap: 12px 16px; }
+.chord-sentence { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.chord-sentence select { height: 40px; }
+.explore-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.explore .tone-actions button, .explore-actions button, .connect-button { min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.explore .tone-actions button:hover, .explore-actions button:hover, .connect-button:hover { border-color: var(--accent); }
+.explore-actions button[aria-pressed=true], .connect-button[aria-pressed=true] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
+.connect-button { min-height: 40px; }
+
+/* Overlays */
+.map-layers { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; width: 100%; }
+.pattern-options { display: flex; flex-wrap: wrap; align-items: start; gap: 20px 28px; width: 100%; }
+.pattern-string-settings { display: grid; gap: 10px; }
+.pattern-string-settings .field-label { display: block; margin-bottom: 8px; }
+.pattern-string-settings p { max-width: 420px; margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 980px) {
+  .label-controls { flex: 1; }
+  .tone-actions { flex: 1; justify-content: flex-end; }
+}
+@media (max-width: 760px) {
+  .note-view-bar { margin-top: 10px; }
+  .label-controls { flex-basis: 100%; align-items: flex-start; width: 100%; }
+  .label-controls > .field-label { min-width: 38px; }
+  .label-controls .segmented { flex: 1; }
+  .note-view-bar .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .note-view-bar .segmented button { flex: 1 0 auto; min-height: 40px; line-height: 1.2; text-align: center; white-space: normal; }
+  .note-view-bar .color-preview, .note-view-bar .view-charms { display: none; }
+  .degree-legend, .chord-row { grid-template-columns: 1fr; gap: 10px; }
+  .degree-legend-heading > span { display: inline; margin: 0 0 0 8px; }
+  .tone-sequence { gap: 7px; }
+  .tone-chip { gap: 8px; min-width: 57px; padding: 9px; }
+  .tone-chip > span { padding-left: 8px; }
+  .tone-actions { flex-basis: 100%; justify-content: flex-start; }
+  .explore .tone-actions button, .explore-actions button, .connect-button { min-height: 44px; }
+  .map-layers { gap: 16px; }
+}
+@media (max-width: 480px) {
+  .note-view-bar .segmented { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 390px) {
+  .label-controls .segmented button { padding-inline: 8px; }
+}
+@media (pointer: coarse) {
+  .tone-chip { min-height: 44px; }
+}

@@ -1,0 +1,76 @@
+/* Key, scale and study view, then the form bar: ‹ 1 2 3 4 5 › with the fret range, Play and the pattern choices. */
+.study-primary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 0 0 16px; }
+.study-primary > .segmented { flex-wrap: wrap; }
+/* Study view: the four pentatonic views, then a divider before the two whole-string layouts. */
+.study-primary > .segmented button:nth-child(5) { position: relative; margin-left: 7px; }
+.study-primary > .segmented button:nth-child(5)::before { content: ''; position: absolute; left: -7px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
+.musical-controls { display: flex; align-items: center; gap: 16px; }
+.key-field select { width: 76px; font-weight: 600; }
+.scale-field select { width: 220px; }
+.study-availability { margin: -4px 0 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+.form-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 12px 24px; padding: 12px 0; border-block: 1px solid var(--line); }
+.form-bar:has(.form-navigation) { margin-top: 4px; }
+.form-bar:not(:has(.form-navigation)) { display: none; }
+.form-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.form-stepper { display: flex; align-items: center; gap: 6px; }
+.form-status { display: flex; flex-direction: column; gap: 3px; min-width: 90px; text-align: center; }
+.form-status strong { font-size: 13px; font-weight: 600; }
+.form-status span { color: var(--muted); font-size: 11px; }
+.form-frets { margin-left: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.form-hint { color: var(--muted); font-size: 12px; }
+
+.form-picker { display: flex; gap: 4px; }
+.form-picker button { position: relative; min-width: 44px; min-height: 44px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); font-size: 13px; }
+.form-picker button:hover { background: var(--panel); }
+.form-picker button[aria-pressed='true'] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 700; }
+/* Practice progress: a quiet ring under each form, filled once practiced. */
+.form-picker button[data-progress]::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 5px; height: 5px; margin-left: -2.5px; border: 1px solid var(--good); border-radius: 50%; }
+.form-picker button[data-progress='practiced']::after { background: var(--good); }
+
+/* Play is the one filled action in Explore; everything else is an outline or a toggle chip. */
+.play-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-left: 4px; padding: 6px 16px 6px 12px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 13px; font-weight: 600; }
+.play-button svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.play-button:hover { background: color-mix(in srgb, var(--accent) 88%, black); }
+.play-button.is-playing { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); }
+
+/* Neck length sits with the form controls so the board can grow without opening Settings. */
+.neck-length { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 13px; }
+.neck-length select { height: 36px; font-size: 13px; }
+
+.fit-neck { display: inline-flex; align-items: center; width: fit-content; min-height: 44px; margin: 12px 0 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); }
+.fit-neck[aria-pressed='true'] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
+/* Desktop only needs fitting once a long neck overflows. */
+@media (min-width: 761px) { .fit-neck:not(.long-neck) { display: none; } }
+
+@media (max-width: 1200px) {
+  .scale-field select { width: 200px; }
+}
+@media (max-width: 980px) {
+  .musical-controls { flex: 1; }
+}
+@media (max-width: 760px) {
+  .study-primary { padding-bottom: 12px; }
+  .musical-controls { justify-content: space-between; width: 100%; }
+  .key-field select { width: 63px; padding-left: 9px; }
+  .scale-field { flex: 1; }
+  .scale-field select { width: 100%; min-width: 0; }
+  /* Even three-column rows instead of ragged wrapping. */
+  .study-primary > .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .study-primary > .segmented button { flex: 1 0 auto; padding-inline: 4px; line-height: 1.2; text-align: center; white-space: normal; }
+  .form-bar > .segmented { width: 100%; }
+  .form-bar > .segmented button { flex: 1; }
+  .form-navigation { width: 100%; }
+  .form-stepper { width: 100%; }
+  .form-stepper .form-picker { flex: 1; }
+  .form-stepper .form-picker button { flex: 1; min-width: 0; }
+  .form-status span { font-size: 12px; }
+  .form-frets, .form-hint { display: none; }
+  .neck-length { margin-left: 0; }
+  .neck-length select { height: 44px; }
+}
+@media (max-width: 390px) {
+  .musical-controls .field { flex-direction: column; align-items: stretch; gap: 6px; }
+  .musical-controls .key-field { flex: 0 0 76px; }
+  .key-field select { width: 100%; }
+}

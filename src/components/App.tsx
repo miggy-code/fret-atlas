@@ -8,7 +8,7 @@ import { deriveStudy, tuningOf } from '../core/study';
 import type { DrillRequest } from '../core/drill';
 import { levelOf, practicedForms } from '../core/progress';
 import type { Progress } from '../core/progress';
-import { BoardLegend, shapeName } from './BoardLegend';
+import { BoardLegend } from './BoardLegend';
 import { Icon } from './controls';
 import { DrillBar, useDrill } from './Drill';
 import { ExploreDeck } from './ExploreDeck';
@@ -153,11 +153,10 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   const tuningLabel = state.fourths ? 'All fourths'
     : state.lowest === 0 ? 'Standard tuning'
     : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`;
-  const mapTag = study ? `${study.label}${state.studyMode === 'shape' ? ` · ${shapeName(state.shapeKind)}` : ''}` : 'Custom map';
   const showPatternNotice = !practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length;
 
   return <>
-    <main className="workspace minimal-studio">
+    <main className="workspace">
       <Topbar accountsEnabled={accountsEnabled} onShare={share} guideButton={guideButton} settingsButton={settingsButton}
         onGuide={() => guide.current?.showModal()} onSettings={() => settings.current?.showModal()} />
       <section className="board-card" aria-label="Interactive fretboard">
@@ -174,7 +173,6 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
               {value === 'explore' ? 'Explore' : <><Icon name="target" />Practice</>}
             </button>)}
           </div>
-          <span className="map-tag">{mapTag}</span>
         </div>
         {!practicing && <StudyControls state={viewState} dispatch={studyDispatch} scale={scale} study={study} choiceCount={choices.length}
           formLevel={family && tab === 'practice' ? form => levelOf(progress.progress, family, state.root, form) : undefined}
