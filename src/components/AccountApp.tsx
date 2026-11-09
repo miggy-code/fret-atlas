@@ -91,7 +91,7 @@ function AccountSession({ userId, getToken, syncUrl, syncKey, showAccount, initi
       if (result.row.user_id !== userId) throw new Error('Account mismatch');
       return result;
     },
-    confirm: conflict => window.confirm(conflict === 'settings'
+    confirm: async conflict => window.confirm(conflict === 'settings'
       ? 'The account has different saved settings. Select OK to keep this device’s settings, or Cancel to use the account settings.'
       : 'Progress was cleared on another device. Select OK to keep this device’s pending changes, or Cancel to use the account progress.'),
     update: (cache, status, displayChanged) => setView(previous => ({ cache, status, version: previous.version + (displayChanged ? 1 : 0) })),
