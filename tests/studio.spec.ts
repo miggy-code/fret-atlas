@@ -194,7 +194,7 @@ test('pattern lines share joins and render behind opaque note badges', async ({p
   expect(style).toEqual({ width: '4px', dash: 'none', opacity: '1' });
   await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '4px');
   expect(await page.locator('.shape-outline').evaluateAll(nodes => nodes.every(node => !/[QC]/.test(node.getAttribute('d')!)))).toBe(true);
-  expect(await page.locator('.shape-outline').first().evaluate(node => {
+  expect(await page.locator('.shape-outline').first().evaluate((node: SVGPathElement) => {
     const note = node.ownerSVGElement!.querySelector('[data-note-id]')!;
     return Boolean(node.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING);
   })).toBe(true);

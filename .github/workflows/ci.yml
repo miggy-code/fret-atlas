@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    name: Unit tests and build
+    name: Types, unit tests and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -24,6 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
       - run: npm run build
 
