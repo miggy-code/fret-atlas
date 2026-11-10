@@ -2,18 +2,20 @@
 
 The `Database tests` CI job starts real local Supabase, applies the committed
 migrations to a fresh database, then runs every `supabase/tests/*.sql` file with
-`psql -X -v ON_ERROR_STOP=1`. Any SQL error fails the job. These are plain SQL
+`psql -X -v ON_ERROR_STOP=1`. Every file runs even after one fails; any SQL error fails the job. These are plain SQL
 tests, not pgTAP tests; each owns its data and rolls its transaction back.
 
 To reproduce locally, start Docker and install `psql`, then run from the repo root:
 
 ```bash
 npm exec --yes --package=supabase@3.1.0 -- supabase start -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector
-bash -e -o pipefail <<'SQL_TESTS'
+bash <<'SQL_TESTS'
+failed=0
 for file in supabase/tests/*.sql; do
   echo "Running $file"
-  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f "$file"
+  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f "$file" || failed=1
 done
+exit "$failed"
 SQL_TESTS
 npm exec --yes --package=supabase@3.1.0 -- supabase stop --no-backup
 ```

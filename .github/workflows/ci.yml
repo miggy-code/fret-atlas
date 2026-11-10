@@ -42,10 +42,13 @@ jobs:
       - name: Run SQL tests
         shell: bash
         run: |
+          # Run every file, then fail if any failed, so one failure cannot hide another.
+          failed=0
           for file in supabase/tests/*.sql; do
             echo "Running $file"
-            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f "$file"
+            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f "$file" || { echo "::error file=$file::SQL test failed"; failed=1; }
           done
+          exit "$failed"
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
