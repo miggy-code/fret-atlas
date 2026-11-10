@@ -28,6 +28,28 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  database:
+    name: Database tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
+      - name: Start local Supabase and apply migrations
+        run: supabase start -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector
+      - name: Run SQL tests
+        shell: bash
+        run: |
+          for file in supabase/tests/*.sql; do
+            echo "Running $file"
+            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   browser:
     name: Browser tests
     runs-on: ubuntu-latest
