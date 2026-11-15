@@ -1,5 +1,5 @@
 import type { Dispatch, RefObject } from 'react';
-import { LOWEST_STRING_CHOICES } from '../core/music';
+import { LOWEST_STRING_CHOICES, NECK_LENGTHS } from '../core/music';
 import { sectionModified } from '../core/state';
 import type { Action, State } from '../core/state';
 import { Icon, RestoreButton, Toggle } from './controls';
@@ -33,7 +33,7 @@ export function SettingsDialog({ dialog, onClose, state, dispatch, darkMode, onD
           <div className="settings-grid">
             <label className="field"><span>Frets</span>
               <select id="frets" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
-                {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
+                {NECK_LENGTHS.map(f => <option key={f} value={f}>{f} frets</option>)}
               </select>
             </label>
             <label className="field"><span>Lowest string</span>

@@ -1,14 +1,14 @@
 import type { Dispatch } from 'react';
-import { pitchName, SCALES, SHARPS } from '../core/music';
+import { NECK_LENGTHS, pitchName, SCALES, SHARPS } from '../core/music';
 import type { Scale } from '../core/music';
+import { FORMS } from '../core/progress';
 import { studyModeAvailable } from '../core/state';
 import type { Action, State } from '../core/state';
 import type { Study, StudyMode } from '../core/study';
 import type { ShapeKind } from '../core/shapes';
 import { Icon, Segments } from './controls';
 
-const scaleOptions = SCALES.filter(scale => !scale.id.endsWith('-triad'));
-const scaleGroups = [...new Set(scaleOptions.map(s => s.group))];
+const scaleGroups = [...new Set(SCALES.map(s => s.group))];
 
 interface StudyControlsProps {
   state: State;
@@ -47,8 +47,8 @@ export function KeyScalePicker({ state, dispatch }: Pick<StudyControlsProps, 'st
     </label>
     <label className="field scale-field"><span>Scale</span>
       <select id="scale" value={state.scaleId} onChange={e => dispatch({ type: 'scale', value: e.target.value })}>
-        {scaleGroups.map(group => <optgroup key={group} label={group === 'Triads & custom' ? 'Custom' : group}>
-          {scaleOptions.filter(s => s.group === group).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        {scaleGroups.map(group => <optgroup key={group} label={group}>
+          {SCALES.filter(s => s.group === group).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </optgroup>)}
       </select>
     </label>
@@ -141,7 +141,7 @@ export function StudyOptions({ state, dispatch, scale, connected, onConnect, pla
       title="Outline the neighboring forms to see how they connect">Connect positions</button>}
     <label className="neck-length"><span>Neck</span>
       <select aria-label="Neck length" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
-        {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
+        {NECK_LENGTHS.map(f => <option key={f} value={f}>{f} frets</option>)}
       </select>
     </label>
   </>;
@@ -166,7 +166,7 @@ function FormStepper({ state, dispatch, scale, study, choiceCount, formLevel }: 
     {picker && <span className="field-label form-label">{state.studyMode === 'shape' ? 'Shape in form' : 'Form'}</span>}
     <button className="icon-button" aria-label={`Previous ${item}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}><Icon name="previous" /></button>
     {picker
-      ? <div className="form-picker" role="group" aria-label="Pentatonic form">{[1, 2, 3, 4, 5].map(form => {
+      ? <div className="form-picker" role="group" aria-label="Pentatonic form">{FORMS.map(form => {
         const level = state.studyMode === 'position' ? formLevel?.(form) ?? 0 : 0;
         return <button key={form} type="button" aria-label={`Form ${form}`} aria-pressed={study.form === form}
           data-progress={['', 'seen', 'practiced'][level] || undefined} title={['', 'Seen', 'Practiced'][level] || undefined}

@@ -2,9 +2,9 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { arrowStep, boardGeometry, ROW, shapePath, sharedShapePath } from '../core/geometry';
 import type { Point } from '../core/geometry';
-import { position, pitchName } from '../core/music';
+import { noteAt, parseNoteId, position, stringName } from '../core/music';
 import { Charm } from './Charm';
-import { degreeColor, notePresentation } from '../core/presentation';
+import { notePresentation } from '../core/presentation';
 import { insideShape } from '../core/shapes';
 import type { Shape } from '../core/shapes';
 import type { State } from '../core/state';
@@ -49,7 +49,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const patternLayers = (['rectangle', 'stack'] as const).map(kind => ({ kind, shapes: shapes.filter(shape => shape.kind === kind) }));
 
   useEffect(() => {
-    const [string, fret] = cursor.split(':').map(Number);
+    const [string, fret] = parseNoteId(cursor);
     if (fret > state.frets) setCursor(`${string}:${state.frets}`);
   }, [state.frets, cursor]);
 
@@ -90,7 +90,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onMark(id); return; }
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    let [string, fret] = id.split(':').map(Number);
+    let [string, fret] = parseNoteId(id);
     // Arrows follow what the screen shows, whichever way the neck is drawn.
     const step = arrowStep(geo, event.key);
     if (step) { string += step.string; fret += step.fret; }
@@ -150,12 +150,12 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
               return <circle key={offset} cx={dot.x} cy={dot.y} r="2.5" />;
             })}
           </g>)}
-          {tuning.midi.map((midi, i) => {
+          {tuning.midi.map((_, i) => {
             const from = geo.project(geo.along(0), geo.across(i + 1)), to = geo.project(geo.wire(state.frets), geo.across(i + 1));
             const name = nameAt(geo.across(i + 1));
             return <g key={i}>
               <line className="guitar-string" x1={from.x} x2={to.x} y1={from.y} y2={to.y} strokeWidth={0.8 + i * .25} />
-              {state.stringNames && <text className="string-name" x={name.x} y={name.y + 4} textAnchor="middle">{i === 0 ? pitchName(midi, state.spelling).toLowerCase() : pitchName(midi, state.spelling)}</text>}
+              {state.stringNames && <text className="string-name" x={name.x} y={name.y + 4} textAnchor="middle">{stringName(i + 1, tuning, state.spelling)}</text>}
             </g>;
           })}
         </g>
@@ -191,10 +191,6 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
         {tuning.midi.flatMap((_, i) => frets.map(fret => {
           const note = position(i + 1, fret, tuning);
           const p = notePresentation(note, state, shapes, study, ghosts);
-          const charmDegree = state.luckyCharms && p.selected ? p.tone?.degree : undefined;
-          const degreeHue = !state.luckyCharms && state.degreeColors && p.selected && p.kind !== 'root' && p.tone ? degreeColor(p.tone.degree) : undefined;
-          const toneColor = p.tone ? degreeColor(p.tone.degree) : undefined;
-          const chordTone = !state.luckyCharms && degreeHue === undefined && state.chordColors && p.selected && (p.tone?.degree === 3 || p.tone?.degree === 5) ? p.tone.degree === 3 ? 'third' : 'fifth' : '';
           const label = state.labels === 'intervals' ? p.interval : p.name;
           // While drilling, only answers already found are drawn, and nothing names a hidden note.
           const drillFound = drill?.found.includes(note.id) ?? false;
@@ -205,9 +201,9 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={aria} aria-pressed={drill ? undefined : p.marked}
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={visible ? 'true' : 'false'} data-drill={drillFound ? 'found' : drillMiss ? 'miss' : undefined}
-            data-charm-degree={charmDegree}
-            className={`note-node ${charmDegree ? 'lucky-charm' : ''} ${p.kind} ${chordTone} ${degreeHue === undefined ? '' : 'degree-colored'} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${assisted ? 'is-drill-hint' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
-            transform={`translate(${geo.at(fret, i + 1).x},${geo.at(fret, i + 1).y})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(toneColor === undefined ? {} : { '--degree-color': toneColor }) } as CSSProperties}
+            data-charm-degree={p.charm}
+            className={`note-node ${p.charm ? 'lucky-charm' : ''} ${p.kind} ${p.chordRole ?? ''} ${p.degreeColored ? 'degree-colored' : ''} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${assisted ? 'is-drill-hint' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            transform={`translate(${geo.at(fret, i + 1).x},${geo.at(fret, i + 1).y})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(p.color === undefined ? {} : { '--degree-color': p.color }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
             <title>{aria}</title>
@@ -218,23 +214,22 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
               {drillMiss ? <><circle className="note-face" r="11" /><path className="miss-cross" d="M-4,-4 4,4M4,-4-4,4" /></>
                 : p.kind === 'context' && !p.marked && !p.triad
                 ? <circle className="note-face" r="3" />
-                : charmDegree ? <Charm degree={charmDegree} />
+                : p.charm ? <Charm degree={p.charm} />
                 : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
               {p.triad && <circle className="triad-halo" r="18" />}
               {(drillFound || playing === note.id) && <circle className="note-burst" r="13" />}
               {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
               {!drillMiss && state.labels === 'both' && (p.selected || p.marked || p.triad) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
-              {!drillMiss && state.labels === 'none' && (charmDegree === undefined || charmDegree === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
+              {!drillMiss && state.labels === 'none' && (p.charm === undefined || p.charm === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>
           </g>;
         }))}
         {(() => {
           const tipId = emphasized;
           if (!tipId || drill) return null;
-          const [tipString, tipFret] = tipId.split(':').map(Number);
-          if (!tipString || isNaN(tipFret)) return null;
-          const tipNote = position(tipString, tipFret, tuning);
+          const tipNote = noteAt(tipId, tuning);
+          const { string: tipString, fret: tipFret } = tipNote;
           const tipP = notePresentation(tipNote, state, shapes, study, ghosts);
           if (!tipP.visible && !tipP.marked && !tipP.triad) return null;
           const tipMembership = shapes.filter(s => insideShape(tipString, tipFret, s));

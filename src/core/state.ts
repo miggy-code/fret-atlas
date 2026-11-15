@@ -1,14 +1,14 @@
-import { mod, scaleById, SCALES } from './music';
-import type { Spelling } from './music';
+import { isNeckLength, isNoteId, mod, NECK_LENGTHS, scaleById, SCALES, selectedPitches, triadOf } from './music';
+import type { Spelling, TriadQuality } from './music';
 import type { Shape, ShapeKind } from './shapes';
-import { selectedPitches } from './selection';
-import { activeStudy, studyChoices } from './study';
+import { activeStudy, STUDY_MODES, studyChoices } from './study';
 import type { StudyMode } from './study';
 
-export type Labels = 'none' | 'notes' | 'intervals' | 'both';
+const LABELS = ['none', 'notes', 'intervals', 'both'] as const;
+export type Labels = typeof LABELS[number];
 export type NoteView = Labels | 'charms';
 export type NoteColors = 'root' | 'degrees' | 'chord';
-export type Triad = 'off' | 'major' | 'minor';
+export type Triad = 'off' | TriadQuality;
 export interface State {
   version: 4;
   studyMode: StudyMode;
@@ -46,12 +46,17 @@ export interface State {
   marks: string[];
 }
 export const STORAGE_KEY = 'fret-atlas-v4';
+// The view stores the note view and the note colors as flags; everything that reads them asks for the one choice instead.
+export const noteViewOf = (s: State): NoteView => s.luckyCharms ? 'charms' : s.labels;
+export const noteColorsOf = (s: State): NoteColors => s.degreeColors ? 'degrees' : s.chordColors ? 'chord' : 'root';
 export const inFocus = (s: State, string: number, fret: number) => s.strings.includes(string) && (!s.focus || (fret >= s.from && fret <= s.to));
 export const shapeInFocus = (s: State, shape: Shape) => shape.rows.every(r => inFocus(s, r.string, r.left) && inFocus(s, r.string, r.right));
 // Shape and Diagonal already study one family, so the family filter only applies to Position and Whole neck.
 export const visibleShapes = (s: State, study = activeStudy(s)) => (study?.shapes ?? []).filter(shape => (s.studyMode === 'shape' || s.studyMode === 'diagonal' || s.patterns.includes(shape.kind)) && shapeInFocus(s, shape) && shape.rows.every(row => s.overlayRows.includes(row.string)));
 export { selectedPitches };
-export const triadPitches = (s: State) => s.triad === 'off' ? [] : [0, s.triad === 'major' ? 4 : 3, 7].map(interval => mod((s.triadRoot ?? s.root) + interval));
+/** The triad overlaid on the board, if one is shown. It follows the key until it is given a root of its own. */
+export const shownTriad = (s: State): { root: number; quality: TriadQuality } | undefined => s.triad === 'off' ? undefined : { root: s.triadRoot ?? s.root, quality: s.triad };
+export const triadPitches = (s: State) => { const triad = shownTriad(s); return triad ? triadOf(triad.root, triad.quality) : []; };
 // Each control panel restores only the settings it owns. Pattern families, ghost forms and triads
 // are set from the form bar and chord row, outside any panel, so no panel owns them.
 export type Section = 'note-view' | 'overlays' | 'focus' | 'instrument';
@@ -70,6 +75,9 @@ export function defaultState(): State {
 }
 const isRecord = (raw: unknown): raw is Record<string, unknown> => !!raw && typeof raw === 'object' && !Array.isArray(raw);
 const integer = (value: unknown, low: number, high: number) => typeof value === 'number' && Number.isInteger(value) && value >= low && value <= high;
+const stringList = (raw: unknown[]) => [...new Set(raw.filter((n): n is number => integer(n, 1, 6)))];
+// Before triads became an overlay, a triad was a scale of its own. Those saved views restore as custom notes with the triad shown.
+const LEGACY_TRIAD_SCALES = new Map<unknown, TriadQuality>([['major-triad', 'major'], ['minor-triad', 'minor']]);
 const pitchList = (raw: unknown, fallback: number[]) => Array.isArray(raw) ? [...new Set(raw.filter((p): p is number => integer(p, 0, 11)))].sort((a, b) => a - b) : fallback;
 /** Whether a study view makes sense for the current scale or custom notes; the view picker disables the rest. */
 export function studyModeAvailable(s: State, mode: StudyMode): boolean {
@@ -97,17 +105,17 @@ function readState(raw: unknown): State {
   else if (legacy && Array.isArray(raw.notes)) s.scaleId = 'custom';
   s.customPitches = pitchList(legacy ? raw.notes : raw.customPitches, s.customPitches);
   if (raw.spelling === 'sharps' || raw.spelling === 'flats') s.spelling = raw.spelling;
-  if (typeof raw.labels === 'string' && ['none', 'notes', 'intervals', 'both'].includes(raw.labels)) s.labels = raw.labels as Labels;
+  if ((LABELS as readonly unknown[]).includes(raw.labels)) s.labels = raw.labels as Labels;
   if (typeof raw.luckyCharms === 'boolean') s.luckyCharms = raw.luckyCharms;
   if (typeof raw.degreeColors === 'boolean') s.degreeColors = raw.degreeColors;
   if (typeof raw.fourths === 'boolean') s.fourths = raw.fourths;
   if (integer(raw.lowest, -2, 5)) s.lowest = raw.lowest as number;
   if (typeof raw.chordColors === 'boolean') s.chordColors = raw.chordColors;
   else if (raw.colors === 'charms') s.chordColors = true;
-  if ([12, 15, 17, 22, 24].includes(raw.frets as number)) s.frets = raw.frets as number;
+  if (isNeckLength(raw.frets)) s.frets = raw.frets;
   for (const key of ['leftHanded', 'stringNames', 'skeleton', 'warp', 'context', 'focus'] as const) if (typeof raw[key] === 'boolean') s[key] = raw[key];
   if (raw.version === 4) {
-    if (raw.studyMode === 'position' || raw.studyMode === 'shape' || raw.studyMode === 'diagonal' || raw.studyMode === 'all' || raw.studyMode === 'string' || raw.studyMode === 'nps') s.studyMode = raw.studyMode;
+    if ((STUDY_MODES as readonly unknown[]).includes(raw.studyMode)) s.studyMode = raw.studyMode as StudyMode;
     if (raw.shapeKind === 'rectangle' || raw.shapeKind === 'stack') s.shapeKind = raw.shapeKind;
     if (integer(raw.form,1,20)) s.form = raw.form as number;
     if (integer(raw.studyFret,0,24)) s.studyFret = raw.studyFret as number;
@@ -120,9 +128,9 @@ function readState(raw: unknown): State {
   if (typeof raw.from === 'number' && Number.isFinite(raw.from)) s.from = Math.max(0, Math.min(s.frets, Math.trunc(raw.from)));
   if (typeof raw.to === 'number' && Number.isFinite(raw.to)) s.to = Math.max(s.from, Math.min(s.frets, Math.trunc(raw.to)));
   s.to = Math.max(s.from, Math.min(s.frets, s.to));
-  if (Array.isArray(raw.strings)) s.strings = [...new Set(raw.strings.filter((n): n is number => integer(n, 1, 6)))];
-  if (Array.isArray(raw.overlayRows)) s.overlayRows = [...new Set(raw.overlayRows.filter((n): n is number => integer(n, 1, 6)))].sort();
-  if (Array.isArray(raw.marks)) s.marks = [...new Set(raw.marks.filter((id): id is string => typeof id === 'string' && /^[1-6]:(?:[0-9]|1[0-9]|2[0-4])$/.test(id)))];
+  if (Array.isArray(raw.strings)) s.strings = stringList(raw.strings);
+  if (Array.isArray(raw.overlayRows)) s.overlayRows = stringList(raw.overlayRows).sort();
+  if (Array.isArray(raw.marks)) s.marks = [...new Set(raw.marks.filter(isNoteId))];
   if (Array.isArray(raw.patterns)) s.patterns = [...new Set(raw.patterns.filter((kind): kind is ShapeKind => kind === 'rectangle' || kind === 'stack'))];
   else if (raw.lens === 'map' || raw.overlay === 'none') s.patterns = [];
   // Preserve legacy outline preferences alongside the new form selection.
@@ -133,10 +141,11 @@ function readState(raw: unknown): State {
   if (raw.triad === 'off' || raw.triad === 'major' || raw.triad === 'minor') s.triad = raw.triad;
   if (integer(raw.triadRoot, 0, 11)) s.triadRoot = raw.triadRoot as number;
   // Keep the exact note selection from older triad-only studies.
-  if (s.scaleId === 'major-triad' || s.scaleId === 'minor-triad') {
-    s.triad = s.scaleId === 'major-triad' ? 'major' : 'minor';
+  const legacyTriad = LEGACY_TRIAD_SCALES.get(scaleId);
+  if (legacyTriad) {
+    s.triad = legacyTriad;
     s.triadRoot = s.root;
-    s.customPitches = selectedPitches(s);
+    s.customPitches = triadOf(s.root, legacyTriad);
     s.scaleId = 'custom';
   }
   if (s.luckyCharms) s.labels = 'none';
@@ -195,7 +204,7 @@ function reduce(s: State, action: Action): State {
       let next = { ...s, form: action.value, studyFret: null };
       // A short neck can omit a complete form. Extend it when that form is requested.
       if (s.studyMode === 'position' || s.studyMode === 'shape') {
-        for (const frets of [s.frets, 15, 17, 22, 24].filter(f => f >= s.frets)) {
+        for (const frets of NECK_LENGTHS.filter(f => f >= s.frets)) {
           next = { ...next, frets };
           if (studyChoices(next).some(choice => choice.form === action.value)) break;
         }
@@ -212,7 +221,8 @@ function reduce(s: State, action: Action): State {
     case 'root': return integer(action.value, 0, 11) ? { ...s, root: mod(action.value), studyFret: null } : s;
     case 'scale': {
       const scale = SCALES.find(item => item.id === action.value);
-      return scale ? { ...s, scaleId: action.value, studyMode: !scale.family && action.value !== 'custom' && ['shape', 'diagonal'].includes(s.studyMode) ? 'position' : s.studyMode, studyFret: null, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
+      // A view the new scale cannot show is replaced afterwards, by settleStudyMode.
+      return scale ? { ...s, scaleId: action.value, studyFret: null, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
     }
     case 'isolate-tone': return { ...s, isolatedTones: toggleItem(s.isolatedTones, action.value).sort((a, b) => a - b) };
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
@@ -224,7 +234,7 @@ function reduce(s: State, action: Action): State {
     case 'triad': return { ...s, triad: action.value };
     case 'triad-root': return action.value === null || integer(action.value, 0, 11) ? { ...s, triadRoot: action.value } : s;
     case 'spelling': return { ...s, spelling: action.value };
-    case 'frets': return [12, 15, 17, 22, 24].includes(action.value) ? { ...s, frets: action.value, from: Math.min(s.from, action.value), to: Math.min(s.to, action.value) } : s;
+    case 'frets': return isNeckLength(action.value) ? { ...s, frets: action.value, from: Math.min(s.from, action.value), to: Math.min(s.to, action.value) } : s;
     case 'toggle': return { ...s, [action.key]: !s[action.key] };
     case 'range': {
       if (!Number.isFinite(action.from) || !Number.isFinite(action.to)) return s;
@@ -236,7 +246,7 @@ function reduce(s: State, action: Action): State {
     case 'focus-reset': return { ...s, focus: false, strings: [1, 2, 3, 4, 5, 6] };
     case 'pitch': return integer(action.value, 0, 11) ? { ...s, customPitches: toggleItem(selectedPitches(s), action.value).sort((a, b) => a - b), scaleId: 'custom' } : s;
     case 'pitches': return { ...s, customPitches: pitchList(action.value, []), scaleId: 'custom' };
-    case 'mark': return /^[1-6]:(?:[0-9]|1[0-9]|2[0-4])$/.test(action.id) ? { ...s, marks: toggleItem(s.marks, action.id) } : s;
+    case 'mark': return isNoteId(action.id) ? { ...s, marks: toggleItem(s.marks, action.id) } : s;
     case 'clear-marks': return { ...s, marks: [] };
     case 'lowest': return integer(action.value, -2, 5) ? { ...s, lowest: action.value, studyFret: null } : s;
     case 'reset-section': {

@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
-import { degreeLabel, pitchName, scaleById, SHARPS, spellTone } from '../core/music';
-import type { Scale } from '../core/music';
-import { sectionModified, selectedPitches } from '../core/state';
+import { degreeLabel, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRINGS } from '../core/music';
+import type { Scale, TriadQuality } from '../core/music';
+import { noteColorsOf, noteViewOf, sectionModified } from '../core/state';
 import type { Action, NoteColors, NoteView, State } from '../core/state';
-import { degreeColor } from '../core/presentation';
+import { toneAppearance } from '../core/presentation';
 import { Charm } from './Charm';
 import { ControlModule, RestoreButton, Segments, Toggle } from './controls';
-import type { ChordChange, ChordKind } from './useChord';
+import type { ChordChange } from './useChord';
 
 type Props = { state: State; dispatch: Dispatch<Action> };
 export interface ChordRowProps {
-  kind: ChordKind;
+  kind: TriadQuality;
   root: number;
   shown: boolean;
   onChange: (next: ChordChange) => void;
@@ -72,14 +72,14 @@ function NoteViewBar({ state, dispatch }: Props) {
     { value: 'chord', label: <><span className="color-preview chord-preview" aria-hidden="true"><i /><i /><i /></span>Chord tones</> },
     { value: 'degrees', label: <><span className="color-preview degrees-preview" aria-hidden="true"><i /><i /><i /></span>Scale degrees</> },
   ];
-  const view = state.luckyCharms ? 'charms' : state.labels;
-  const color = state.degreeColors ? 'degrees' : state.chordColors ? 'chord' : 'root';
+  const view = noteViewOf(state);
   return <div className="note-view-bar">
     <div className="label-controls"><span className="field-label">Note view</span>
       <Segments<NoteView> label="Note view" value={view} options={views} onChange={value => dispatch({ type: 'note-view', value })} />
     </div>
-    {!state.luckyCharms && <div className="label-controls"><span className="field-label">Colors</span>
-      <Segments<NoteColors> label="Note colors" value={color} options={colors} onChange={value => dispatch({ type: 'note-colors', value })} />
+    {/* Lucky Charms tells degrees apart by silhouette, so it has no color choice. */}
+    {view !== 'charms' && <div className="label-controls"><span className="field-label">Colors</span>
+      <Segments<NoteColors> label="Note colors" value={noteColorsOf(state)} options={colors} onChange={value => dispatch({ type: 'note-colors', value })} />
     </div>}
     {sectionModified(state, 'note-view')
       && <RestoreButton label="note view" onClick={() => dispatch({ type: 'reset-section', value: 'note-view' })} />}
@@ -104,19 +104,20 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
           : scale.tones.map(t => {
             const isolated = state.isolatedTones.includes(t.semitones);
             const name = spellTone(state.root, state.spelling, t).name;
-            const chordRole = state.chordColors && !state.luckyCharms ? t.degree === 3 ? 'third' : t.degree === 5 ? 'fifth' : '' : '';
+            // The chip's marker is drawn by the same rule as the board's notes.
+            const look = toneAppearance(state, scale, t);
             const markerClass = [
-              'degree-marker note-node', state.luckyCharms && 'lucky-charm', t.semitones === 0 ? 'root' : 'skeleton',
-              state.degreeColors && !state.luckyCharms && t.semitones !== 0 && 'degree-colored', chordRole,
+              'degree-marker note-node', look.charm && 'lucky-charm', t.semitones === 0 ? 'root' : 'skeleton',
+              look.degreeColored && 'degree-colored', look.chordRole,
             ].filter(Boolean).join(' ');
             const chipClass = `tone-chip scale-tone-chip ${isolated ? 'isolated' : ''} ${anyIsolated && !isolated ? 'dimmed' : ''} ${t.semitones === 0 ? 'root' : !t.skeleton ? 'added' : ''}`;
             return <button key={`${t.degree}:${t.alteration}`} type="button" className={chipClass}
               aria-pressed={isolated} onClick={() => dispatch({ type: 'isolate-tone', value: t.semitones })}
               aria-label={`${isolated ? 'Clear isolation for' : 'Isolate'} ${name}, degree ${degreeLabel(t)}`}
               title={`Click to ${isolated ? 'stop isolating' : 'isolate'} ${degreeLabel(t)} across the neck`}>
-              <svg className={markerClass} data-charm-degree={state.luckyCharms ? t.degree : undefined}
-                style={{ '--degree-color': degreeColor(t.degree) } as CSSProperties} viewBox="-17 -17 34 34" aria-hidden="true">
-                {state.luckyCharms ? <Charm degree={t.degree} /> : <circle className="note-face" r="11" />}
+              <svg className={markerClass} data-charm-degree={look.charm}
+                style={{ '--degree-color': look.color } as CSSProperties} viewBox="-17 -17 34 34" aria-hidden="true">
+                {look.charm ? <Charm degree={look.charm} /> : <circle className="note-face" r="11" />}
               </svg>
               <strong>{name}</strong><span>{degreeLabel(t)}</span>
             </button>;
@@ -145,7 +146,7 @@ function ChordRow({ state, scale, kind, root, shown, onChange, onToggle, onHear 
       <select aria-label="Chord root" value={root} onChange={e => onChange({ root: Number(e.target.value) })}>
         {SHARPS.map((_, i) => <option value={i} key={i}>{pitchName(i, state.spelling)}</option>)}
       </select>
-      <select aria-label="Chord quality" value={kind} onChange={e => onChange({ kind: e.target.value as ChordKind })}>
+      <select aria-label="Chord quality" value={kind} onChange={e => onChange({ kind: e.target.value as TriadQuality })}>
         <option value="minor">minor</option><option value="major">major</option>
       </select>
       <span>in {pitchName(state.root, state.spelling)} {scale.name}</span>
@@ -170,7 +171,7 @@ function Overlays({ state, dispatch, scale }: Props & { scale: Scale }) {
     {scale.family && <div className="pattern-options">
       <div className="pattern-string-settings">
         <span className="field-label">Pattern strings</span>
-        <div className="row-toggles" role="group" aria-label="Pattern strings">{[1, 2, 3, 4, 5, 6].map(string =>
+        <div className="row-toggles" role="group" aria-label="Pattern strings">{STRINGS.map(string =>
           <button type="button" key={string} aria-label={`Show patterns on string ${string}`} aria-pressed={state.overlayRows.includes(string)}
             onClick={() => dispatch({ type: 'overlay-row', value: string })}>{string}</button>)}
         </div>
@@ -196,7 +197,7 @@ function FocusControls({ state, dispatch }: Props) {
       </label>
     </div>
     {/* String 1 is drawn on top, so the buttons follow the board's order. */}
-    <div className="focus-strings"><span>Strings</span><div role="group" aria-label="Included strings">{[1, 2, 3, 4, 5, 6].map(s =>
+    <div className="focus-strings"><span>Strings</span><div role="group" aria-label="Included strings">{STRINGS.map(s =>
       <button key={s} aria-label={`Include string ${s}`} aria-pressed={state.strings.includes(s)} onClick={() => dispatch({ type: 'string', value: s })}>{s}</button>)}
     </div></div>
   </section>;

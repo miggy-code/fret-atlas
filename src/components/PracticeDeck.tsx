@@ -1,16 +1,15 @@
 import type { Dispatch } from 'react';
-import { degreeLabel, pitchName, SHARPS, spellTone } from '../core/music';
-import type { Scale } from '../core/music';
+import { degreeLabel, mod, pitchName, selectedPitches, SHARPS, spellTone, triadOf } from '../core/music';
+import type { Scale, TriadQuality } from '../core/music';
 import { practicedForms } from '../core/progress';
 import type { Family, Progress } from '../core/progress';
 import type { Action, State } from '../core/state';
-import { selectedPitches } from '../core/state';
 import type { DrillRequest } from '../core/drill';
 import type { Study } from '../core/study';
 import { Icon } from './controls';
 import { ProgressPanel } from './Progress';
 
-type Chord = { root: number; kind: 'major' | 'minor' };
+type Chord = { root: number; kind: TriadQuality };
 
 /**
  * The Practice tab: every drill, play-through credit and progress in one place, so the atlas in
@@ -24,9 +23,9 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
   const custom = state.scaleId === 'custom';
   const tones = custom
     ? [...new Set(selectedPitches(state))].sort((a, b) => a - b).map(pitch => ({ pitch, name: pitchName(pitch, state.spelling), label: '' }))
-    : scale.tones.map(t => ({ pitch: (state.root + t.semitones) % 12, name: spellTone(state.root, state.spelling, t).name, label: degreeLabel(t) }));
+    : scale.tones.map(t => ({ pitch: mod(state.root + t.semitones), name: spellTone(state.root, state.spelling, t).name, label: degreeLabel(t) }));
   // Degrees are kept as intervals from the root, so a new key keeps the same choice.
-  const interval = (pitch: number) => (pitch - state.root + 12) % 12;
+  const interval = (pitch: number) => mod(pitch - state.root);
   const chosen = tones.filter(t => degrees.includes(interval(t.pitch)));
   const where = study ? `${study.label}` : 'the visible neck';
   const canPlayThrough = state.studyMode === 'position' && !!study;
@@ -54,7 +53,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
           <select aria-label="Chord root" value={chord.root} onChange={e => onChord({ root: Number(e.target.value) })}>{SHARPS.map((_, i) => <option value={i} key={i}>{pitchName(i, state.spelling)}</option>)}</select>
           <select aria-label="Chord quality" value={chord.kind} onChange={e => onChord({ kind: e.target.value as Chord['kind'] })}><option value="minor">minor</option><option value="major">major</option></select>
         </div>
-        <button id="find-chord" className="start-button" onClick={() => onFind({ pitches: [0, chord.kind === 'major' ? 4 : 3, 7].map(n => (chord.root + n) % 12), label: `${pitchName(chord.root, state.spelling)} ${chord.kind} chord` }, 'find-chord')}><Icon name="target" />Find chord tones</button>
+        <button id="find-chord" className="start-button" onClick={() => onFind({ pitches: triadOf(chord.root, chord.kind), label: `${pitchName(chord.root, state.spelling)} ${chord.kind} chord` }, 'find-chord')}><Icon name="target" />Find chord tones</button>
       </article>
       <article className="practice-option">
         <h3>Play through</h3>
