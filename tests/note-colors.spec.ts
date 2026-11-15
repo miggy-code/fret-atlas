@@ -48,8 +48,8 @@ for (const theme of ['light', 'dark']) {
 test('colors are offered root highlight, chord tones, scale degrees, and the buttons preview what the board shows', async ({ page }) => {
   await page.goto('/');
   const group = page.getByRole('group', { name: 'Note colors' });
-  expect((await group.getByRole('button').allInnerTexts()).map(t => t.replace(/[●\s]+/g, ' ').trim())).toEqual(['Root highlight', 'Chord tones', 'Scale degrees']);
-  const swatch = (name: RegExp) => group.getByRole('button', { name }).locator('.color-preview').evaluate(el => getComputedStyle(el).backgroundImage);
+  expect((await group.getByRole('button').allInnerTexts()).map(t => t.trim())).toEqual(['Root highlight', 'Chord tones', 'Scale degrees']);
+  const swatch = (name: RegExp) => group.getByRole('button', { name }).locator('.color-preview i').evaluateAll(dots => dots.map(dot => getComputedStyle(dot).backgroundColor).join(' '));
   const chord = await swatch(/Chord tones/);
   for (const color of [THIRD, FIFTH]) expect(chord).toContain(rgb(color));
 });

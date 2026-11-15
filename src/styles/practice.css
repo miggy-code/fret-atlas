@@ -7,9 +7,9 @@
 .practice-option h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .practice-option p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .practice-option .start-button { align-self: flex-start; margin-top: auto; }
-.start-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px 6px 12px; border: 1px solid var(--accent); border-radius: 999px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
+.start-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 16px 6px 12px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 600; }
 .start-button svg { width: 16px; height: 16px; }
-.start-button:hover:not(:disabled) { filter: brightness(1.08); }
+.start-button:hover:not(:disabled):not([aria-pressed=true]) { background: color-mix(in srgb, var(--accent) 88%, black); }
 .start-button:disabled { border-color: var(--line); background: var(--panel); color: var(--muted); }
 .start-button[aria-pressed=true] { background: var(--surface); color: var(--accent); }
 .degree-picks { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -18,7 +18,11 @@
 .degree-picks button span { font-size: 11px; }
 .degree-picks button[aria-pressed=true] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
 
-.drill-bar { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 12px 28px; margin-top: 16px; padding: 16px 4px; border-block: 1px solid var(--line); }
+/* The prompt is the one thing to read during a drill, so it gets its own surface above the board. */
+.drill-bar { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 10px 28px; padding: 16px 20px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.drill-actions .text-button { border: 1px solid var(--line); color: var(--ink); }
+.drill-actions .text-button:disabled { color: var(--disabled-ink); }
+.drill-actions .text-button:last-child { margin-left: 8px; }
 .drill-prompt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .drill-eyebrow, .drill-where { color: var(--muted); font-size: 15px; }
 .drill-prompt strong { color: var(--ink); font-size: 30px; line-height: 1; letter-spacing: -.5px; }
@@ -66,13 +70,14 @@
   .degree-picks button, .start-button { min-height: 44px; }
 }
 /* Portrait phone: the prompt, the count and the four actions fit the first screen above the board. */
-.workspace[data-orientation='vertical'] .drill-bar { grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; padding: 4px 0 0; border: 0; }
+.workspace[data-orientation='vertical'] .drill-bar { grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; padding: 4px 0 0; border: 0; border-radius: 0; background: none; }
+.workspace[data-orientation='vertical'] .drill-actions .text-button:last-child { margin-left: 0; }
 .workspace[data-orientation='vertical'] .drill-prompt { grid-column: 1 / -1; }
 .workspace[data-orientation='vertical'] .drill-prompt strong { font-size: 26px; }
 .workspace[data-orientation='vertical'] .drill-progress { order: 0; grid-row: 2; }
 .workspace[data-orientation='vertical'] .drill-stats { order: 0; grid-row: 2; justify-self: end; }
 .workspace[data-orientation='vertical'] .drill-actions { grid-row: 3; grid-column: 1 / -1; gap: 6px; }
-.workspace[data-orientation='vertical'] .drill-actions .text-button { flex: 1; min-height: 44px; border: 1px solid var(--line); }
+.workspace[data-orientation='vertical'] .drill-actions .text-button { flex: 1; min-height: 44px; }
 .workspace[data-orientation='vertical'] .drill-feedback { grid-row: 4; min-height: 0; padding-bottom: 4px; font-size: 12px; }
 @media (prefers-reduced-motion: reduce) {
   .drill-progress i, .drill-streak b, .ring-segment { animation: none !important; transition: none !important; }

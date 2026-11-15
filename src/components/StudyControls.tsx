@@ -24,10 +24,11 @@ interface StudyControlsProps {
   onConnect: () => void;
 }
 
-/** Key, scale and study view, then the form bar that steps through what that view offers. */
+/** The study view, then the form bar that steps through what that view offers. Key and scale sit in the heading above. */
 export function StudyControls(props: StudyControlsProps) {
   return <section className="study-controls" aria-label="Study controls">
-    <StudyPicker {...props} />
+    <div className="study-primary"><ViewPicker {...props} /></div>
+    <Availability {...props} />
     <div className="form-bar">
       <FormNavigation {...props} withPlay />
       <StudyOptions {...props} />
@@ -35,8 +36,37 @@ export function StudyControls(props: StudyControlsProps) {
   </section>;
 }
 
-/** Key, scale and study view. A phone shows these above the board and the rest elsewhere. */
-export function StudyPicker({ state, dispatch, scale }: Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale'>) {
+/** Key and scale. On a wide screen they are the board's heading; a phone keeps them in the study controls. */
+export function KeyScalePicker({ state, dispatch }: Pick<StudyControlsProps, 'state' | 'dispatch'>) {
+  const custom = state.scaleId === 'custom';
+  return <div className="musical-controls">
+    <label className="field key-field"><span>{custom ? 'Reference' : 'Key'}</span>
+      <select id="root" value={state.root} onChange={e => dispatch({ type: 'root', value: Number(e.target.value) })}>
+        {SHARPS.map((_, i) => <option key={i} value={i}>{pitchName(i, state.spelling)}</option>)}
+      </select>
+    </label>
+    <label className="field scale-field"><span>Scale</span>
+      <select id="scale" value={state.scaleId} onChange={e => dispatch({ type: 'scale', value: e.target.value })}>
+        {scaleGroups.map(group => <optgroup key={group} label={group === 'Triads & custom' ? 'Custom' : group}>
+          {scaleOptions.filter(s => s.group === group).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </optgroup>)}
+      </select>
+    </label>
+  </div>;
+}
+
+// One line under the view names says what the chosen view shows, so the six names do not have to be learned first.
+const VIEW_CAPTIONS: Record<StudyMode, string> = {
+  position: 'One hand position across all six strings.',
+  shape: 'A single rectangle or stack from the position.',
+  diagonal: 'One shape repeated diagonally up the neck.',
+  all: 'Every pattern on the neck at once. Hover a note to highlight its shapes.',
+  string: 'The scale along a single string.',
+  nps: 'Three notes on every string.',
+};
+
+/** The study view, with a caption for the chosen one. */
+export function ViewPicker({ state, dispatch, scale }: Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale'>) {
   const custom = state.scaleId === 'custom';
   const familyHint = scale.family ? undefined : 'Requires a pentatonic pattern family';
   const choices: { value: StudyMode; label: string; hint?: string }[] = [
@@ -48,27 +78,22 @@ export function StudyPicker({ state, dispatch, scale }: Pick<StudyControlsProps,
     { value: 'nps', label: '3 notes/string', hint: 'Requires a seven-note scale' },
   ];
   const views = choices.map(view => { const disabled = !studyModeAvailable(state, view.value); return { ...view, disabled, hint: disabled ? view.hint : undefined }; });
+  return <div className="view-picker">
+    <span className="field-label">View</span>
+    <Segments<StudyMode> label="Study view" value={state.studyMode} options={views} onChange={value => dispatch({ type: 'study-mode', value })} />
+    <p className="view-caption">{VIEW_CAPTIONS[state.studyMode]}</p>
+  </div>;
+}
+
+const Availability = ({ state, scale }: Pick<StudyControlsProps, 'state' | 'scale'>) => scale.family ? null : <p className="study-availability">
+  Shape and Diagonal need a scale built on a pentatonic.{state.scaleId !== 'custom' && ' Position shows a nearby fret range.'}
+</p>;
+
+/** Key, scale and study view together, as a phone shows them above the board. */
+export function StudyPicker(props: Pick<StudyControlsProps, 'state' | 'dispatch' | 'scale'>) {
   return <>
-    <div className="study-primary">
-      <div className="musical-controls">
-        <label className="field key-field"><span>{custom ? 'Reference' : 'Key'}</span>
-          <select id="root" value={state.root} onChange={e => dispatch({ type: 'root', value: Number(e.target.value) })}>
-            {SHARPS.map((_, i) => <option key={i} value={i}>{pitchName(i, state.spelling)}</option>)}
-          </select>
-        </label>
-        <label className="field scale-field"><span>Scale</span>
-          <select id="scale" value={state.scaleId} onChange={e => dispatch({ type: 'scale', value: e.target.value })}>
-            {scaleGroups.map(group => <optgroup key={group} label={group === 'Triads & custom' ? 'Custom' : group}>
-              {scaleOptions.filter(s => s.group === group).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </optgroup>)}
-          </select>
-        </label>
-      </div>
-      <Segments<StudyMode> label="Study view" value={state.studyMode} options={views} onChange={value => dispatch({ type: 'study-mode', value })} />
-    </div>
-    {!scale.family && <p className="study-availability">
-      Shape and Diagonal need a scale built on a pentatonic.{!custom && ' Position shows a nearby fret range.'}
-    </p>}
+    <div className="study-primary"><KeyScalePicker {...props} /><ViewPicker {...props} /></div>
+    <Availability {...props} />
   </>;
 }
 
@@ -119,7 +144,6 @@ export function StudyOptions({ state, dispatch, scale, connected, onConnect, pla
         {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
       </select>
     </label>
-    {state.studyMode === 'all' && scale.family && <span className="form-hint">Hover a note to highlight its shapes</span>}
   </>;
 }
 
@@ -139,7 +163,8 @@ function FormStepper({ state, dispatch, scale, study, choiceCount, formLevel }: 
   const item = state.studyMode === 'shape' ? 'shape' : state.studyMode === 'diagonal' ? 'diagonal' : 'form';
   // With the 1–5 picker the form number is already visible, so the status shows only the frets.
   return <div className="form-stepper">
-    <button className="icon-button" aria-label={`Previous ${item}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}>‹</button>
+    {picker && <span className="field-label form-label">{state.studyMode === 'shape' ? 'Shape in form' : 'Form'}</span>}
+    <button className="icon-button" aria-label={`Previous ${item}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: -1 })}><Icon name="previous" /></button>
     {picker
       ? <div className="form-picker" role="group" aria-label="Pentatonic form">{[1, 2, 3, 4, 5].map(form => {
         const level = state.studyMode === 'position' ? formLevel?.(form) ?? 0 : 0;
@@ -148,7 +173,7 @@ function FormStepper({ state, dispatch, scale, study, choiceCount, formLevel }: 
           onClick={() => dispatch({ type: 'form', value: form })}>{form}</button>;
       })}</div>
       : <div className="form-status" aria-live="polite"><strong>{study.label}</strong><span>{frets}</span></div>}
-    <button className="icon-button" aria-label={`Next ${item}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}>›</button>
+    <button className="icon-button" aria-label={`Next ${item}`} disabled={choiceCount < 2} onClick={() => dispatch({ type: 'study-step', direction: 1 })}><Icon name="next" /></button>
     {picker && <span className="form-frets" aria-live="polite">{frets}</span>}
   </div>;
 }

@@ -41,6 +41,7 @@ export function PracticeDeck({ state, dispatch, scale, study, family, progress, 
       </article>
       <article className="practice-option">
         <h3>Find scale degrees</h3>
+        <p>Choose the degrees to look for, then find each one in this view.</p>
         <div className="degree-picks" role="group" aria-label="Degrees to find">{tones.map(t => <button key={t.pitch} type="button" aria-pressed={degrees.includes(interval(t.pitch))} onClick={() => onDegrees(degrees.includes(interval(t.pitch)) ? degrees.filter(d => d !== interval(t.pitch)) : [...degrees, interval(t.pitch)])}>
           <strong>{t.name}</strong>{t.label && <span>{t.label}</span>}
         </button>)}</div>

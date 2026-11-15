@@ -2,13 +2,14 @@
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 11px; border-radius: 6px; color: var(--button-ink); font-size: 14px; white-space: nowrap; }
 .text-button:hover { background: var(--button-hover-bg); color: var(--ink); }
 
-.icon-button { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--field-border); border-radius: 7px; background: var(--field-bg); color: var(--ink); }
+.icon-button { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--field-bg); color: var(--ink); }
 .icon-button:hover:not(:disabled) { border-color: var(--field-hover-border); background: var(--field-hover-bg); }
 .icon-button:disabled { opacity: .4; }
 
 .field { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 14px; }
 .field > span, .field-label { color: var(--muted); font-size: 14px; }
-select { height: 42px; padding: 0 28px 0 12px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--field-bg); color: var(--ink); font-size: 14px; }
+select { height: 42px; padding: 0 26px 0 12px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--field-bg) var(--select-arrow) no-repeat right 9px center / 12px; color: var(--ink); font-size: 14px; appearance: none; text-overflow: ellipsis; }
+select:hover:not(:disabled) { border-color: var(--field-hover-border); }
 
 .segmented { display: inline-flex; align-items: stretch; gap: 3px; padding: 3px; border: 1px solid var(--segment-border); border-radius: 8px; background: var(--segment-bg); }
 .segmented button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 36px; padding: 7px 12px; border: 1px solid transparent; border-radius: 5px; color: var(--segment-ink); font-size: 13px; white-space: nowrap; }
@@ -19,18 +20,20 @@ select { height: 42px; padding: 0 28px 0 12px; border: 1px solid var(--field-bor
 .shape-icon.stack { width: 13px; height: 18px; border-color: var(--stack); }
 
 .toggle { display: inline-flex; align-items: center; gap: 9px; min-height: 36px; color: var(--quiet-ink); font-size: 13px; white-space: nowrap; cursor: pointer; }
-.toggle input { appearance: none; display: grid; place-content: center; width: 17px; height: 17px; margin: 0; border: 1.5px solid #96aeb9; border-radius: 4px; background: var(--field-bg); }
+.toggle input { appearance: none; display: grid; place-content: center; width: 17px; height: 17px; margin: 0; border: 1.5px solid var(--toggle-border); border-radius: 4px; background: var(--field-bg); }
 .toggle input:checked { border-color: var(--accent); background: var(--accent); }
 .toggle input:checked::after { content: ''; width: 7px; height: 4px; border-left: 1.5px solid var(--check-mark); border-bottom: 1.5px solid var(--check-mark); transform: translateY(-1px) rotate(-45deg); }
-.toggle:has(input:disabled) { color: #788b95; cursor: default; }
+.toggle:has(input:disabled) { color: var(--disabled-ink); cursor: default; }
 .toggle input:disabled { opacity: .5; }
 .toggle-hint { display: none; }
 
 .control-module { border-top: 1px solid var(--line); }
-.control-module > summary { display: flex; align-items: center; gap: 16px; padding: 17px 4px; font-size: 13px; font-weight: 600; list-style: none; cursor: pointer; }
+.control-module > summary { display: flex; align-items: center; gap: 16px; padding: 17px 8px 17px 4px; font-size: 13px; font-weight: 600; list-style: none; cursor: pointer; }
 .control-module > summary::-webkit-details-marker { display: none; }
-.control-module > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: 18px; font-weight: 400; }
-.control-module[open] > summary::after { content: '−'; }
+/* A drawn chevron: down while closed, up while open. */
+.control-module > summary::after { content: ''; width: 8px; height: 8px; margin: -4px 0 0 auto; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.control-module[open] > summary::after { margin-top: 4px; transform: rotate(-135deg); }
+.control-module > summary:hover::after { border-color: var(--ink); }
 .control-module > summary > span { color: var(--muted); font-size: 12px; font-weight: 400; }
 .control-body { display: flex; flex-wrap: wrap; align-items: center; gap: 20px 28px; padding: 0 4px 24px; }
 .modified-badge { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 12px; font-style: normal; font-weight: 600; }
