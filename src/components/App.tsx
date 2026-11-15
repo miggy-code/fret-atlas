@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { describeNote, LOWEST_STRING_CHOICES, pitchName, position, scaleById } from '../core/music';
 import type { Scale, Tuning } from '../core/music';
-import { loadState, reducer, restoreState, visibleShapes } from '../core/state';
+import { connectedView, connectOffered, loadState, reducer, restoreState, visibleShapes } from '../core/state';
 import type { Action, State } from '../core/state';
 import { notePresentation } from '../core/presentation';
 import { deriveStudy, tuningOf } from '../core/study';
@@ -46,6 +46,8 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   // Practice picks its own degrees (intervals from the root), apart from Explore's isolation, so practicing never changes the map.
   // It lives here because the Practice deck unmounts while a drill runs.
   const [practiceDegrees, setPracticeDegrees] = useState<number[]>([0]);
+  // The scale Customize notes started from, kept here because the Explore deck unmounts on the Practice tab.
+  const [customFrom, setCustomFrom] = useState<string | null>(null);
   const [request, setRequest] = useState<DrillRequest>();
   const [connecting, setConnecting] = useState(false);
   const [fitNeck, setFitNeck] = useState(false);
@@ -64,14 +66,15 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   const vertical = orientation === 'vertical';
   const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
-  // Connecting from another view borrows Position with ghost forms until the next view change.
-  const viewState = useMemo<State>(() => connecting ? { ...state, studyMode: 'position', ghostForms: true } : state, [state, connecting]);
+  // Connecting from another view lasts until the next view change, or until the scale no longer offers it.
+  if (connecting && !connectOffered(state)) setConnecting(false);
+  const viewState = useMemo(() => connectedView(state, connecting), [state, connecting]);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(viewState), [viewState]);
   const shapes = useMemo(() => visibleShapes(viewState, study), [viewState, study]);
   const progress = useProgress(account && { initial: account.progress, onChange: account.onProgress, onClear: account.onClear });
   // Progress tracks the five pentatonic positions, so only Position view counts toward it.
   const family = scale.family;
-  const formStudy = family && state.studyMode === 'position' ? study : undefined;
+  const formStudy = family && viewState.studyMode === 'position' ? study : undefined;
   const drill = useDrill(viewState, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); }, request);
   const playback = usePlayback(sound);
   // A drill hides every hint that would give the answer away.
@@ -178,11 +181,11 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   </Fretboard>;
   const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
     {tab === 'practice'
-      ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
+      ? <PracticeDeck state={viewState} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
         onClearProgress={progress.clear} synced={!!account} chord={{ root: chord.root, kind: chord.kind }} onChord={chord.change}
         degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
         onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
-      : <ExploreDeck state={state} dispatch={dispatch} scale={scale} chord={{
+      : <ExploreDeck state={viewState} dispatch={dispatch} scale={scale} customFrom={customFrom} onCustomize={setCustomFrom} chord={{
         kind: chord.kind, root: chord.root, shown: chord.shown, onChange: chord.change, onToggle: chord.toggle, onHear: hearChord,
       }} />}
   </div>;

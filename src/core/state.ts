@@ -91,6 +91,11 @@ export function studyModeAvailable(s: State, mode: StudyMode): boolean {
 }
 /** A disabled view must never stay selected: fall back to the nearest view the scale supports. */
 const settleStudyMode = (s: State): State => studyModeAvailable(s, s.studyMode) ? s : { ...s, studyMode: studyModeAvailable(s, 'position') ? 'position' : 'all', studyFret: null };
+/** Connect positions outlines the neighboring pentatonic forms, so only a scale with a family and a Position view offers it. */
+export const connectOffered = (s: State) => !!scaleById(s.scaleId).family && studyModeAvailable(s, 'position');
+/** The view on screen. Connecting from another view borrows Position with ghost forms without changing the saved view,
+ * and only while the scale offers it, so it can never show a view the scale cannot support. */
+export const connectedView = (s: State, connecting: boolean): State => connecting && connectOffered(s) ? { ...s, studyMode: 'position', ghostForms: true } : s;
 
 export function restoreState(raw: unknown): State {
   return settleStudyMode(readState(raw));

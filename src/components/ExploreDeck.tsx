@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
 import { degreeLabel, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRINGS } from '../core/music';
 import type { Scale, TriadQuality } from '../core/music';
@@ -20,11 +19,11 @@ export interface ChordRowProps {
 }
 
 /** Everything below the board in Explore: how notes look, the scale's degrees, the chord, overlays and focus. */
-export function ExploreDeck({ state, dispatch, scale, chord }: Props & { scale: Scale; chord: ChordRowProps }) {
+export function ExploreDeck({ state, dispatch, scale, chord, customFrom, onCustomize }: Props & { scale: Scale; chord: ChordRowProps } & CustomFrom) {
   return <>
     <NoteViewBar state={state} dispatch={dispatch} />
     <section className="explore" aria-label="Explore">
-      <ToneStrip state={state} dispatch={dispatch} scale={scale} />
+      <ToneStrip state={state} dispatch={dispatch} scale={scale} customFrom={customFrom} onCustomize={onCustomize} />
       <ChordRow state={state} scale={scale} {...chord} />
     </section>
     <ControlModule title="Overlays" summary={overlaySummary(state, scale)} modified={sectionModified(state, 'overlays')}
@@ -86,13 +85,13 @@ function NoteViewBar({ state, dispatch }: Props) {
   </div>;
 }
 
-function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
+// Custom notes is a detour: the scale it started from is kept outside the deck, which unmounts on the Practice tab.
+type CustomFrom = { customFrom: string | null; onCustomize: (scaleId: string) => void };
+function ToneStrip({ state, dispatch, scale, customFrom, onCustomize }: Props & { scale: Scale } & CustomFrom) {
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const anyIsolated = state.isolatedTones.length > 0;
-  // Custom notes is a detour: remember the scale it started from so there is always a way back.
-  const [cameFrom, setCameFrom] = useState<string | null>(null);
-  const backTo = scaleById(cameFrom && cameFrom !== 'custom' ? cameFrom : 'minor-pentatonic');
+  const backTo = scaleById(customFrom && customFrom !== 'custom' ? customFrom : 'minor-pentatonic');
   return <div className="degree-legend">
     <p className="degree-legend-heading">{custom ? 'Custom notes' : <>Scale degrees<span>Click to isolate</span></>}</p>
     <section className="tone-strip" aria-label="Scale tones">
@@ -132,7 +131,7 @@ function ToneStrip({ state, dispatch, scale }: Props & { scale: Scale }) {
         </>
         : <>
           {anyIsolated && <button onClick={() => dispatch({ type: 'clear-isolated-tones' })}>Show all degrees</button>}
-          <button onClick={() => { setCameFrom(state.scaleId); dispatch({ type: 'scale', value: 'custom' }); }}>Customize notes</button>
+          <button onClick={() => { onCustomize(state.scaleId); dispatch({ type: 'scale', value: 'custom' }); }}>Customize notes</button>
         </>}
       </div>
     </section>
