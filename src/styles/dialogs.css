@@ -8,14 +8,24 @@
 .guide-content dd { margin: 6px 0 0; color: var(--guide-ink); font-size: 16px; line-height: 1.65; }
 .guide-footnote { padding-top: 18px; border-top: 1px solid var(--line); color: var(--guide-note-ink); font-size: 13px; line-height: 1.6; }
 
-.settings-section { display: grid; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.settings-section { display: grid; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
 .settings-section:last-child { padding-bottom: 0; border-bottom: 0; }
-.settings-section .instrument-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
-.instrument-settings .field { min-width: 150px; }
+.settings-group h3 { margin: 0 0 12px; font-size: 13px; font-weight: 600; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px 28px; }
+.settings-grid .field { display: grid; gap: 6px; }
+.settings-grid .field select { width: 100%; }
+/* In Settings there is room for every hint, so none hides behind a tooltip. */
+.settings-grid .toggle { flex-wrap: wrap; min-height: 42px; white-space: normal; }
+/* A toggle beside a labelled select lines up with the select, not with its label. */
+.settings-grid .field + .toggle { align-self: end; }
+.settings-grid .toggle-hint { display: block; width: 100%; margin-left: 26px; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .settings-section p { margin: 0; color: var(--muted); font-size: 13px; }
 .settings-section .restore-button, .settings-section .reset-view { justify-self: start; }
 .settings-section .reset-view { border: 1px solid var(--line); }
 
 @media (max-width: 760px) {
   .guide-content { padding: 22px; }
+}
+@media (max-width: 480px) {
+  .settings-grid { grid-template-columns: 1fr; gap: 10px; }
 }

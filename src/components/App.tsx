@@ -17,7 +17,7 @@ import { MarksPanel } from './MarksPanel';
 import { PracticeDeck } from './PracticeDeck';
 import { useProgress } from './Progress';
 import { SettingsDialog } from './SettingsDialog';
-import { FormBar, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
+import { FormBar, KeyScalePicker, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
 import { ModeTabs } from './ModeTabs';
 import { Topbar } from './Topbar';
 import { pluck } from './audio';
@@ -170,7 +170,11 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   </div>;
   const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing}
     onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
-    {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
+    {/* What is on the board and what the pointer is on read together, right under the neck. */}
+    {!practicing && <div className="board-footer">
+      <BoardLegend state={viewState} shapes={shapes} scale={scale} />
+      <NoteInspector inspected={inspected} state={state} tuning={tuning} scale={scale} />
+    </div>}
   </Fretboard>;
   const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
     {tab === 'practice'
@@ -190,12 +194,11 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
         onGuide={() => guide.current?.showModal()} onSettings={() => settings.current?.showModal()} />
       <section className="board-card" aria-label="Interactive fretboard">
         <div className="board-heading">
+          {/* Key and scale are the heading: the selects name the study, so the h1 is only shown where they are not (a drill). */}
           <div className="board-title">
-            <span className="tonic-badge">{pitchName(state.root, state.spelling)}</span>
-            <div>
-              <h1>{scale.name}</h1>
-              <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
-            </div>
+            <h1 className={practicing ? undefined : 'sr-only'}><span className="tonic-badge">{pitchName(state.root, state.spelling)}</span> {scale.name}</h1>
+            {!practicing && !vertical && <KeyScalePicker state={viewState} dispatch={studyDispatch} />}
+            <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
           </div>
           {!vertical && tabs}
         </div>
@@ -222,7 +225,6 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
             {board}
             {deck}
           </>}
-        <InspectionRow inspected={inspected} state={state} tuning={tuning} scale={scale} />
       </section>
       <MarksPanel state={state} dispatch={dispatch} scale={scale} tuning={tuning} />
       {manualLink && <label className="manual-link">View link<input readOnly value={manualLink} onFocus={e => e.target.select()} /></label>}
@@ -237,15 +239,20 @@ export function App({ accountsEnabled = false, account }: { accountsEnabled?: bo
   </>;
 }
 
-type InspectionProps = { inspected: string | null; state: State; tuning: Tuning; scale: Scale };
+type InspectorProps = { inspected: string | null; state: State; tuning: Tuning; scale: Scale };
 
-function InspectionRow({ inspected, state, tuning, scale }: InspectionProps) {
+/** Names the note under the pointer (or the last one tapped), and says how to mark one while nothing is chosen. */
+function NoteInspector({ inspected, state, tuning, scale }: InspectorProps) {
   const [string, fret] = inspected ? inspected.split(':').map(Number) : [];
   const note = inspected ? describeNote(position(string, fret, tuning), state.root, scale, state.spelling) : undefined;
-  return <div className="inspection-row">
-    <div className="note-inspector" role="status" aria-live="polite">{note
-      ? <><strong>{note.name}<small>{note.octave}</small></strong><span>Degree {note.interval}</span><span>String {string} · {fret === 0 ? 'Open' : `Fret ${fret}`}</span></>
-      : <span>Select a note to inspect or mark it</span>}</div>
-    <span className="keyboard-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> navigate <span>·</span> <kbd>enter</kbd> mark</span>
-  </div>;
+  return <div className="note-inspector" role="status" aria-live="polite">{note
+    ? <>
+      <strong>{note.name}<small>{note.octave}</small></strong><span>Degree {note.interval}</span><span>String {string} · {fret === 0 ? 'Open' : `Fret ${fret}`}</span>
+      {state.marks.includes(inspected!) && <em>Marked</em>}
+    </>
+    : <>
+      <span className="pointer-hint">Hover a note for its name. Click to mark it.</span>
+      <span className="touch-hint">Tap a note to mark it.</span>
+      <span className="keyboard-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move <span>·</span> <kbd>enter</kbd> mark</span>
+    </>}</div>;
 }

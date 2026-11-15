@@ -1,16 +1,27 @@
 /* Explore: note view, then scale degrees and a chord (each a label, its choices, then its actions), then Overlays. */
-.note-view-bar { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 16px 0 0; }
+.note-view-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 16px 4px 0; }
+/* One label column for the whole deck: Note view lines up with Scale degrees and Chord below it. */
+.note-view-bar .field-label { color: var(--ink); font-size: 13px; font-weight: 600; }
+.label-controls:first-child .field-label { width: 112px; }
 .note-view-bar .restore-button { align-self: center; margin-left: auto; }
-.label-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.label-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .note-view-bar .segmented { flex-wrap: wrap; }
 /* Note view and Colors keep a quiet raised chip; the previews carry the color. */
 .note-view-bar .segmented button.active { border-color: var(--on-border); background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px #2446541a; }
 .view-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--root); }
-.view-charms { color: #20a984; font-size: 11px; letter-spacing: 1px; }
-.color-preview { color: transparent; font-size: 10px; letter-spacing: 1px; background-clip: text; -webkit-background-clip: text; }
-.root-preview { background-image: linear-gradient(90deg, var(--root) 33%, #a6b7c1 33%); }
-.degrees-preview { background-image: linear-gradient(90deg, var(--degree-2) 33%, var(--degree-4) 33% 66%, var(--degree-6) 66%); }
-.chord-preview { background-image: linear-gradient(90deg, var(--root) 33%, var(--chord-third) 33% 66%, var(--chord-fifth) 66%); }
+/* Drawn previews: three charms in their degree colors, and three dots per color scheme. */
+.view-charms { width: 38px; height: 12px; }
+.view-charms circle { fill: var(--root); }
+.view-charms path { fill: var(--chord-third); }
+.view-charms rect { fill: var(--degree-4); }
+.color-preview { display: inline-flex; gap: 3px; }
+.color-preview i { width: 8px; height: 8px; border-radius: 50%; background: var(--note-marker); }
+.root-preview i:first-child, .chord-preview i:first-child { background: var(--root); }
+.chord-preview i:nth-child(2) { background: var(--chord-third); }
+.chord-preview i:nth-child(3) { background: var(--chord-fifth); }
+.degrees-preview i:first-child { background: var(--degree-2); }
+.degrees-preview i:nth-child(2) { background: var(--degree-4); }
+.degrees-preview i:nth-child(3) { background: var(--degree-6); }
 
 .explore { display: grid; gap: 16px; padding: 16px 4px 20px; border-bottom: 1px solid var(--line); }
 .degree-legend { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 12px 16px; }
@@ -59,11 +70,11 @@
 }
 @media (max-width: 760px) {
   .note-view-bar { margin-top: 10px; }
-  .label-controls { flex-basis: 100%; align-items: flex-start; width: 100%; }
-  .label-controls > .field-label { min-width: 38px; }
-  .label-controls .segmented { flex: 1; }
-  .note-view-bar .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
-  .note-view-bar .segmented button { flex: 1 0 auto; min-height: 40px; line-height: 1.2; text-align: center; white-space: normal; }
+  /* Each label sits above its choices, which share one even row. */
+  .label-controls { flex: 1 1 100%; flex-direction: column; align-items: stretch; gap: 6px; }
+  .label-controls:first-child .field-label { width: auto; }
+  .note-view-bar .segmented { display: flex; flex-wrap: nowrap; width: 100%; }
+  .note-view-bar .segmented button { flex: 1 1 auto; min-height: 40px; padding-inline: 4px; }
   .note-view-bar .color-preview, .note-view-bar .view-charms { display: none; }
   .degree-legend, .chord-row { grid-template-columns: 1fr; gap: 10px; }
   .degree-legend-heading > span { display: inline; margin: 0 0 0 8px; }
@@ -74,11 +85,9 @@
   .explore .tone-actions button, .explore-actions button, .connect-button { min-height: 44px; }
   .map-layers { gap: 16px; }
 }
-@media (max-width: 480px) {
-  .note-view-bar .segmented { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 390px) {
-  .label-controls .segmented button { padding-inline: 8px; }
+/* The narrowest phones cannot fit a row of full names, so the choices pair up. */
+@media (max-width: 359px) {
+  .note-view-bar .segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (pointer: coarse) {
   .tone-chip { min-height: 44px; }

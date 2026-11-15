@@ -27,29 +27,50 @@ export function ExploreDeck({ state, dispatch, scale, chord }: Props & { scale: 
       <ToneStrip state={state} dispatch={dispatch} scale={scale} />
       <ChordRow state={state} scale={scale} {...chord} />
     </section>
-    <ControlModule title="Overlays" summary="Patterns and visual guides" modified={sectionModified(state, 'overlays')}
+    <ControlModule title="Overlays" summary={overlaySummary(state, scale)} modified={sectionModified(state, 'overlays')}
       onRestore={() => dispatch({ type: 'reset-section', value: 'overlays' })}>
       <Overlays state={state} dispatch={dispatch} scale={scale} />
     </ControlModule>
-    <ControlModule title="Focus" summary="Limit notes and drills by fret and string" modified={sectionModified(state, 'focus')}
+    <ControlModule title="Focus" summary={focusSummary(state)} modified={sectionModified(state, 'focus')}
       onRestore={() => dispatch({ type: 'reset-section', value: 'focus' })}>
       <FocusControls state={state} dispatch={dispatch} />
     </ControlModule>
   </>;
 }
 
+// A closed panel says what it is doing to the board, and falls back to what it is for when it is doing nothing.
+function overlaySummary(state: State, scale: Scale) {
+  const on = [
+    state.wholeMap && state.studyMode !== 'all' && 'Whole map',
+    state.skeleton && 'Skeleton',
+    state.warp && !state.fourths && 'Warp',
+    state.context && 'Notes outside the scale',
+    state.hideAdded && scale.tones.some(t => !t.skeleton) && 'Pentatonic only',
+    scale.family && state.overlayRows.length < 6 && `Patterns on ${state.overlayRows.length} of 6 strings`,
+  ].filter(Boolean);
+  return on.length ? `On: ${on.join(', ')}` : 'Patterns and visual guides';
+}
+function focusSummary(state: State) {
+  const strings = [...state.strings].sort((a, b) => a - b);
+  const on = [
+    state.focus && `Frets ${state.from}–${state.to}`,
+    strings.length < 6 && (strings.length ? `${strings.length === 1 ? 'String' : 'Strings'} ${strings.join(', ')}` : 'No strings'),
+  ].filter(Boolean);
+  return on.length ? `Showing only: ${on.join(' · ')}` : 'Limit notes and drills by fret and string';
+}
+
 function NoteViewBar({ state, dispatch }: Props) {
   const views: { value: NoteView; label: ReactNode }[] = [
     { value: 'none', label: <><span className="view-dot" />Dots</> },
-    { value: 'charms', label: <><span className="view-charms" aria-hidden="true">● ▲ ■</span>Lucky Charms</> },
+    { value: 'charms', label: <><svg className="view-charms" viewBox="0 0 38 12" aria-hidden="true"><circle cx="6" cy="6" r="5" /><path d="M19 1 24.5 11h-11Z" /><rect x="28" y="1.5" width="9" height="9" /></svg>Lucky Charms</> },
     { value: 'notes', label: 'Names' },
     { value: 'intervals', label: 'Intervals' },
     { value: 'both', label: 'Both' },
   ];
   const colors: { value: NoteColors; label: ReactNode }[] = [
-    { value: 'root', label: <><span className="color-preview root-preview" aria-hidden="true">● ● ●</span>Root highlight</> },
-    { value: 'chord', label: <><span className="color-preview chord-preview" aria-hidden="true">● ● ●</span>Chord tones</> },
-    { value: 'degrees', label: <><span className="color-preview degrees-preview" aria-hidden="true">● ● ●</span>Scale degrees</> },
+    { value: 'root', label: <><span className="color-preview root-preview" aria-hidden="true"><i /><i /><i /></span>Root highlight</> },
+    { value: 'chord', label: <><span className="color-preview chord-preview" aria-hidden="true"><i /><i /><i /></span>Chord tones</> },
+    { value: 'degrees', label: <><span className="color-preview degrees-preview" aria-hidden="true"><i /><i /><i /></span>Scale degrees</> },
   ];
   const view = state.luckyCharms ? 'charms' : state.labels;
   const color = state.degreeColors ? 'degrees' : state.chordColors ? 'chord' : 'root';

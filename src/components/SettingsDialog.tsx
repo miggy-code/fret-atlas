@@ -27,28 +27,37 @@ export function SettingsDialog({ dialog, onClose, state, dispatch, darkMode, onD
         <button className="icon-button" aria-label="Close settings" onClick={close}><Icon name="close" /></button>
       </div>
       <section className="settings-section" aria-label="Instrument and display">
-        <div className="instrument-settings">
-          <label className="field"><span>Frets</span>
-            <select id="frets" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
-              {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
-            </select>
-          </label>
-          <label className="field"><span>Lowest string</span>
-            <select id="lowest" value={state.lowest} onChange={e => dispatch({ type: 'lowest', value: Number(e.target.value) })}>
-              {LOWEST_STRING_CHOICES.map(c => <option key={c.lowered} value={c.lowered}>{c.label}</option>)}
-            </select>
-          </label>
-          <Toggle label="All fourths" checked={state.fourths} onChange={toggle('fourths')}
-            hint="Tune the B and e strings up a semitone so every string is a fourth apart" />
-          <label className="field"><span>Key spelling</span>
-            <select id="spelling" value={state.spelling} onChange={e => dispatch({ type: 'spelling', value: e.target.value as 'sharps' | 'flats' })}>
-              <option value="sharps">Sharps ♯</option><option value="flats">Flats ♭</option>
-            </select>
-          </label>
-          <Toggle label="Dark mode" checked={darkMode} onChange={onDarkMode} />
-          <Toggle label="Sound" checked={sound} onChange={onSound} hint="Pluck notes when you tap them, play forms and hear drill feedback" />
-          <Toggle label="String names" checked={state.stringNames} onChange={toggle('stringNames')} />
-          <Toggle label="Left-handed" checked={state.leftHanded} onChange={toggle('leftHanded')} />
+        {/* Two short groups read faster than one wrapped row: what the guitar is, then how the page shows and sounds it. */}
+        <div className="settings-group">
+          <h3>Instrument</h3>
+          <div className="settings-grid">
+            <label className="field"><span>Frets</span>
+              <select id="frets" value={state.frets} onChange={e => dispatch({ type: 'frets', value: Number(e.target.value) })}>
+                {[12, 15, 17, 22, 24].map(f => <option key={f} value={f}>{f} frets</option>)}
+              </select>
+            </label>
+            <label className="field"><span>Lowest string</span>
+              <select id="lowest" value={state.lowest} onChange={e => dispatch({ type: 'lowest', value: Number(e.target.value) })}>
+                {LOWEST_STRING_CHOICES.map(c => <option key={c.lowered} value={c.lowered}>{c.label}</option>)}
+              </select>
+            </label>
+            <Toggle label="All fourths" checked={state.fourths} onChange={toggle('fourths')}
+              hint="Tune the B and e strings up a semitone so every string is a fourth apart" />
+            <Toggle label="Left-handed" checked={state.leftHanded} onChange={toggle('leftHanded')} />
+          </div>
+        </div>
+        <div className="settings-group">
+          <h3>Display and sound</h3>
+          <div className="settings-grid">
+            <label className="field"><span>Key spelling</span>
+              <select id="spelling" value={state.spelling} onChange={e => dispatch({ type: 'spelling', value: e.target.value as 'sharps' | 'flats' })}>
+                <option value="sharps">Sharps ♯</option><option value="flats">Flats ♭</option>
+              </select>
+            </label>
+            <Toggle label="String names" checked={state.stringNames} onChange={toggle('stringNames')} />
+            <Toggle label="Dark mode" checked={darkMode} onChange={onDarkMode} />
+            <Toggle label="Sound" checked={sound} onChange={onSound} hint="Pluck notes when you tap them, play forms and hear drill feedback" />
+          </div>
         </div>
         {sectionModified(state, 'instrument')
           && <RestoreButton label="Instrument & display" onClick={() => dispatch({ type: 'reset-section', value: 'instrument' })} />}

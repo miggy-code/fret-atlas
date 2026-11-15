@@ -475,3 +475,45 @@ for (const scale of ['minor','major']) {
     }
   });
 }
+
+test('the heading, view caption, board footer and panel summaries describe the current state', async ({ page }) => {
+  await page.goto('/');
+  // Key and scale are the heading; the h1 stays for assistive technology.
+  const heading = page.locator('.board-heading');
+  await expect(heading.locator('#root')).toBeVisible();
+  await expect(heading.locator('#scale')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A Minor pentatonic');
+
+  const caption = page.locator('.view-caption');
+  await expect(caption).toHaveText('One hand position across all six strings.');
+  await page.getByRole('button', { name: 'Diagonal', exact: true }).click();
+  await expect(caption).toHaveText('One shape repeated diagonally up the neck.');
+  await page.getByRole('button', { name: 'Position', exact: true }).click();
+
+  // The inspector sits inside the board, under the neck, and names the note under the pointer.
+  const inspector = page.locator('.board-shell .note-inspector');
+  await expect(inspector).toContainText('Click to mark it');
+  await page.locator('[data-note-id="1:5"]').hover();
+  await expect(inspector).toContainText('String 1 · Fret 5');
+  await expect(inspector).not.toContainText('Marked');
+  await page.locator('[data-note-id="1:5"]').click();
+  await expect(inspector).toContainText('Marked');
+
+  // A closed panel reports what it is doing to the board.
+  const summary = (title: string) => page.locator('details.control-module > summary', { hasText: title });
+  await expect(summary('Overlays')).toContainText('On: Warp');
+  await expect(summary('Focus')).toContainText('Limit notes and drills by fret and string');
+  await (await openOverlays(page)).getByRole('checkbox', { name: 'Skeleton', exact: true }).check();
+  await expect(summary('Overlays')).toContainText('On: Skeleton, Warp');
+  const focus = await openFocus(page);
+  await focus.getByRole('checkbox', { name: 'Fret range', exact: true }).check();
+  await focus.getByRole('button', { name: 'Include string 6', exact: true }).click();
+  await expect(focus.locator(':scope > summary')).toContainText('Showing only: Frets 3–9 · Strings 1, 2, 3, 4, 5');
+
+  // A drill shows the study as a plain title and drops the mark hint, which would be wrong there.
+  await page.getByRole('tab', { name: 'Practice' }).click();
+  await page.locator('#find-notes').click();
+  await expect(heading.locator('select')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.locator('.note-inspector')).toHaveCount(0);
+});
