@@ -11,8 +11,8 @@ const toggle = (page: Page, name: string) => page.getByRole('checkbox', { name, 
 
 test('Overlays shows Changed after a toggle and Restore defaults clears only its own settings', async ({ page }) => {
   await page.goto('/');
-  await page.locator('#root').selectOption('2');
-  await page.locator('#scale').selectOption('minor');
+  await page.getByRole('combobox', { name: 'Key', exact: true }).selectOption('2');
+  await page.getByRole('combobox', { name: 'Scale', exact: true }).selectOption('minor');
   const overlays = await openModule(page, 'Overlays');
   const badge = overlays.locator(':scope > summary em.modified-badge');
   await expect(badge).toHaveCount(0);
@@ -26,8 +26,8 @@ test('Overlays shows Changed after a toggle and Restore defaults clears only its
   await expect(toggle(page, 'Skeleton')).not.toBeChecked();
   await expect(page.locator('.root-skeleton')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Restore Overlays defaults', exact: true })).toHaveCount(0);
-  await expect(page.locator('#root')).toHaveValue('2');
-  await expect(page.locator('#scale')).toHaveValue('minor');
+  await expect(page.getByRole('combobox', { name: 'Key', exact: true })).toHaveValue('2');
+  await expect(page.getByRole('combobox', { name: 'Scale', exact: true })).toHaveValue('minor');
 });
 
 test('note view restore returns to Dots and Root highlight', async ({ page }) => {

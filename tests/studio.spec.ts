@@ -194,7 +194,7 @@ test('pattern lines share joins and render behind opaque note badges', async ({p
   expect(style).toEqual({ width: '4px', dash: 'none', opacity: '1' });
   await expect(page.locator('.shape-outline.rectangle').first()).toHaveCSS('stroke-width', '4px');
   expect(await page.locator('.shape-outline').evaluateAll(nodes => nodes.every(node => !/[QC]/.test(node.getAttribute('d')!)))).toBe(true);
-  expect(await page.locator('.shape-outline').first().evaluate(node => {
+  expect(await page.locator('.shape-outline').first().evaluate((node: SVGPathElement) => {
     const note = node.ownerSVGElement!.querySelector('[data-note-id]')!;
     return Boolean(node.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING);
   })).toBe(true);
@@ -204,7 +204,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
-  await page.locator('#scale').selectOption('minor');
+  await page.getByRole('combobox', { name: 'Scale', exact: true }).selectOption('minor');
   await page.getByRole('group',{name:'Note view',exact:true}).getByRole('button',{name:'Both',exact:true}).click();
   await expect(page.locator('.fretboard')).toHaveAttribute('data-labels','both');
   const note = page.locator('[data-note-id="1:5"]');
@@ -225,7 +225,7 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await openInstrument(page);
   await page.getByLabel('Left-handed',{exact:true}).check();
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','left');
-  await page.locator('#frets').selectOption('24');
+  await page.getByRole('combobox', { name: 'Frets', exact: true }).selectOption('24');
   await page.getByLabel('String names',{exact:true}).uncheck();
   await expect(page.locator('.string-name')).toHaveCount(0);
   await page.getByLabel('String names',{exact:true}).check();
@@ -241,12 +241,12 @@ test('existing musical, display, focus, mark, keyboard, custom-note and sharing 
   await expect(page.locator('.tone-strip .degree-marker.third')).toHaveCount(1);
   await expect(page.locator('.tone-strip .degree-marker.fifth')).toHaveCount(1);
   await openInstrument(page);
-  await page.locator('#spelling').selectOption('flats');
+  await page.getByRole('combobox', { name: 'Key spelling', exact: true }).selectOption('flats');
   await page.getByRole('button',{name:'Reset view',exact:true}).click();
   await closeSettings(page);
   await expect(page.getByRole('button',{name:'Settings',exact:true})).toBeFocused();
   await expect(page.locator('.marks-list button')).toHaveCount(2);
-  await expect(page.locator('#scale')).toHaveValue('minor');
+  await expect(page.getByRole('combobox', { name: 'Scale', exact: true })).toHaveValue('minor');
   await expect(page.locator('.fretboard')).toHaveAttribute('data-handedness','right');
   await expect(page.locator('.fretboard')).toHaveAttribute('data-labels','none');
   await expect(page.locator('.row-toggles button[aria-pressed="true"]')).toHaveCount(6);
@@ -323,7 +323,7 @@ test('small screens contain controls; only a horizontal instrument scrolls sidew
 test('old saved views migrate and pattern outlines and shift arrow mirror correctly', async ({page}) => {
   await page.addInitScript(()=>localStorage.setItem('fret-atlas-v2',JSON.stringify({version:2,root:9,scaleId:'minor',lens:'shape',kind:'rectangle',shapeId:'rectangle:2:5',wholeMap:false,marks:['6:5']})));
   await page.goto('/');
-  await expect(page.locator('#scale')).toHaveValue('minor');
+  await expect(page.getByRole('combobox', { name: 'Scale', exact: true })).toHaveValue('minor');
   expect(await page.locator('.shape-outline.rectangle').count()).toBeGreaterThan(1);
   await expect(page.locator('.shape-outline.stack')).toHaveCount(0);
   await expect(page.locator('.marks-list button')).toHaveCount(1);
@@ -356,13 +356,13 @@ test('triad highlighting is independent, optional, persistent, and available wit
   await page.goto('/');
   await expect(page.getByRole('button',{name:'Show tones',exact:true})).toHaveAttribute('aria-pressed','false');
   await expect(page.locator('#scale option[value$="-triad"]')).toHaveCount(0);
-  const scale=await page.locator('#scale').inputValue();
+  const scale=await page.getByRole('combobox', { name: 'Scale', exact: true }).inputValue();
   const patterns=await page.locator('.shape-outline').count();
   await page.getByLabel('Chord quality').selectOption('major');
   await page.getByRole('button',{name:'Show tones',exact:true}).click();
   // Chord tones are not a panel setting, so no panel reports a change.
   await expect(page.locator('em.modified-badge')).toHaveCount(0);
-  await expect(page.locator('#scale')).toHaveValue(scale);
+  await expect(page.getByRole('combobox', { name: 'Scale', exact: true })).toHaveValue(scale);
   await expect(page.locator('.shape-outline')).toHaveCount(patterns);
   const added=page.locator('[data-note-id="1:9"]');
   await expect(added).toHaveAttribute('data-triad','true');
@@ -378,7 +378,7 @@ test('triad highlighting is independent, optional, persistent, and available wit
   const custom=await page.locator('.tone-chip[aria-pressed="true"]').count();
   await page.getByLabel('Chord quality').selectOption('minor');
   await expect(page.locator('.tone-chip[aria-pressed="true"]')).toHaveCount(custom);
-  await page.locator('#root').selectOption('2');
+  await page.getByRole('combobox', { name: 'Reference', exact: true }).selectOption('2');
   await expect(page.locator('.triad-legend')).toHaveText('C minor triad');
   for(const width of [320,390,768]) {
     await page.setViewportSize({width,height:844});
@@ -461,7 +461,7 @@ test('Lucky Charms keep a root center and give each pentatonic degree its own sh
 for (const scale of ['minor','major']) {
   test(`One string and 3 notes/string never show the pattern notice in ${scale}`, async ({page}) => {
     await page.goto('/');
-    await page.locator('#scale').selectOption(scale);
+    await page.getByRole('combobox', { name: 'Scale', exact: true }).selectOption(scale);
     for (const name of ['One string','3 notes/string']) {
       const button=page.getByRole('button',{name,exact:true});
       await expect(button).toBeEnabled();

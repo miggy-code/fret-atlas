@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('practice hides the answers, scores taps, and deals a new round', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Practice' }).click();
-  await page.locator('#find-notes').click();
+  await page.getByRole('button', { name: 'Find notes', exact: true }).click();
   const bar = page.getByRole('region', { name: 'Practice drill' });
   await expect(bar).toBeVisible();
   // Every note and outline is hidden until it is found.
@@ -39,7 +39,7 @@ test('practice hides the answers, scores taps, and deals a new round', async ({ 
   await expect.poll(prompt).not.toBe(first);
   await bar.getByRole('button', { name: 'End', exact: true }).click();
   await expect(bar).toHaveCount(0);
-  await expect(page.locator('#find-notes')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Find notes', exact: true })).toBeFocused();
   expect(await page.locator('.shape-outline').count()).toBeGreaterThan(0);
   expect(await page.locator('.note-node[data-visible="true"]').count()).toBeGreaterThan(5);
 });
@@ -47,7 +47,7 @@ test('practice hides the answers, scores taps, and deals a new round', async ({ 
 test('a finished round celebrates and moves on; the best streak persists', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Practice' }).click();
-  await page.locator('#find-notes').click();
+  await page.getByRole('button', { name: 'Find notes', exact: true }).click();
   const bar = page.getByRole('region', { name: 'Practice drill' });
   const total = await bar.locator('.drill-progress i').count();
   // Find the answers by elimination: tap every position until the round is full.
@@ -66,7 +66,7 @@ test('a finished round celebrates and moves on; the best streak persists', async
   const best = await bar.locator('.drill-stats').innerText();
   await page.reload();
   await page.getByRole('tab', { name: 'Practice' }).click();
-  await page.locator('#find-notes').click();
+  await page.getByRole('button', { name: 'Find notes', exact: true }).click();
   expect(await page.getByRole('region', { name: 'Practice drill' }).locator('.drill-stats').innerText()).toContain(best.match(/Best \d+/)![0]);
 });
 
@@ -99,10 +99,10 @@ test('listening in Explore earns no credit; a play-through in Practice does', as
   await page.getByRole('tab', { name: 'Practice' }).click();
   // Picking a key from the grid switches the study key; progress stays per key.
   await page.getByRole('button', { name: /^C minor: 0 of 5/ }).click();
-  await expect(page.locator('#root')).toHaveValue('0');
+  await expect(page.getByRole('combobox', { name: 'Key', exact: true })).toHaveValue('0');
   await expect(formOne).not.toHaveAttribute('data-progress', 'practiced');
   await page.reload();
-  await page.locator('#root').selectOption('9');
+  await page.getByRole('combobox', { name: 'Key', exact: true }).selectOption('9');
   await page.getByRole('tab', { name: 'Practice' }).click();
   await expect(formOne).toHaveAttribute('data-progress', 'practiced');
 });
@@ -113,7 +113,7 @@ test('selected degree practice gives hints and reveal without scoring, and leave
   const picks = page.getByRole('group', { name: 'Degrees to find' });
   await expect(picks.getByRole('button', { pressed: true })).toHaveCount(1);
   await picks.getByRole('button').nth(1).click();
-  await page.locator('#find-degrees').click();
+  await page.getByRole('button', { name: 'Find selected degrees', exact: true }).click();
   const drill = page.getByRole('region', { name: 'Practice drill' });
   await expect(drill).toBeVisible();
   await drill.getByRole('button', { name: 'Hint' }).click();
@@ -123,7 +123,7 @@ test('selected degree practice gives hints and reveal without scoring, and leave
   expect(await page.locator('.note-node.is-drill-hint').count()).toBeGreaterThan(0);
   await expect(drill.getByRole('img', { name: /^0 of/ })).toBeVisible();
   await drill.getByRole('button', { name: 'End' }).click();
-  await expect(page.locator('#find-degrees')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Find selected degrees', exact: true })).toBeFocused();
   await expect(picks.getByRole('button', { pressed: true })).toHaveCount(2);
   // Practicing degrees never isolates them on the Explore map.
   await page.getByRole('tab', { name: 'Explore' }).click();
@@ -150,10 +150,10 @@ test('chord targets can be outside scale and connecting restores the original vi
   await page.getByLabel('Chord quality').selectOption('major');
   await page.getByRole('tab', { name: 'Practice' }).click();
   await expect(page.getByLabel('Chord root')).toHaveValue('1');
-  await page.locator('#find-chord').click();
+  await page.getByRole('button', { name: 'Find chord tones', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Practice drill' })).toContainText('C♯ major chord');
   await page.getByRole('button', { name: 'End', exact: true }).click();
-  await expect(page.locator('#find-chord')).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Find chord tones', exact: true })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Whole neck', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -168,7 +168,7 @@ test('Connect positions in Position view is the saved ghost-forms setting', asyn
 test('finding degrees stays within the current position', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Practice' }).click();
-  await page.locator('#find-degrees').click();
+  await page.getByRole('button', { name: 'Find selected degrees', exact: true }).click();
   const drill = page.getByRole('region', { name: 'Practice drill' });
   await expect(drill).toContainText('selected degrees');
   await drill.getByRole('button', { name: 'Reveal' }).click();

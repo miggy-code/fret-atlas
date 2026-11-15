@@ -233,7 +233,7 @@ for (const [width, height] of [[320, 568], [390, 844]] as const) {
     test('the board begins within the first 200px, under key, scale, view and form', async ({ page }) => {
       const shell = await box(page.locator('.board-shell'));
       expect(shell.y).toBeLessThanOrEqual(210);
-      for (const control of [page.locator('#root'), page.locator('#scale'), page.getByRole('button', { name: 'Position', exact: true }), page.getByRole('group', { name: 'Pentatonic form' })]) {
+      for (const control of [page.getByRole('combobox', { name: 'Key', exact: true }), page.getByRole('combobox', { name: 'Scale', exact: true }), page.getByRole('button', { name: 'Position', exact: true }), page.getByRole('group', { name: 'Pentatonic form' })]) {
         const controlBox = await box(control);
         expect(controlBox.y + controlBox.height).toBeLessThanOrEqual(shell.y + 1);
         expect(controlBox.x).toBeGreaterThanOrEqual(0);
@@ -318,7 +318,7 @@ test.describe('drill prompt', () => {
     await page.setViewportSize(PHONE);
     await page.goto('/');
     await page.getByRole('tab', { name: 'Practice' }).click();
-    await page.locator('#find-notes').click();
+    await page.getByRole('button', { name: 'Find notes', exact: true }).click();
     const prompt = page.getByRole('region', { name: 'Practice drill' });
     await expect(prompt).toBeVisible();
     const promptBox = await box(prompt);
@@ -343,7 +343,7 @@ test.describe('drill prompt', () => {
     await page.goto('/');
     await page.getByLabel('Neck length').selectOption('24');
     await page.getByRole('tab', { name: 'Practice' }).click();
-    await page.locator('#find-notes').click();
+    await page.getByRole('button', { name: 'Find notes', exact: true }).click();
     const prompt = page.getByRole('region', { name: 'Practice drill' });
     await page.evaluate(() => scrollTo(0, 600));
     const promptBox = await box(prompt);
