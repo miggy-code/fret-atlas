@@ -5,11 +5,13 @@ import type { SyncOperation, SyncResult } from './sync-api';
 
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const pending = (cache: AccountCache) => cache.settingsPending || cache.progressPending || cache.resetPending;
+export const DECISION_STATUS = 'Sync paused · a decision is needed';
 
 export interface SyncDependencies {
   save: (cache: AccountCache) => void;
   call: (operation: SyncOperation, current: () => boolean) => Promise<SyncResult>;
-  confirm: (conflict: SyncConflict) => boolean;
+  /** Resolves true to keep this device's copy, false to take the account's. May stay pending for as long as the person takes. */
+  confirm: (conflict: SyncConflict) => Promise<boolean>;
   update: (cache: AccountCache, status: string, displayChanged: boolean) => void;
 }
 
@@ -24,8 +26,12 @@ export class SyncCoordinator {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private interval: ReturnType<typeof setInterval> | undefined;
   private status = 'Sync pending';
+  private deciding: SyncConflict | null = null;
 
   constructor(initial: AccountCache, private deps: SyncDependencies, private configured: boolean) { this.cache = initial; }
+
+  /** What a tab shows: the cache, the footer status, and whether sync is waiting on a decision. */
+  get snapshot() { return { cache: this.cache, status: this.status, deciding: this.deciding }; }
 
   start() {
     this.active = true;
@@ -41,6 +47,7 @@ export class SyncCoordinator {
     clearInterval(this.interval);
     this.running = false;
     this.queued = false;
+    this.deciding = null;
   }
   settings(settings: AccountCache['settings']) {
     if (!equal(this.cache.settings, settings) && this.save({ ...this.cache, settings, settingsPending: true })) this.changed();
@@ -91,8 +98,14 @@ export class SyncCoordinator {
     const choices: Partial<Record<SyncConflict, boolean>> = {};
     let reconciled = reconcileAccount(this.cache, response.row, choices);
     while (reconciled.kind === 'conflict') {
-      choices[reconciled.conflict] = this.deps.confirm(reconciled.conflict);
+      // Nothing is sent or discarded until the person answers; edits made meanwhile stay pending in the cache.
+      this.deciding = reconciled.conflict;
+      this.publish(DECISION_STATUS);
+      const keepDevice = await this.deps.confirm(reconciled.conflict);
       if (!current()) return;
+      this.deciding = null;
+      this.publish('Sync pending');
+      choices[reconciled.conflict] = keepDevice;
       reconciled = reconcileAccount(this.cache, response.row, choices);
     }
     this.apply(reconciled.cache, reconciled.displayChanged);

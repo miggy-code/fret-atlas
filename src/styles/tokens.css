@@ -31,6 +31,7 @@
   --notice-bg: #fcf8f1; --notice-border: #e4d3ba; --notice-ink: #78613a;
   --dialog-border: #c8d2da; --guide-ink: #60727f; --guide-note-ink: #6c7c87;
   --board-shadow: none;
+  --popover-shadow: 0 4px 18px #172c4030;
   --disabled-ink: #788791; --toggle-border: #96aeb9; --separator: #9aadb7;
   --scroll-thumb: #9aacb8; --scroll-track: #edf1f4; --toast-bg: #263f49; --toast-ink: #fff;
   /* Selects draw one chevron in the muted ink of their theme. */
@@ -70,6 +71,7 @@ html[data-theme='dark'] {
   --notice-bg: #302920; --notice-border: #67553a; --notice-ink: #ebd0a2;
   --dialog-border: var(--line); --guide-ink: var(--muted); --guide-note-ink: var(--muted);
   --board-shadow: 0 8px 32px #0000002b;
+  --popover-shadow: 0 4px 18px #00000066;
   --disabled-ink: #76858e; --toggle-border: #5f7783; --separator: #5a6a73;
   --scroll-thumb: #4b5a63; --scroll-track: #1b2125; --toast-bg: #e5e9ec; --toast-ink: #16242c;
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239ca8b0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 4.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E");

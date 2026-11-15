@@ -187,7 +187,8 @@ export type Action =
   | { type: 'clear-marks' }
   | { type: 'lowest'; value: number }
   | { type: 'reset-view' }
-  | { type: 'reset-section'; value: Section };
+  | { type: 'reset-section'; value: Section }
+  | { type: 'restore'; value: State };
 const toggleItem = <T,>(items: T[], item: T) => items.includes(item) ? items.filter(i => i !== item) : [...items, item];
 export function reducer(s: State, action: Action): State {
   return settleStudyMode(reduce(s, action));
@@ -260,13 +261,117 @@ function reduce(s: State, action: Action): State {
       for (const key of SECTION_KEYS[action.value]) next[key] = defaults[key];
       return next as unknown as State;
     }
+    // Takes a whole view from elsewhere (the account, another tab); keeps the current object when nothing differs.
+    case 'restore': return JSON.stringify(s) === JSON.stringify(action.value) ? s : action.value;
     case 'reset-view': return { ...defaultState(), lowest: s.lowest, fourths: s.fourths, root: s.root, scaleId: s.scaleId, customPitches: s.customPitches, marks: s.marks };
   }
+}
+/**
+ * Share links carry only what differs from the defaults: `v1~r:2~s:major-pentatonic~lh:1`.
+ * The delimiters (`~ : ,`) survive URL assignment unescaped, which keeps links short.
+ * Links shared before this format hold the whole state as JSON; they still decode.
+ */
+const SHARE_VERSION = 'v1';
+const SHARE_SEPARATOR = '~';
+
+interface Codec<T> { encode: (value: T) => string; decode: (text: string) => T | undefined }
+const list = <T,>(item: Codec<T>): Codec<T[]> => ({
+  encode: values => values.map(item.encode).join(','),
+  decode: text => {
+    if (!text) return [];
+    const items = text.split(',').map(item.decode);
+    return items.every(value => value !== undefined) ? items as T[] : undefined;
+  },
+});
+const bool: Codec<boolean> = { encode: value => value ? '1' : '0', decode: text => text === '1' ? true : text === '0' ? false : undefined };
+const int: Codec<number> = { encode: String, decode: text => /^-?\d+$/.test(text) ? Number(text) : undefined };
+const optionalInt: Codec<number | null> = { encode: value => value === null ? '-' : String(value), decode: text => text === '-' ? null : int.decode(text) };
+// Free text is escaped so a value can never contain a delimiter; restoreState rejects unknown values afterwards.
+const word: Codec<string> = {
+  encode: value => encodeURIComponent(value).replace(/~/g, '%7E'),
+  decode: text => { try { return decodeURIComponent(text); } catch { return undefined; } },
+};
+// A mark is "string:fret"; the colon is the key/value delimiter, so marks use a dot.
+const mark: Codec<string> = { encode: id => id.replace(':', '.'), decode: text => text.replace('.', ':') };
+
+type Field = { [K in Exclude<keyof State, 'version'>]: { code: string; codec: Codec<State[K]> } };
+// Typed per key so a new State field cannot be added without deciding how it is shared.
+const FIELDS: Field = {
+  studyMode: { code: 'm', codec: word as Codec<State['studyMode']> },
+  shapeKind: { code: 'k', codec: word as Codec<State['shapeKind']> },
+  form: { code: 'f', codec: int },
+  studyFret: { code: 'sf', codec: optionalInt },
+  wholeMap: { code: 'wm', codec: bool },
+  hideAdded: { code: 'ha', codec: bool },
+  root: { code: 'r', codec: int },
+  scaleId: { code: 's', codec: word },
+  customPitches: { code: 'cp', codec: list(int) },
+  spelling: { code: 'sp', codec: word as Codec<State['spelling']> },
+  frets: { code: 'fr', codec: int },
+  leftHanded: { code: 'lh', codec: bool },
+  stringNames: { code: 'sn', codec: bool },
+  labels: { code: 'lb', codec: word as Codec<State['labels']> },
+  chordColors: { code: 'cc', codec: bool },
+  degreeColors: { code: 'dc', codec: bool },
+  luckyCharms: { code: 'lc', codec: bool },
+  lowest: { code: 'lo', codec: int },
+  fourths: { code: 'f4', codec: bool },
+  triad: { code: 't', codec: word as Codec<State['triad']> },
+  triadRoot: { code: 'tr', codec: optionalInt },
+  patterns: { code: 'p', codec: list(word as Codec<State['patterns'][number]>) },
+  skeleton: { code: 'sk', codec: bool },
+  warp: { code: 'w', codec: bool },
+  ghostForms: { code: 'gf', codec: bool },
+  isolatedTones: { code: 'it', codec: list(int) },
+  overlayRows: { code: 'or', codec: list(int) },
+  context: { code: 'cx', codec: bool },
+  focus: { code: 'fo', codec: bool },
+  from: { code: 'a', codec: int },
+  to: { code: 'b', codec: int },
+  strings: { code: 'st', codec: list(int) },
+  marks: { code: 'mk', codec: list(mark) },
+};
+const entries = Object.entries(FIELDS) as [keyof Field, { code: string; codec: Codec<unknown> }][];
+const byCode = new Map(entries.map(([key, field]) => [field.code, { key, codec: field.codec }]));
+
+/** The part of a share link after `atlas=`. */
+export function encodeShare(state: State): string {
+  const defaults = defaultState();
+  const changed = entries
+    .filter(([key]) => JSON.stringify(state[key]) !== JSON.stringify(defaults[key]))
+    .map(([key, field]) => `${field.code}:${field.codec.encode(state[key])}`);
+  return [SHARE_VERSION, ...changed].join(SHARE_SEPARATOR);
+}
+
+/** Whole link for the current page, with the setup attached. */
+export function shareUrl(page: string, state: State): string {
+  const url = new URL(page);
+  url.hash = '';
+  // Assigned as text because URLSearchParams would escape the delimiters.
+  url.search = `?atlas=${encodeShare(state)}`;
+  return url.toString();
+}
+
+/** Returns null for anything that is not a share link, so the caller can fall back to the saved view. */
+export function decodeShare(value: string): State | null {
+  if (value === SHARE_VERSION || value.startsWith(`${SHARE_VERSION}${SHARE_SEPARATOR}`)) {
+    const raw: Record<string, unknown> = { ...defaultState() };
+    for (const token of value.split(SHARE_SEPARATOR).slice(1)) {
+      const split = token.indexOf(':');
+      const field = byCode.get(token.slice(0, split));
+      const decoded = split > 0 && field ? field.codec.decode(token.slice(split + 1)) : undefined;
+      if (decoded !== undefined) raw[field!.key] = decoded;
+    }
+    return restoreState(raw);
+  }
+  try { return restoreState(JSON.parse(value)); }
+  catch { return null; }
 }
 export function loadState(): State {
   try {
     const query = new URLSearchParams(window.location.search).get('atlas');
-    if (query) return restoreState(JSON.parse(query));
+    const shared = query && decodeShare(query);
+    if (shared) return shared;
   } catch { /* Invalid links fall back to this device's saved view. */ }
   try { return restoreState(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('fret-atlas-v3') ?? localStorage.getItem('fret-atlas-v2') ?? localStorage.getItem('fret-atlas-v1') ?? 'null')); }
   catch { return defaultState(); }
