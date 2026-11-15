@@ -165,6 +165,28 @@ test('Connect positions in Position view is the saved ghost-forms setting', asyn
   await expect(page.getByRole('button', { name: 'Connect positions' })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('connecting ends when the scale stops offering it, and never leaves a disabled view selected', async ({ page }) => {
+  await page.goto('/');
+  const views = page.getByRole('group', { name: 'Study view' });
+  await views.getByRole('button', { name: 'Shape', exact: true }).click();
+  await page.getByRole('button', { name: 'Connect positions' }).click();
+  await page.getByRole('button', { name: 'Customize notes' }).click();
+  await expect(views.locator('button[aria-pressed=true]:disabled')).toHaveCount(0);
+  await expect(views.getByRole('button', { name: 'Whole neck', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /^Back to / }).click();
+  await expect(page.getByRole('button', { name: 'Connect positions' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(views.getByRole('button', { name: 'Whole neck', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('while connected from another view the Practice deck describes and plays the form on the board', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('group', { name: 'Study view' }).getByRole('button', { name: 'Shape', exact: true }).click();
+  await page.getByRole('button', { name: 'Connect positions' }).click();
+  await page.getByRole('tab', { name: 'Practice' }).click();
+  await expect(page.locator('.deck-context')).toContainText('Form 1');
+  await expect(page.getByRole('button', { name: 'Play through' })).toBeEnabled();
+});
+
 test('finding degrees stays within the current position', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Practice' }).click();

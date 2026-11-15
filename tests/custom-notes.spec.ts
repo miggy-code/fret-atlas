@@ -23,6 +23,15 @@ test('custom notes can be left to return to the scale it started from', async ({
   await expect(page.getByRole('button', { name: /^Back to / })).toHaveCount(0);
 });
 
+test('the way back from custom notes survives switching tabs', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'dorian', root: 2 })));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Customize notes' }).click();
+  await page.getByRole('tab', { name: 'Practice' }).click();
+  await page.getByRole('tab', { name: 'Explore' }).click();
+  await expect(page.getByRole('button', { name: /^Back to / })).toHaveText('Back to Dorian');
+});
+
 test('custom notes opened from a saved custom selection still offers a way out', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('fret-atlas-v4', JSON.stringify({ version: 4, scaleId: 'custom', customPitches: [0, 3, 7] })));
   await page.goto('/');

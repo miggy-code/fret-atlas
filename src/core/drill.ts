@@ -1,5 +1,5 @@
-import { degreeLabel, mod, pitchName, position, scaleById, spellTone } from './music';
-import { inFocus, selectedPitches } from './state';
+import { degreeLabel, noteId, pitchName, position, scaleById, selectedPitches, spellTone, stringName, STRINGS, toneAt } from './music';
+import { inFocus, studyModeAvailable } from './state';
 import type { State } from './state';
 import { inStudy, tuningOf } from './study';
 import type { Study } from './study';
@@ -12,23 +12,21 @@ export interface Drill { key: string; kind: DrillKind; pitch: number; name: stri
 export type TapResult = 'hit' | 'repeat' | 'miss';
 
 // Forms are the point of the app, so form drills only appear in the views that show one.
-export const formDrillAvailable = (s: State, study?: Study) => !!study && (s.studyMode === 'position' && s.scaleId !== 'custom' || !!scaleById(s.scaleId).family && ['shape', 'diagonal'].includes(s.studyMode));
+export const formDrillAvailable = (s: State, study?: Study) => !!study && ['position', 'shape', 'diagonal'].includes(s.studyMode) && studyModeAvailable(s, s.studyMode);
 
 function candidates(s: State, study?: Study, request?: DrillRequest) {
   const scale = scaleById(s.scaleId);
   const tuning = tuningOf(s);
-  const custom = s.scaleId === 'custom';
   const pitches = [...new Set(request ? request.pitches : selectedPitches(s))];
-  // Same names as the board's string gutter: high e is lowercase.
-  const stringName = (string: number) => string === 1 ? pitchName(tuning.midi[0], s.spelling).toLowerCase() : pitchName(tuning.midi[string - 1], s.spelling);
   const label = (pitch: number) => {
-    const tone = custom ? undefined : scale.tones.find(t => mod(s.root + t.semitones) === pitch);
+    // Custom notes have no degrees, so their prompts are named by pitch alone.
+    const tone = toneAt(scale, s.root, pitch);
     return { name: tone ? spellTone(s.root, s.spelling, tone).name : pitchName(pitch, s.spelling), degree: tone ? degreeLabel(tone) : '' };
   };
   const notesWhere = (pitch: number, keep: (string: number, fret: number) => boolean) => {
     const ids: string[] = [];
-    for (let string = 1; string <= 6; string++) for (let fret = 0; fret <= s.frets; fret++) {
-      if (position(string, fret, tuning).pitch === pitch && inFocus(s, string, fret) && keep(string, fret)) ids.push(`${string}:${fret}`);
+    for (const string of STRINGS) for (let fret = 0; fret <= s.frets; fret++) {
+      if (position(string, fret, tuning).pitch === pitch && inFocus(s, string, fret) && keep(string, fret)) ids.push(noteId(string, fret));
     }
     return ids;
   };
@@ -46,7 +44,7 @@ function candidates(s: State, study?: Study, request?: DrillRequest) {
     }
     for (const string of s.strings) {
       const targets = notesWhere(pitch, str => str === string);
-      if (targets.length) drills.push({ key: `string:${string}:${pitch}`, kind: 'string', pitch, name, degree, where: `on the ${stringName(string)} string`, targets, zone: [{ string, left: 0, right: s.frets }] });
+      if (targets.length) drills.push({ key: `string:${string}:${pitch}`, kind: 'string', pitch, name, degree, where: `on the ${stringName(string, tuning, s.spelling)} string`, targets, zone: [{ string, left: 0, right: s.frets }] });
     }
     if (formDrillAvailable(s, study)) {
       const targets = notesWhere(pitch, (string, fret) => inStudy(string, fret, study));

@@ -1,9 +1,14 @@
-import { mod, SCALES, STANDARD_TUNING } from './music';
+import { mod, noteId, SCALES, STANDARD_TUNING } from './music';
 import type { Tuning } from './music';
 
 export type ShapeKind = 'rectangle' | 'stack';
 export type ShapeRow = { string: number; left: number; right: number };
-export type Shape = { id: string; kind: ShapeKind; rows: ShapeRow[]; from: number; to: number; warped: boolean; partial: boolean; endpoints: string[]; continuesAbove?: boolean; continuesBelow?: boolean };
+/**
+ * One rectangle or stack. `bottom` is the string of its lowest row and `base` that row's left fret, on the fourths grid
+ * the shape was found on: both can lie off the neck (string 7 or 8, a negative fret) when only a fragment is visible.
+ * `rows` holds the visible rows, top string first; `endpoints` their corner positions as note ids.
+ */
+export type Shape = { id: string; kind: ShapeKind; bottom: number; base: number; rows: ShapeRow[]; from: number; to: number; partial: boolean; endpoints: string[]; continuesAbove?: boolean; continuesBelow?: boolean };
 export type ShapeRequest = { root: number; scaleId: string; kind: ShapeKind; frets: number; includeFretEdges?: boolean; tuning?: Tuning };
 
 // Extend the fourths grid beyond the outer strings to recognize edge fragments.
@@ -27,13 +32,10 @@ export function findShapes({ root, scaleId, kind, frets, includeFretEdges = fals
       if (!fullRows.every(row => [row.left, row.right].every(fret => skeleton.includes(mod(tuningAt(tuning.midi, row.string) + fret))))) continue;
       const rows = fullRows.filter(row => row.string >= 1 && row.string <= 6 && (includeFretEdges ? row.right >= 0 && row.left <= frets : row.left >= 0 && row.right <= frets));
       if (!rows.length) continue;
-      const endpoints = rows.flatMap(row => [`${row.string}:${row.left}`, `${row.string}:${row.right}`]);
-      result.push({ id: `${kind}:${bottom}:${fret}`, kind, rows, endpoints, from: Math.min(...rows.map(r => r.left)), to: Math.max(...rows.map(r => r.right)), warped: rows.some(r => r.left !== rows[0].left), partial: rows.length < count, continuesAbove: fullRows[0].string < 1, continuesBelow: fullRows.at(-1)!.string > 6 });
+      const endpoints = rows.flatMap(row => [noteId(row.string, row.left), noteId(row.string, row.right)]);
+      result.push({ id: `${kind}:${bottom}:${fret}`, kind, bottom, base: fret, rows, endpoints, from: Math.min(...rows.map(r => r.left)), to: Math.max(...rows.map(r => r.right)), partial: rows.length < count, continuesAbove: fullRows[0].string < 1, continuesBelow: fullRows.at(-1)!.string > 6 });
     }
   }
   return result.sort((a, b) => a.from - b.from || a.rows[0].string - b.rows[0].string);
 }
 export const insideShape = (string: number, fret: number, shape?: Shape) => !!shape?.rows.some(r => r.string === string && fret >= r.left && fret <= r.right);
-export function closestShape(shapes: Shape[], fret: number, topString = 1): Shape | undefined {
-  return [...shapes].sort((a, b) => (Math.abs(a.from - fret) * 10 + Math.abs(a.rows[0].string - topString)) - (Math.abs(b.from - fret) * 10 + Math.abs(b.rows[0].string - topString)))[0];
-}

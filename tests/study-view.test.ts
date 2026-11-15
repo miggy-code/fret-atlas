@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultState, reducer, restoreState, studyModeAvailable } from '../src/core/state';
+import { connectedView, connectOffered, defaultState, reducer, restoreState, studyModeAvailable } from '../src/core/state';
+import { SCALES } from '../src/core/music';
 import type { State } from '../src/core/state';
 import type { StudyMode } from '../src/core/study';
 
@@ -42,4 +43,23 @@ test('clearing every custom note leaves one-string view for the whole neck', () 
 test('a saved state with a disabled view is repaired on restore', () => {
   selectedIsAvailable(restoreState({ version: 4, scaleId: 'custom', customPitches: [0, 3, 7], studyMode: 'shape' }));
   selectedIsAvailable(restoreState({ version: 4, scaleId: 'minor-pentatonic', studyMode: 'nps' }));
+});
+
+test('connecting from another view borrows Position with ghost forms and leaves the saved view alone', () => {
+  const shape = base({ studyMode: 'shape' });
+  assert.deepEqual(connectedView(shape, true), { ...shape, studyMode: 'position', ghostForms: true });
+  assert.equal(shape.studyMode, 'shape');
+  assert.equal(connectedView(shape, false), shape);
+});
+
+test('connecting never shows a view the scale cannot support, and is only offered where it can be shown', () => {
+  // Customizing notes while connected from Shape left Position selected and disabled.
+  const custom = reducer(base({ studyMode: 'shape' }), { type: 'scale', value: 'custom' });
+  assert.equal(connectOffered(custom), false);
+  assert.equal(connectedView(custom, true), custom);
+  for (const scale of SCALES) for (const studyMode of modes) {
+    const s = restoreState({ version: 4, scaleId: scale.id, studyMode, customPitches: [0, 3, 7] });
+    assert.equal(connectOffered(s), !!scale.family, scale.id);
+    selectedIsAvailable(connectedView(s, true));
+  }
 });

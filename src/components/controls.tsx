@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 
-type IconName = 'settings' | 'link' | 'focus' | 'close' | 'help' | 'shift' | 'undo' | 'flame' | 'play' | 'stop' | 'target';
+type IconName = 'settings' | 'link' | 'focus' | 'close' | 'help' | 'shift' | 'undo' | 'flame' | 'play' | 'stop' | 'target' | 'previous' | 'next';
 export function Icon({ name }: { name: IconName }) {
   const paths = {
     shift: <path d="M3 17 21 7m-7-1 7 1-3 6" />,
@@ -14,6 +14,8 @@ export function Icon({ name }: { name: IconName }) {
     flame: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1.2-3.6 2.2-4.6.2 1.6 1 2.6 2 3 0-3 .3-5.6.8-8.4Z" />,
     play: <path d="M8 5.5v13l10-6.5-10-6.5Z" />,
     stop: <rect x="7" y="7" width="10" height="10" rx="1.5" />,
+    previous: <path d="m14.5 6-6 6 6 6" />,
+    next: <path d="m9.5 6 6 6-6 6" />,
     target: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
   };
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;

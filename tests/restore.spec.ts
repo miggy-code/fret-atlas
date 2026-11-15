@@ -50,7 +50,7 @@ test('Whole neck Show filter switches pattern families and hover emphasizes shap
   await page.goto('/');
   await page.getByRole('button', { name: 'Whole neck', exact: true }).click();
   const families = page.getByRole('group', { name: 'Pattern families', exact: true });
-  await expect(page.locator('.form-hint')).toHaveText('Hover a note to highlight its shapes');
+  await expect(page.locator('.view-caption')).toContainText('Hover a note to highlight its shapes');
   const rectangles = await page.locator('.shape-outline.rectangle').count();
   expect(rectangles).toBeGreaterThan(2);
   await families.getByRole('button', { name: 'Stacks', exact: true }).click();

@@ -1,5 +1,5 @@
 import type { Dispatch } from 'react';
-import { describeNote, position } from '../core/music';
+import { describeNote, noteAt } from '../core/music';
 import type { Scale, Tuning } from '../core/music';
 import type { Action, State } from '../core/state';
 import { Icon } from './controls';
@@ -16,8 +16,8 @@ export function MarksPanel({ state, dispatch, scale, tuning }: Props) {
       <button className="text-button" onClick={() => dispatch({ type: 'clear-marks' })}>Clear marks</button>
     </div>
     <div className="marks-list">{state.marks.map(id => {
-      const [s, f] = id.split(':').map(Number);
-      const d = describeNote(position(s, f, tuning), state.root, scale, state.spelling);
+      const note = noteAt(id, tuning), { string: s, fret: f } = note;
+      const d = describeNote(note, state.root, scale, state.spelling);
       return <button key={id} onClick={() => dispatch({ type: 'mark', id })} aria-label={`Remove marked ${d.name}${d.octave}, string ${s}, fret ${f}`}>
         <strong>{d.name}<small>{d.octave}</small></strong>
         <span>S{s} · {f === 0 ? 'Open' : `F${f}`}{f > state.frets ? ' · off screen' : ''}</span>

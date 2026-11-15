@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { describeNote, position, scaleById } from '../core/music';
+import { describeNote, noteAt, scaleById } from '../core/music';
 import { nextDrill } from '../core/drill';
 import type { Drill, DrillRequest } from '../core/drill';
 import { transitionDrill, initialDrillSession } from '../core/drill-session';
@@ -32,7 +32,7 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
     sessionRef.current = transition.state;
     setSession(transition.state);
     for (const effect of transition.effects) {
-      const midi = (id: string) => position(...(id.split(':').map(Number) as [number, number]), tuning).midi;
+      const midi = (id: string) => noteAt(id, tuning).midi;
       if (effect.kind === 'record') {
         try { localStorage.setItem(BEST_KEY, String(effect.best)); } catch { /* The record is optional. */ }
       } else if (effect.kind === 'miss') {
@@ -62,7 +62,7 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
   function tap(id: string) {
     const current = sessionRef.current.phase;
     if (current.kind !== 'finding') return;
-    const note = position(...(id.split(':').map(Number) as [number, number]), tuning);
+    const note = noteAt(id, tuning);
     send({ type: 'tap', id, seconds: ((performance.now() - started.current) / 1000).toFixed(1), missFeedback: `That's ${describeNote(note, state.root, scaleById(state.scaleId), state.spelling).name}. Keep looking for ${current.drill.name}.` });
   }
 
@@ -71,12 +71,17 @@ export function useDrill(state: State, study: Study | undefined, active: boolean
   const skip = () => { const current = sessionRef.current.phase; begin('drill' in current ? current.drill.key : undefined, 'Next prompt', true); };
   const showHint = () => send({ type: 'hint' });
   const reveal = () => send({ type: 'reveal' });
-  return { view, tap, skip, hint: showHint, reveal, streak, best, rounds, feedback };
+  // Only a dealt drill with no targets is empty; before the first round is dealt there is simply nothing yet.
+  const empty = active && phase.kind === 'empty';
+  return { view, empty, tap, skip, hint: showHint, reveal, streak, best, rounds, feedback };
 }
 
 export function DrillBar({ session, onEnd }: { session: ReturnType<typeof useDrill>; onEnd: () => void }) {
-  const { view, streak, best, rounds, feedback, skip, hint, reveal } = session;
-  if (!view) return <section className="drill-bar" aria-label="Practice drill"><p className="drill-empty">No notes to find in this view. Try a different scale or clear the focus.</p><button className="text-button" onClick={onEnd}>End</button></section>;
+  const { view, empty, streak, best, rounds, feedback, skip, hint, reveal } = session;
+  if (!view) return <section className="drill-bar" aria-label="Practice drill">
+    {empty && <p className="drill-empty">No notes to find in this view. Try a different scale or clear the focus.</p>}
+    <button className="text-button" onClick={onEnd}>End</button>
+  </section>;
   const { drill, found, complete } = view;
   return <section className={`drill-bar ${complete ? 'is-complete' : ''}`} aria-label="Practice drill">
     <div className="drill-prompt">

@@ -1,16 +1,22 @@
-import { mod, position, scaleById, tuningFor } from './music';
+import { mod, position, scaleById, selectedPitches, STRINGS, tuningFor } from './music';
 import type { Tuning } from './music';
 import { findShapes } from './shapes';
 import type { Shape, ShapeRow } from './shapes';
-import { selectedPitches } from './selection';
 import type { State } from './state';
 
-export type StudyMode = 'position' | 'shape' | 'diagonal' | 'all' | 'string' | 'nps';
+export const STUDY_MODES = ['position', 'shape', 'diagonal', 'all', 'string', 'nps'] as const;
+export type StudyMode = typeof STUDY_MODES[number];
+/**
+ * One thing to study on the neck: `rows` is where its notes lie, `shapes` the outlines that belong to it and `anchor`
+ * its lowest fret, which orders the stepper. `form` numbers the choice within its view, so it means something
+ * different in each: the pentatonic form 1–5 (Position, Shape), the diagonal's place along the neck, the string
+ * (One string) or the scale degree the lowest string starts on (3 notes/string).
+ */
 export type Study = { id: string; form: number; anchor: number; label: string; rows: ShapeRow[]; shapes: Shape[] };
 
 // Five two-note-per-string positions, relative to the minor tonic on low E.
 // High e first. Major-family scales share the relative minor's geometry.
-const FORMS = [
+const FORM_ROWS = [
   [[0,3],[0,3],[0,2],[0,2],[0,2],[0,3]],
   [[3,5],[3,5],[2,4],[2,5],[2,5],[3,5]],
   [[5,7],[5,8],[4,7],[5,7],[5,7],[5,7]],
@@ -33,13 +39,15 @@ function scaleRows(rows: ShapeRow[], s: State, tuning: Tuning): ShapeRow[] {
   }).filter(row => row.left <= row.right);
 }
 
-// Where the minor tonic sits on the lowest string: lowering the guitar moves it up the neck.
-const lowStringTonic = (s: State) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? 9 : 0) - 4 + s.lowest);
+// The forms are the minor pentatonic's; a major-family scale wears those of its relative minor, nine semitones above its root.
+const RELATIVE_MINOR = 9;
+// The lowest fret where the forms' minor tonic falls on the lowest string: lowering the guitar moves it up the neck.
+const lowStringTonic = (s: State, tuning: Tuning) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? RELATIVE_MINOR : 0) - tuning.midi.at(-1)!);
 
 // One string: the whole scale along a single string. Pick the string with the arrows.
 function stringChoices(s: State): Study[] {
   if (!selectedPitches(s).length) return [];
-  return [1, 2, 3, 4, 5, 6].map(string => ({ id: `string:${string}`, form: string, anchor: 0, label: `String ${string}`, rows: [{ string, left: 0, right: s.frets }], shapes: [] }));
+  return STRINGS.map(string => ({ id: `string:${string}`, form: string, anchor: 0, label: `String ${string}`, rows: [{ string, left: 0, right: s.frets }], shapes: [] }));
 }
 
 // Three notes per string: seven scale notes ascending through all six strings, three on each.
@@ -48,7 +56,7 @@ function npsChoices(s: State, tuning: Tuning): Study[] {
   const degrees = [...new Set(selectedPitches(s))].sort((a, b) => mod(a - s.root) - mod(b - s.root));
   if (degrees.length !== 7) return [];
   const choices: Study[] = [];
-  const low = tuning.midi[5];
+  const low = tuning.midi.at(-1)!;
   degrees.forEach((pitch, k) => {
     for (let octave = 0; octave < 3; octave++) {
       let midi = low + mod(pitch - low) + 12 * octave;
@@ -74,24 +82,23 @@ export function studyChoices(s: State): Study[] {
   if (!scale.family && s.scaleId !== 'custom' && s.studyMode === 'position') {
     return Array.from({ length: Math.ceil((s.frets + 1) / 3) }, (_, i) => {
       const left = i * 3, right = Math.min(s.frets, left + 4);
-      return { id: `position:${left}`, form: 1, anchor: left, label: `Position ${left}–${right}`, rows: Array.from({ length: 6 }, (_, j) => ({ string: j + 1, left, right })), shapes: [] };
+      return { id: `position:${left}`, form: 1, anchor: left, label: `Position ${left}–${right}`, rows: STRINGS.map(string => ({ string, left, right })), shapes: [] };
     });
   }
   if (!scale.family) return [];
-  const tonic = lowStringTonic(s);
+  const tonic = lowStringTonic(s, tuning);
   const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:true,tuning}));
-  if (s.studyMode === 'all') return [{id:'all',form:1,anchor:0,label:'Whole neck',rows:Array.from({length:6},(_,i)=>({string:i+1,left:0,right:s.frets})),shapes:allShapes}];
+  if (s.studyMode === 'all') return [{id:'all',form:1,anchor:0,label:'Whole neck',rows:STRINGS.map(string=>({string,left:0,right:s.frets})),shapes:allShapes}];
   if (s.studyMode === 'diagonal') {
     const family = allShapes.filter(shape => shape.kind === s.shapeKind);
     // A diagonal advances two strings and two frets, plus the G–B correction (none in all fourths).
     const chains = family.filter(shape => shape.rows.some(row=>row.string===6)).map(start => {
       const chain = [start];
-      let bottom = Number(start.id.split(':')[1]);
-      let base = Number(start.id.split(':')[2]);
+      let { bottom, base } = start;
       while (bottom > 2) {
         const nextBottom = bottom - 2;
         const nextBase = base + 2 + (bottom >= 3 && nextBottom <= 2 ? tuning.shift : 0);
-        const next = family.find(shape => shape.id === `${s.shapeKind}:${nextBottom}:${nextBase}`);
+        const next = family.find(shape => shape.bottom === nextBottom && shape.base === nextBase);
         if (!next) break;
         chain.push(next); bottom = nextBottom; base = nextBase;
       }
@@ -101,14 +108,14 @@ export function studyChoices(s: State): Study[] {
     return completeChains.sort((a,b)=>a[0].from-b[0].from).map((shapes,i)=>({
       id:`diagonal:${shapes[0].id}`,form:i+1,anchor:Math.max(0,shapes[0].from),label:`Diagonal ${i+1}`,
       // The upper row of each rectangle adds the next tone for the diagonal run.
-      rows:scaleRows(shapes.flatMap(shape=>shape.rows.map(row=>({...row,right:row.right+(s.shapeKind==='rectangle' && row.string===Number(shape.id.split(':')[1])-1?2:0)}))),s,tuning),shapes,
+      rows:scaleRows(shapes.flatMap(shape=>shape.rows.map(row=>({...row,right:row.right+(s.shapeKind==='rectangle' && row.string===shape.bottom-1?2:0)}))),s,tuning),shapes,
     }));
   }
   // The forms are written for standard tuning; all fourths raises the two highest strings by one fret's pitch.
   const standard = tuningFor(s.lowest, false);
   const offsets = standard.midi.map((midi, i) => midi - tuning.midi[i]);
   const choices: Study[] = [];
-  FORMS.forEach((form, i) => {
+  FORM_ROWS.forEach((form, i) => {
     for (let octave = -2; octave <= 2; octave++) {
       const base = tonic + 12 * octave;
       const rows = form.map(([left,right],index)=>({string:index+1,left:base+left+offsets[index],right:base+right+offsets[index]}));
@@ -126,7 +133,7 @@ export function studyChoices(s: State): Study[] {
 export function activeStudyFromChoices(s: State, choices: Study[]): Study | undefined {
   const sameForm = choices.filter(choice=>choice.form===s.form);
   const candidates = sameForm.length ? sameForm : choices;
-  const preferred = s.studyFret ?? (scaleById(s.scaleId).family ? lowStringTonic(s) : 0);
+  const preferred = s.studyFret ?? (scaleById(s.scaleId).family ? lowStringTonic(s, tuningOf(s)) : 0);
   return [...candidates].sort((a,b)=>Math.abs(a.anchor-preferred)-Math.abs(b.anchor-preferred) || b.anchor-a.anchor)[0];
 }
 
@@ -161,7 +168,7 @@ export function deriveStudy(s: State) {
 // Join neighboring root locations along the neck: the octave/unison skeleton.
 export function rootConnections(s: State) {
   const tuning = tuningOf(s);
-  const roots = Array.from({length:6},(_,i)=>Array.from({length:s.frets+1},(_,fret)=>position(i+1,fret,tuning))).flat().filter(note=>note.pitch===s.root);
+  const roots = STRINGS.flatMap(string=>Array.from({length:s.frets+1},(_,fret)=>position(string,fret,tuning))).filter(note=>note.pitch===s.root);
   const frets = [...new Set(roots.map(note=>note.fret))].sort((a,b)=>a-b);
   return frets.slice(1).flatMap((fret,i)=>roots.filter(n=>n.fret===frets[i]).flatMap(a=>roots.filter(b=>b.fret===fret && [2,3].includes(Math.abs(b.string-a.string))).map(b=>({a,b}))));
 }

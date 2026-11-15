@@ -1,9 +1,12 @@
-/* Key, scale and study view, then the form bar: ‹ 1 2 3 4 5 › with the fret range, Play and the pattern choices. */
+/* The study view with its caption, then the form bar: ‹ 1 2 3 4 5 › with the fret range, Play and the pattern choices. */
 .study-primary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 0 0 16px; }
-.study-primary > .segmented { flex-wrap: wrap; }
+.view-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }
+.view-caption { margin: 0 0 0 4px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.form-label { margin-right: 6px; white-space: nowrap; }
+.view-picker > .segmented { flex-wrap: wrap; }
 /* Study view: the four pentatonic views, then a divider before the two whole-string layouts. */
-.study-primary > .segmented button:nth-child(5) { position: relative; margin-left: 7px; }
-.study-primary > .segmented button:nth-child(5)::before { content: ''; position: absolute; left: -7px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
+.view-picker > .segmented button:nth-child(5) { position: relative; margin-left: 7px; }
+.view-picker > .segmented button:nth-child(5)::before { content: ''; position: absolute; left: -7px; top: 8px; bottom: 8px; width: 1px; background: var(--line); }
 .musical-controls { display: flex; align-items: center; gap: 16px; }
 .key-field select { width: 76px; font-weight: 600; }
 .scale-field select { width: 220px; }
@@ -18,7 +21,6 @@
 .form-status strong { font-size: 13px; font-weight: 600; }
 .form-status span { color: var(--muted); font-size: 11px; }
 .form-frets { margin-left: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
-.form-hint { color: var(--muted); font-size: 12px; }
 
 .form-picker { display: flex; gap: 4px; }
 .form-picker button { position: relative; min-width: 44px; min-height: 44px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); font-size: 13px; }
@@ -38,7 +40,7 @@
 .neck-length { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 13px; }
 .neck-length select { height: 36px; font-size: 13px; }
 
-.fit-neck { display: inline-flex; align-items: center; width: fit-content; min-height: 44px; margin: 12px 0 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); }
+.fit-neck { display: inline-flex; align-items: center; width: fit-content; min-height: 44px; margin: 12px 0 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
 .fit-neck[aria-pressed='true'] { border-color: var(--on-border); background: var(--on-bg); color: var(--accent); font-weight: 600; }
 /* Desktop only needs fitting once a long neck overflows. */
 @media (min-width: 761px) { .fit-neck:not(.long-neck) { display: none; } }
@@ -51,13 +53,17 @@
 }
 @media (max-width: 760px) {
   .study-primary { padding-bottom: 12px; }
+  /* The picker's children join the row above them, so the view strip can take the full width. */
+  .view-picker { display: contents; }
+  .view-picker > .field-label, .form-label { display: none; }
+  .view-caption { width: 100%; margin: 0; }
   .musical-controls { justify-content: space-between; width: 100%; }
   .key-field select { width: 63px; padding-left: 9px; }
   .scale-field { flex: 1; }
   .scale-field select { width: 100%; min-width: 0; }
   /* Even three-column rows instead of ragged wrapping. */
-  .study-primary > .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
-  .study-primary > .segmented button { flex: 1 0 auto; padding-inline: 4px; line-height: 1.2; text-align: center; white-space: normal; }
+  .view-picker > .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .view-picker > .segmented button { flex: 1 0 auto; padding-inline: 4px; line-height: 1.2; text-align: center; white-space: normal; }
   .form-bar > .segmented { width: 100%; }
   .form-bar > .segmented button { flex: 1; }
   .form-navigation { width: 100%; }
@@ -65,7 +71,7 @@
   .form-stepper .form-picker { flex: 1; }
   .form-stepper .form-picker button { flex: 1; min-width: 0; }
   .form-status span { font-size: 12px; }
-  .form-frets, .form-hint { display: none; }
+  .form-frets { display: none; }
   .neck-length { margin-left: 0; }
   .neck-length select { height: 44px; }
 }
@@ -85,13 +91,15 @@
 .workspace[data-orientation='vertical'] .key-field { flex: 0 0 auto; }
 .workspace[data-orientation='vertical'] .key-field select { width: 72px; }
 /* Six views in one row that scrolls, so the first screen stays short; the chosen view is scrolled into sight. */
-.workspace[data-orientation='vertical'] .study-primary > .segmented { display: flex; flex-wrap: nowrap; gap: 6px; padding: 0; overflow-x: auto; border: 0; background: none; scrollbar-width: none; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
-.workspace[data-orientation='vertical'] .study-primary > .segmented::-webkit-scrollbar { display: none; }
-.workspace[data-orientation='vertical'] .study-primary > .segmented button { flex: 0 0 auto; min-height: 44px; padding-inline: 14px; border-color: var(--segment-border); background: var(--segment-bg); line-height: 1.2; white-space: nowrap; scroll-snap-align: start; }
-.workspace[data-orientation='vertical'] .study-primary > .segmented button.active { border-color: var(--segment-active-border); background: var(--segment-active-bg); }
-.workspace[data-orientation='vertical'] .study-primary > .segmented button:nth-child(5) { margin-left: 0; }
-.workspace[data-orientation='vertical'] .study-primary > .segmented button:nth-child(5)::before { content: none; }
+.workspace[data-orientation='vertical'] .view-picker > .segmented { display: flex; flex-wrap: nowrap; gap: 6px; padding: 0; overflow-x: auto; border: 0; background: none; scrollbar-width: none; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.workspace[data-orientation='vertical'] .view-picker > .segmented::-webkit-scrollbar { display: none; }
+.workspace[data-orientation='vertical'] .view-picker > .segmented button { flex: 0 0 auto; min-height: 44px; padding-inline: 14px; border-color: var(--segment-border); background: var(--segment-bg); line-height: 1.2; white-space: nowrap; scroll-snap-align: start; }
+.workspace[data-orientation='vertical'] .view-picker > .segmented button.active { border-color: var(--segment-active-border); background: var(--segment-active-bg); }
+.workspace[data-orientation='vertical'] .view-picker > .segmented button:nth-child(5) { margin-left: 0; }
+.workspace[data-orientation='vertical'] .view-picker > .segmented button:nth-child(5)::before { content: none; }
 .workspace[data-orientation='vertical'] .study-availability { margin: 0 0 6px; }
+/* The first screen belongs to the board, so the caption stays on wider layouts. */
+.workspace[data-orientation='vertical'] .view-caption { display: none; }
 .workspace[data-orientation='vertical'] .icon-button { width: 44px; height: 44px; }
 .board-stage > .form-bar, .board-stage > #deck { position: sticky; top: 0; z-index: 5; margin: 0; padding: 0 0 6px; border: 0; background: var(--page); }
 .workspace[data-orientation='vertical'] .form-stepper { gap: 4px; }

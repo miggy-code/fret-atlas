@@ -1,6 +1,6 @@
 /* The board: one SVG neck, its notes and pattern outlines, and the legend under it. */
 .board-shell { position: relative; margin-top: 24px; padding: 24px 16px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-.board-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #9aacb8 #edf1f4; }
+.board-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
 /* A vertical neck fits the width and scrolls with the page, so the board is not a scroller of its own. */
 .board-shell[data-orientation='vertical'] .board-scroll { overflow: visible; }
 .fretboard { display: block; width: 100%; min-width: calc(var(--board-width, 0) * 1px); height: auto; overflow: visible; user-select: none; }
@@ -128,7 +128,21 @@
 @keyframes note-cheer { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.35); } }
 @keyframes note-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
 
-.board-legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 4px 4px; }
+/* Under the neck: what the layers mean on the left, the note under the pointer on the right. */
+.board-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px; min-height: 36px; padding: 8px 4px 4px; }
+.board-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.note-inspector { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 24px; margin-left: auto; color: var(--quiet-ink); font-size: 12px; }
+.note-inspector strong { color: var(--ink); font-size: 15px; line-height: 1; }
+.note-inspector small { margin-left: 2px; font-size: 12px; }
+.note-inspector em { color: var(--mark); font-style: normal; font-weight: 600; }
+.keyboard-hint { display: inline-flex; align-items: center; gap: 4px; }
+.keyboard-hint > span { margin: 0 4px; }
+.touch-hint { display: none; }
+/* Without a pointer that hovers there is nothing to hover and no arrow keys: say what a tap does instead. */
+@media (hover: none) {
+  .pointer-hint, .keyboard-hint { display: none; }
+  .touch-hint { display: inline; }
+}
 .legend-items { display: flex; flex-wrap: wrap; gap: 16px; color: var(--quiet-ink); font-size: 12px; }
 .legend-items > span { display: flex; align-items: center; gap: 8px; }
 .legend-note { display: inline-block; width: 12px; height: 12px; border: 1px solid #a6b8c1; border-radius: 3px; background: var(--legend-fill); }
@@ -151,6 +165,8 @@
   .board-notice { margin-inline: 16px; }
   /* A portrait phone gives the board the full screen width, undoing the page padding (12px), so the notes stay large. */
   .board-shell[data-orientation='vertical'] { margin: 0 -12px; padding: 6px 0 4px; border-inline: 0; border-radius: 0; }
+  .board-shell[data-orientation='vertical'] .board-footer { padding-inline: 12px; }
+  .keyboard-hint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .note-symbol, .note-burst, .shape-outline, .shape-halo, .shared-rail { animation: none !important; transition: none !important; }

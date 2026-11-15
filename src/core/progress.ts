@@ -1,5 +1,6 @@
 // Which pentatonic forms have been studied, per key and scale family. A device record, kept out of the shared view.
-export type Family = 'minor' | 'major';
+import type { Family } from './music';
+export type { Family };
 export type Level = 1 | 2; // 1: seen, 2: practiced (played through or drilled)
 export type Progress = Record<string, Level>;
 export const FORMS = [1, 2, 3, 4, 5] as const;

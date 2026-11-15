@@ -2,7 +2,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { describeNote, LOWEST_STRING_CHOICES, pitchName, position, scaleById } from '../core/music';
 import type { Scale, Tuning } from '../core/music';
-import { loadState, reducer, restoreState, visibleShapes } from '../core/state';
+import { connectedView, connectOffered, loadState, reducer, restoreState, visibleShapes } from '../core/state';
 import type { Action, State } from '../core/state';
 import type { SettingsDelta } from '../core/sync-edit';
 import { notePresentation } from '../core/presentation';
@@ -19,7 +19,7 @@ import { MarksPanel } from './MarksPanel';
 import { PracticeDeck } from './PracticeDeck';
 import { useProgress } from './Progress';
 import { SettingsDialog } from './SettingsDialog';
-import { FormBar, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
+import { FormBar, KeyScalePicker, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
 import { ModeTabs } from './ModeTabs';
 import { Topbar } from './Topbar';
 import { pluck } from './audio';
@@ -50,6 +50,8 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   // Practice picks its own degrees (intervals from the root), apart from Explore's isolation, so practicing never changes the map.
   // It lives here because the Practice deck unmounts while a drill runs.
   const [practiceDegrees, setPracticeDegrees] = useState<number[]>([0]);
+  // The scale Customize notes started from, kept here because the Explore deck unmounts on the Practice tab.
+  const [customFrom, setCustomFrom] = useState<string | null>(null);
   const [request, setRequest] = useState<DrillRequest>();
   const [connecting, setConnecting] = useState(false);
   const [fitNeck, setFitNeck] = useState(false);
@@ -68,14 +70,15 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const vertical = orientation === 'vertical';
   const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
-  // Connecting from another view borrows Position with ghost forms until the next view change.
-  const viewState = useMemo<State>(() => connecting ? { ...state, studyMode: 'position', ghostForms: true } : state, [state, connecting]);
+  // Connecting from another view lasts until the next view change, or until the scale no longer offers it.
+  if (connecting && !connectOffered(state)) setConnecting(false);
+  const viewState = useMemo(() => connectedView(state, connecting), [state, connecting]);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(viewState), [viewState]);
   const shapes = useMemo(() => visibleShapes(viewState, study), [viewState, study]);
   const progress = useProgress(account && { initial: account.progress, onChange: account.onProgress, onClear: account.onClear });
   // Progress tracks the five pentatonic positions, so only Position view counts toward it.
   const family = scale.family;
-  const formStudy = family && state.studyMode === 'position' ? study : undefined;
+  const formStudy = family && viewState.studyMode === 'position' ? study : undefined;
   const drill = useDrill(viewState, study, practicing, sound, round => { if (round.kind === 'form' && formStudy) practiced(formStudy.form, state.root); }, request);
   useAccountChanges(account, practicing, (settings, saved) => {
     matched(settings);
@@ -180,15 +183,19 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   </div>;
   const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing}
     onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
-    {!practicing && <BoardLegend state={viewState} shapes={shapes} scale={scale} />}
+    {/* What is on the board and what the pointer is on read together, right under the neck. */}
+    {!practicing && <div className="board-footer">
+      <BoardLegend state={viewState} shapes={shapes} scale={scale} />
+      <NoteInspector inspected={inspected} state={state} tuning={tuning} scale={scale} />
+    </div>}
   </Fretboard>;
   const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
     {tab === 'practice'
-      ? <PracticeDeck state={state} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
+      ? <PracticeDeck state={viewState} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
         onClearProgress={progress.clear} synced={!!account} chord={{ root: chord.root, kind: chord.kind }} onChord={chord.change}
         degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
         onFindNotes={() => startFind(undefined, 'find-notes')} onFind={startFind} onPlayThrough={() => playForm(true)} />
-      : <ExploreDeck state={state} dispatch={dispatch} scale={scale} chord={{
+      : <ExploreDeck state={viewState} dispatch={dispatch} scale={scale} customFrom={customFrom} onCustomize={setCustomFrom} chord={{
         kind: chord.kind, root: chord.root, shown: chord.shown, onChange: chord.change, onToggle: chord.toggle, onHear: hearChord,
       }} />}
   </div>;
@@ -200,12 +207,11 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
         onGuide={() => guide.current?.showModal()} onSettings={() => settings.current?.showModal()} />
       <section className="board-card" aria-label="Interactive fretboard">
         <div className="board-heading">
+          {/* Key and scale are the heading: the selects name the study, so the h1 is only shown where they are not (a drill). */}
           <div className="board-title">
-            <span className="tonic-badge">{pitchName(state.root, state.spelling)}</span>
-            <div>
-              <h1>{scale.name}</h1>
-              <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
-            </div>
+            <h1 className={practicing ? undefined : 'sr-only'}><span className="tonic-badge">{pitchName(state.root, state.spelling)}</span> {scale.name}</h1>
+            {!practicing && !vertical && <KeyScalePicker state={viewState} dispatch={studyDispatch} />}
+            <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
           </div>
           {!vertical && tabs}
         </div>
@@ -232,7 +238,6 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
             {board}
             {deck}
           </>}
-        <InspectionRow inspected={inspected} state={state} tuning={tuning} scale={scale} />
       </section>
       <MarksPanel state={state} dispatch={dispatch} scale={scale} tuning={tuning} />
       {manualLink && <label className="manual-link">View link<input readOnly value={manualLink} onFocus={e => e.target.select()} /></label>}
@@ -247,15 +252,20 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   </>;
 }
 
-type InspectionProps = { inspected: string | null; state: State; tuning: Tuning; scale: Scale };
+type InspectorProps = { inspected: string | null; state: State; tuning: Tuning; scale: Scale };
 
-function InspectionRow({ inspected, state, tuning, scale }: InspectionProps) {
+/** Names the note under the pointer (or the last one tapped), and says how to mark one while nothing is chosen. */
+function NoteInspector({ inspected, state, tuning, scale }: InspectorProps) {
   const [string, fret] = inspected ? inspected.split(':').map(Number) : [];
   const note = inspected ? describeNote(position(string, fret, tuning), state.root, scale, state.spelling) : undefined;
-  return <div className="inspection-row">
-    <div className="note-inspector" role="status" aria-live="polite">{note
-      ? <><strong>{note.name}<small>{note.octave}</small></strong><span>Degree {note.interval}</span><span>String {string} · {fret === 0 ? 'Open' : `Fret ${fret}`}</span></>
-      : <span>Select a note to inspect or mark it</span>}</div>
-    <span className="keyboard-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> navigate <span>·</span> <kbd>enter</kbd> mark</span>
-  </div>;
+  return <div className="note-inspector" role="status" aria-live="polite">{note
+    ? <>
+      <strong>{note.name}<small>{note.octave}</small></strong><span>Degree {note.interval}</span><span>String {string} · {fret === 0 ? 'Open' : `Fret ${fret}`}</span>
+      {state.marks.includes(inspected!) && <em>Marked</em>}
+    </>
+    : <>
+      <span className="pointer-hint">Hover a note for its name. Click to mark it.</span>
+      <span className="touch-hint">Tap a note to mark it.</span>
+      <span className="keyboard-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> move <span>·</span> <kbd>enter</kbd> mark</span>
+    </>}</div>;
 }
