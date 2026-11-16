@@ -11,7 +11,7 @@ const base = (over: Partial<State>): State => ({ ...defaultState(), ...over });
 const selectedIsAvailable = (s: State) => assert.ok(studyModeAvailable(s, s.studyMode), `${s.studyMode} is selected but unavailable for ${s.scaleId}`);
 
 test('the whole neck is always an available view', () => {
-  for (const scaleId of ['minor-pentatonic', 'major', 'custom']) assert.ok(studyModeAvailable(base({ scaleId }), 'all'));
+  for (const scaleId of ['minor-pentatonic', 'major', 'custom'] as const) assert.ok(studyModeAvailable(base({ scaleId }), 'all'));
 });
 
 test('availability follows the scale: shape and diagonal need a pentatonic family, 3 notes/string needs seven notes, position needs a named scale', () => {

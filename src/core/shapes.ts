@@ -1,5 +1,5 @@
-import { mod, noteId, SCALES, STANDARD_TUNING } from './music';
-import type { Tuning } from './music';
+import { mod, noteId, scaleById, STANDARD_TUNING } from './music';
+import type { ScaleId, Tuning } from './music';
 
 export type ShapeKind = 'rectangle' | 'stack';
 export type ShapeRow = { string: number; left: number; right: number };
@@ -9,15 +9,15 @@ export type ShapeRow = { string: number; left: number; right: number };
  * `rows` holds the visible rows, top string first; `endpoints` their corner positions as note ids.
  */
 export type Shape = { id: string; kind: ShapeKind; bottom: number; base: number; rows: ShapeRow[]; from: number; to: number; partial: boolean; endpoints: string[]; continuesAbove?: boolean; continuesBelow?: boolean };
-export type ShapeRequest = { root: number; scaleId: string; kind: ShapeKind; frets: number; includeFretEdges?: boolean; tuning?: Tuning };
+export type ShapeRequest = { root: number; scaleId: ScaleId; kind: ShapeKind; frets: number; includeFretEdges?: boolean; tuning?: Tuning };
 
 // Extend the fourths grid beyond the outer strings to recognize edge fragments.
 // The only tuning discontinuity remains the physical G–B boundary.
 const tuningAt = (midi: readonly number[], string: number) => string < 1 ? midi[0] + 5 * (1 - string) : string > 6 ? midi[5] - 5 * (string - 6) : midi[string - 1];
 
 export function findShapes({ root, scaleId, kind, frets, includeFretEdges = false, tuning = STANDARD_TUNING }: ShapeRequest): Shape[] {
-  const scale = SCALES.find(s => s.id === scaleId);
-  if (!scale?.family || !Number.isInteger(root) || root < 0 || root > 11 || !Number.isInteger(frets) || frets < 0 || frets > 24) return [];
+  const scale = scaleById(scaleId);
+  if (!scale.family || !Number.isInteger(root) || root < 0 || root > 11 || !Number.isInteger(frets) || frets < 0 || frets > 24) return [];
   const skeleton = scale.tones.filter(t => t.skeleton).map(t => mod(root + t.semitones));
   const count = kind === 'rectangle' ? 2 : 3;
   const width = kind === 'rectangle' ? 3 : 2;

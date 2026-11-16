@@ -1,5 +1,5 @@
-import { isNeckLength, isNoteId, mod, NECK_LENGTHS, scaleById, SCALES, selectedPitches, triadOf } from './music';
-import type { Spelling, TriadQuality } from './music';
+import { isNeckLength, isNoteId, isScaleId, mod, NECK_LENGTHS, scaleById, selectedPitches, triadOf } from './music';
+import type { ScaleId, Spelling, TriadQuality } from './music';
 import type { Shape, ShapeKind } from './shapes';
 import { activeStudy, STUDY_MODES, studyChoices, studyModeAvailable } from './study';
 import type { StudyMode } from './study';
@@ -18,7 +18,7 @@ export interface State {
   wholeMap: boolean;
   hideAdded: boolean;
   root: number;
-  scaleId: string;
+  scaleId: ScaleId;
   customPitches: number[];
   spelling: Spelling;
   frets: number;
@@ -96,7 +96,7 @@ function readState(raw: unknown): State {
   if (integer(raw.root, 0, 11)) s.root = raw.root as number;
   const legacy = raw.version !== 2 && raw.version !== 3 && raw.version !== 4;
   const scaleId = legacy ? raw.scale : raw.scaleId;
-  if (typeof scaleId === 'string' && SCALES.some(scale => scale.id === scaleId)) s.scaleId = scaleId;
+  if (isScaleId(scaleId)) s.scaleId = scaleId;
   else if (legacy && Array.isArray(raw.notes)) s.scaleId = 'custom';
   s.customPitches = pitchList(legacy ? raw.notes : raw.customPitches, s.customPitches);
   if (raw.spelling === 'sharps' || raw.spelling === 'flats') s.spelling = raw.spelling;
@@ -216,9 +216,8 @@ function reduce(s: State, action: Action): State {
     }
     case 'root': return integer(action.value, 0, 11) ? { ...s, root: mod(action.value), studyFret: null } : s;
     case 'scale': {
-      const scale = SCALES.find(item => item.id === action.value);
-      // A view the new scale cannot show is replaced afterwards, by settleStudyMode.
-      return scale ? { ...s, scaleId: action.value, studyFret: null, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
+      // The menu's value is outside data until checked. A view the new scale cannot show is replaced afterwards, by settleStudyMode.
+      return isScaleId(action.value) ? { ...s, scaleId: action.value, studyFret: null, isolatedTones: [], customPitches: action.value === 'custom' ? selectedPitches(s) : s.customPitches } : s;
     }
     case 'isolate-tone': return { ...s, isolatedTones: toggleItem(s.isolatedTones, action.value).sort((a, b) => a - b) };
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
@@ -294,7 +293,7 @@ const FIELDS: Field = {
   wholeMap: { code: 'wm', codec: bool },
   hideAdded: { code: 'ha', codec: bool },
   root: { code: 'r', codec: int },
-  scaleId: { code: 's', codec: word },
+  scaleId: { code: 's', codec: word as Codec<State['scaleId']> },
   customPitches: { code: 'cp', codec: list(int) },
   spelling: { code: 'sp', codec: word as Codec<State['spelling']> },
   frets: { code: 'fr', codec: int },

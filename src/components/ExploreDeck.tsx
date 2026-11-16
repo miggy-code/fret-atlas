@@ -1,5 +1,5 @@
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
-import { degreeLabel, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRINGS } from '../core/music';
+import { degreeLabel, isScaleId, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRINGS } from '../core/music';
 import type { Scale, TriadQuality } from '../core/music';
 import { noteColorsOf, noteViewOf, sectionModified } from '../core/state';
 import type { Action, NoteColors, NoteView, State } from '../core/state';
@@ -91,7 +91,7 @@ function ToneStrip({ state, dispatch, scale, customFrom, onCustomize }: Props & 
   const pitches = selectedPitches(state);
   const custom = state.scaleId === 'custom';
   const anyIsolated = state.isolatedTones.length > 0;
-  const backTo = scaleById(customFrom && customFrom !== 'custom' ? customFrom : 'minor-pentatonic');
+  const backTo = scaleById(isScaleId(customFrom) && customFrom !== 'custom' ? customFrom : 'minor-pentatonic');
   return <div className="degree-legend">
     <p className="degree-legend-heading">{custom ? 'Custom notes' : <>Scale degrees<span>Click to isolate</span></>}</p>
     <section className="tone-strip" aria-label="Scale tones">

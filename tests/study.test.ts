@@ -24,7 +24,7 @@ test('all patterns shows the whole scale and retains both colors on shared rails
 });
 
 test('scale positions include nearby added tones while retaining pentatonic shapes', () => {
-  const blues = { ...defaultState(), scaleId: 'minor-blues' };
+  const blues = { ...defaultState(), scaleId: 'minor-blues' as const };
   for (const [string, fret] of [[5, 6], [3, 8], [2, 4]]) {
     const note = notePresentation(position(string, fret), blues);
     assert.equal(note.visible, true, `${string}:${fret}`);
@@ -33,12 +33,12 @@ test('scale positions include nearby added tones while retaining pentatonic shap
   assert.equal(notePresentation(position(2, 4), { ...blues, hideAdded: true }).visible, false);
   assert.equal(notePresentation(position(2, 4), defaultState()).visible, false);
   assert.equal(notePresentation(position(1, 9), blues).visible, false); // F♯ is not in A blues
-  const minor = { ...defaultState(), scaleId: 'minor' };
+  const minor = { ...defaultState(), scaleId: 'minor' as const };
   assert.equal(notePresentation(position(2, 6), minor).visible, true); // F on the B string
 });
 
 test('open position retains playable notes at the nut without including distant open strings', () => {
-  const s = { ...defaultState(), root: 3, scaleId: 'minor-blues', frets: 24 };
+  const s = { ...defaultState(), root: 3, scaleId: 'minor-blues' as const, frets: 24 };
   const study = studyChoices(s).find(choice => choice.id === '1:-1');
   assert.ok(study, 'E-flat minor form crossing the nut is available');
   assert.ok(study.rows.every(row => row.left >= 0));
@@ -48,7 +48,7 @@ test('open position retains playable notes at the nut without including distant 
 });
 
 test('scales without pentatonic shapes offer bounded, navigable positions', () => {
-  const s = { ...defaultState(), root: 0, scaleId: 'whole-tone', frets: 12 };
+  const s = { ...defaultState(), root: 0, scaleId: 'whole-tone' as const, frets: 12 };
   const study = activeStudy(s)!;
   assert.equal(study.label, 'Position 0–4');
   assert.equal(notePresentation(position(6, 0), s).visible, true); // E is in C whole tone
@@ -104,7 +104,7 @@ test('derived study data matches the public selectors across study modes',()=>{
     {...defaultState(),ghostForms:true},
     {...defaultState(),studyMode:'shape' as const},
     {...defaultState(),studyMode:'string' as const},
-    {...defaultState(),studyMode:'nps' as const,scaleId:'major'},
+    {...defaultState(),studyMode:'nps' as const,scaleId:'major' as const},
   ]) {
     const derived=deriveStudy(s);
     assert.deepEqual(derived.choices,studyChoices(s));
@@ -145,8 +145,8 @@ test('whole map adds quiet notes, skeleton joins roots, and neither changes the 
     assert.equal(a.pitch,root); assert.equal(b.pitch,root);
     assert.ok([2,3].includes(Math.abs(a.string-b.string)));
   }
-  assert.equal(notePresentation(position(1,7),{...s,scaleId:'minor',skeleton:true}).visible,true);
-  assert.equal(notePresentation(position(1,7),{...s,scaleId:'minor',hideAdded:true}).visible,false);
+  assert.equal(notePresentation(position(1,7),{...s,scaleId:'minor' as const,skeleton:true}).visible,true);
+  assert.equal(notePresentation(position(1,7),{...s,scaleId:'minor' as const,hideAdded:true}).visible,false);
 });
 
 test('old skeleton preferences migrate to the separate pentatonic-only control',()=>{
@@ -226,6 +226,6 @@ test('the music layer does not depend on the saved view', async () => {
     assert.doesNotMatch(source, /from '\.\/state'/, file);
   }
   // A study needs only what it reads, not a whole saved view.
-  const choices = studyChoices({ root: 9, scaleId: 'minor-pentatonic', customPitches: [], lowest: 0, fourths: false, frets: 12, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, ghostForms: false });
+  const choices = studyChoices({ root: 9, scaleId: 'minor-pentatonic' as const, customPitches: [], lowest: 0, fourths: false, frets: 12, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, ghostForms: false });
   assert.deepEqual(choices.map(choice => choice.id), studyChoices(defaultState()).map(choice => choice.id));
 });

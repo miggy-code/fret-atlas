@@ -17,7 +17,8 @@ export const accidental = (amount: number) => amount < 0 ? '♭'.repeat(-amount)
 export type Tone = { semitones: number; degree: number; alteration: number; skeleton: boolean };
 /** Which pentatonic a scale contains whole, and so whose rectangles and stacks it wears. */
 export type Family = 'minor' | 'major';
-export type Scale = { id: string; name: string; group: string; tones: readonly Tone[]; family?: Family };
+// Generic over the id so the catalog below keeps each id as a literal, from which `ScaleId` is derived.
+type ScaleOf<Id extends string> = { id: Id; name: string; group: string; tones: readonly Tone[]; family?: Family };
 const tone = (semitones: number, degree: number, alteration = 0, skeleton = true): Tone => ({ semitones, degree, alteration, skeleton });
 const minor = [tone(0, 1), tone(3, 3, -1), tone(5, 4), tone(7, 5), tone(10, 7, -1)];
 const major = [tone(0, 1), tone(2, 2), tone(4, 3), tone(7, 5), tone(9, 6)];
@@ -27,18 +28,18 @@ const familyOf = (semitones: number[]): Family | undefined =>
 const diatonic = (steps: number[], family: Family | undefined) => steps.map((step, i) => tone(step, i + 1, step - NATURALS[i], !family || (family === 'minor' ? minor : major).some(t => t.semitones === step)));
 // Explicit [semitones, degree] pairs; the alteration is derived from the major-scale natural for that degree.
 const spelled = (pairs: [number, number][]) => pairs.map(([semitones, degree]) => tone(semitones, degree, semitones - NATURALS[degree - 1]));
-const mode = (id: string, name: string, group: string, steps: number[]): Scale => {
+const named = <Id extends string>(id: Id, name: string, group: string, tones: readonly Tone[], family?: Family): ScaleOf<Id> => ({ id, name, group, tones, family });
+const mode = <Id extends string>(id: Id, name: string, group: string, steps: number[]): ScaleOf<Id> => {
   const family = familyOf(steps);
   return { id, name, group, tones: diatonic(steps, family), family };
 };
-const explicit = (id: string, name: string, group: string, pairs: [number, number][]): Scale => ({ id, name, group, tones: spelled(pairs) });
-/** Every scale that can be chosen, in menu order. `custom` has no tones of its own: the view holds its pitch classes. */
-export const SCALES: readonly Scale[] = [
-  { id: 'minor-pentatonic', name: 'Minor pentatonic', group: 'Pentatonic & blues', tones: minor, family: 'minor' },
-  { id: 'major-pentatonic', name: 'Major pentatonic', group: 'Pentatonic & blues', tones: major, family: 'major' },
-  { id: 'minor-blues', name: 'Blues', group: 'Pentatonic & blues', tones: [...minor, tone(6, 5, -1, false)].sort((a, b) => a.semitones - b.semitones), family: 'minor' },
-  { id: 'major-blues', name: 'Major blues', group: 'Pentatonic & blues', tones: [...major, tone(3, 3, -1, false)].sort((a, b) => a.semitones - b.semitones), family: 'major' },
-  { id: 'minor-hexatonic', name: 'Minor hexatonic', group: 'Pentatonic & blues', tones: [...minor, tone(2, 2, 0, false)].sort((a, b) => a.semitones - b.semitones), family: 'minor' },
+const explicit = <Id extends string>(id: Id, name: string, group: string, pairs: [number, number][]): ScaleOf<Id> => ({ id, name, group, tones: spelled(pairs) });
+const CATALOG = [
+  named('minor-pentatonic', 'Minor pentatonic', 'Pentatonic & blues', minor, 'minor'),
+  named('major-pentatonic', 'Major pentatonic', 'Pentatonic & blues', major, 'major'),
+  named('minor-blues', 'Blues', 'Pentatonic & blues', [...minor, tone(6, 5, -1, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
+  named('major-blues', 'Major blues', 'Pentatonic & blues', [...major, tone(3, 3, -1, false)].sort((a, b) => a.semitones - b.semitones), 'major'),
+  named('minor-hexatonic', 'Minor hexatonic', 'Pentatonic & blues', [...minor, tone(2, 2, 0, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
   explicit('dominant-pentatonic-1', 'Dominant pentatonic 1', 'Pentatonic & blues', [[0, 1], [2, 2], [4, 3], [7, 5], [10, 7]]),
   explicit('dominant-pentatonic-2', 'Dominant pentatonic 2', 'Pentatonic & blues', [[0, 1], [4, 3], [5, 4], [7, 5], [10, 7]]),
   explicit('minor-major-pentatonic', 'Minor-major pentatonic', 'Pentatonic & blues', [[0, 1], [3, 3], [5, 4], [7, 5], [9, 6]]),
@@ -61,14 +62,25 @@ export const SCALES: readonly Scale[] = [
   explicit('whole-tone', 'Whole tone', 'Symmetric', [[0, 1], [2, 2], [4, 3], [6, 4], [8, 5], [10, 7]]),
   explicit('diminished-hw', 'Diminished (half–whole)', 'Symmetric', [[0, 1], [1, 2], [3, 3], [4, 3], [6, 4], [7, 5], [9, 6], [10, 7]]),
   explicit('diminished-wh', 'Diminished (whole–half)', 'Symmetric', [[0, 1], [2, 2], [3, 3], [5, 4], [6, 5], [8, 6], [9, 6], [11, 7]]),
-  { id: 'custom', name: 'Custom notes', group: 'Custom', tones: [] },
+  named('custom', 'Custom notes', 'Custom', []),
 ];
-export const scaleById = (id: string) => SCALES.find(s => s.id === id) ?? SCALES[0];
+export type ScaleId = typeof CATALOG[number]['id'];
+export type Scale = ScaleOf<ScaleId>;
+/** Every scale that can be chosen, in menu order. `custom` has no tones of its own: the view holds its pitch classes. */
+export const SCALES: readonly Scale[] = CATALOG;
+/** Outside data (a saved view, a link, a menu) passes this check before its scale id is used anywhere else. */
+export const isScaleId = (id: unknown): id is ScaleId => SCALES.some(s => s.id === id);
+/** No fallback: a wrong id must fail loudly rather than show a plausible board for another scale. */
+export const scaleById = (id: ScaleId): Scale => {
+  const scale = SCALES.find(s => s.id === id);
+  if (!scale) throw new RangeError(`Unknown scale id: ${id}`);
+  return scale;
+};
 export const degreeLabel = (t: Tone) => `${accidental(t.alteration)}${t.degree}`;
 export const genericDegree = (semitones: number) => ['1', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♭6', '6', '♭7', '7'][mod(semitones)];
 export const toneAt = (scale: Scale, root: number, pitch: number) => scale.tones.find(t => t.semitones === mod(pitch - root));
 /** The pitch classes on the board: a named scale transposed to its root, or the custom notes as they are. */
-export const selectedPitches = (s: { root: number; scaleId: string; customPitches: number[] }) =>
+export const selectedPitches = (s: { root: number; scaleId: ScaleId; customPitches: number[] }) =>
   s.scaleId === 'custom' ? s.customPitches : scaleById(s.scaleId).tones.map(t => mod(s.root + t.semitones));
 export function spellTone(root: number, spelling: Spelling, t: Tone) {
   const letter = mod(LETTERS.indexOf(pitchName(root, spelling)[0]) + t.degree - 1, 7);

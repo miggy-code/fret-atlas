@@ -4,6 +4,7 @@ import { arrowStep, boardGeometry, CELL, pointInPolygon, ROW, shapeOutline, shap
 import type { BoardGeometry, Orientation, Point } from '../src/core/geometry';
 import { findShapes } from '../src/core/shapes';
 import { position, scaleById } from '../src/core/music';
+import type { ScaleId } from '../src/core/music';
 import { defaultState } from '../src/core/state';
 import { studyChoices } from '../src/core/study';
 
@@ -42,7 +43,7 @@ test('rendered shape paths use the same endpoint centers as their geometry', () 
 });
 
 test('every neighboring pentatonic pair belongs to the pattern map, including outer strings and open frets', () => {
-  for (let root=0;root<12;root++) for (const scaleId of ['minor-pentatonic','major-pentatonic']) {
+  for (let root=0;root<12;root++) for (const scaleId of ['minor-pentatonic','major-pentatonic'] as const) {
     const shapes = (['rectangle','stack'] as const).flatMap(kind=>findShapes({root,scaleId,kind,frets:24}));
     const pairs = new Set(shapes.flatMap(s=>s.rows.map(r=>`${r.string}:${r.left}:${r.right}`)));
     const pitches=scaleById(scaleId).tones.map(t=>(root+t.semitones)%12);
@@ -54,7 +55,7 @@ test('every neighboring pentatonic pair belongs to the pattern map, including ou
 });
 
 // Every form of every key, as the outlines the board draws and the notes it places.
-function forms(root: number, scaleId = 'minor-pentatonic') {
+function forms(root: number, scaleId: ScaleId = 'minor-pentatonic') {
   return studyChoices({ ...defaultState(), root, scaleId, frets: 24 });
 }
 const rotateClockwise = (point: Point, horizontal: BoardGeometry): Point => ({ x: horizontal.height - point.y, y: point.x });

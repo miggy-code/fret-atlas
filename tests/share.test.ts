@@ -70,7 +70,7 @@ test('the default state encodes to the bare version marker', () => {
 });
 
 test('a link with a few changed settings stays well under 100 characters', () => {
-  const state = { ...defaultState(), root: 2, scaleId: 'major-pentatonic', leftHanded: true, labels: 'notes' as const, form: 3 };
+  const state = { ...defaultState(), root: 2, scaleId: 'major-pentatonic' as const, leftHanded: true, labels: 'notes' as const, form: 3 };
   const link = shareUrl('https://fretory.com/?old=1#hash', state);
   assert.equal(link, 'https://fretory.com/?atlas=v1~f:3~r:2~s:major-pentatonic~lh:1~lb:notes');
   assert.ok(link.length < 100, `${link.length} characters`);
@@ -92,7 +92,7 @@ test('every field has its own short code', () => {
 });
 
 test('links shared before the compact format still open exactly as before', () => {
-  const legacy = { ...defaultState(), root: 4, scaleId: 'major-pentatonic', leftHanded: true, marks: ['2:5'] };
+  const legacy = { ...defaultState(), root: 4, scaleId: 'major-pentatonic' as const, leftHanded: true, marks: ['2:5'] };
   assert.deepEqual(decodeShare(JSON.stringify(legacy)), restoreState(legacy));
   // Old links from earlier schema versions are normalised by restoreState, not rejected.
   assert.deepEqual(decodeShare('{"root":3,"scale":"major-pentatonic"}'), restoreState({ root: 3, scale: 'major-pentatonic' }));

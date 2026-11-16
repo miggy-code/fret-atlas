@@ -15,7 +15,7 @@ const THEORY: Record<string, number[]> = {
 };
 
 test('new scales have the standard pitch content', () => {
-  for (const [id, steps] of Object.entries(THEORY)) assert.deepEqual(scaleById(id).tones.map(t => t.semitones), steps, id);
+  for (const [id, steps] of Object.entries(THEORY)) assert.deepEqual(scaleById(id as ScaleId).tones.map(t => t.semitones), steps, id);
 });
 test('scale ids are unique and every scale is selectable by id', () => {
   const ids = SCALES.map(s => s.id);
@@ -28,7 +28,7 @@ test('only scales containing a whole pentatonic get rectangle and stack geometry
   for (const id of ['locrian', 'harmonic-minor', 'melodic-minor', 'phrygian-dominant', 'mixolydian-b6', 'altered', 'whole-tone', 'diminished-hw', 'diminished-wh', 'dominant-7']) assert.equal(families[id], undefined, id);
 });
 test('spelling uses one letter per scale degree', () => {
-  const names = (id: string, root: number) => scaleById(id).tones.map(t => spellTone(root, 'sharps', t).name);
+  const names = (id: ScaleId, root: number) => scaleById(id).tones.map(t => spellTone(root, 'sharps', t).name);
   assert.deepEqual(names('harmonic-minor', 9), ['A', 'B', 'C', 'D', 'E', 'F', 'G♯']);
   assert.deepEqual(names('whole-tone', 0), ['C', 'D', 'E', 'F♯', 'G♯', 'B♭']);
   assert.deepEqual(names('altered', 0), ['C', 'D♭', 'D♯', 'E', 'G♭', 'G♯', 'B♭']);
@@ -45,7 +45,7 @@ import { studyChoices, tuningOf } from '../src/core/study';
 import { selectedPitches } from '../src/core/state';
 
 test('extra pentatonic scales use the chosen definitions', () => {
-  const semis = (id: string) => scaleById(id).tones.map(t => t.semitones);
+  const semis = (id: ScaleId) => scaleById(id).tones.map(t => t.semitones);
   assert.deepEqual(semis('minor-hexatonic'), [0, 2, 3, 5, 7, 10]);
   assert.deepEqual(semis('dominant-pentatonic-1'), [0, 2, 4, 7, 10]);
   assert.deepEqual(semis('dominant-pentatonic-2'), [0, 4, 5, 7, 10]);
@@ -63,7 +63,7 @@ test('lowering the guitar moves every open string down together; fourths raises 
   assert.ok(t.slice(0, -1).every((m, i) => m - t[i + 1] === 5), 'adjacent strings are all fourths');
 });
 test('forms land on scale tones in every tuning, key and pentatonic-family scale', () => {
-  for (const fourths of [false, true]) for (let lowest = -2; lowest <= 5; lowest++) for (const scaleId of ['minor-pentatonic', 'major-pentatonic', 'minor-hexatonic', 'dorian']) for (let root = 0; root < 12; root++) {
+  for (const fourths of [false, true]) for (let lowest = -2; lowest <= 5; lowest++) for (const scaleId of ['minor-pentatonic', 'major-pentatonic', 'minor-hexatonic', 'dorian'] as const) for (let root = 0; root < 12; root++) {
     for (const studyMode of ['position', 'shape', 'diagonal', 'all'] as const) {
       const s = { ...defaultState(), root, scaleId, lowest, fourths, studyMode };
       const pitches = selectedPitches(s), tuning = tuningOf(s);
@@ -90,7 +90,7 @@ test('One string offers one choice per string spanning the whole neck', () => {
   for (const c of choices) assert.deepEqual(c.rows, [{ string: c.form, left: 0, right: s.frets }]);
 });
 test('3NPS puts exactly three consecutive scale notes on each string, ascending through all six', () => {
-  for (const scaleId of ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian', 'harmonic-minor', 'melodic-minor']) for (const frets of [15, 22, 24]) for (let root = 0; root < 12; root += 5) {
+  for (const scaleId of ['major', 'minor', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian', 'harmonic-minor', 'melodic-minor'] as const) for (const frets of [15, 22, 24]) for (let root = 0; root < 12; root += 5) {
     const s = { ...defaultState(), scaleId, root, frets, studyMode: 'nps' as const };
     const pitches = selectedPitches(s), tuning = tuningOf(s);
     const choices = studyChoices(s);
@@ -121,3 +121,25 @@ test('new preferences persist and invalid values are rejected', () => {
   const kept = reducer({ ...defaultState(), lowest: 2, fourths: true }, { type: 'reset-view' });
   assert.deepEqual([kept.lowest, kept.fourths], [2, true]);
 });
+
+test('an unknown scale id is refused at every edge and never stands in for another scale', () => {
+  assert.throws(() => scaleById('minor-pentatonc' as ScaleId), RangeError);
+  // Checked by the compiler only.
+  const typed = (): State => {
+    // @ts-expect-error a scale id is one of the catalog's
+    scaleById('minor-pentatonc');
+    // @ts-expect-error the saved view holds a catalog scale id
+    return { ...defaultState(), scaleId: 'minor-pentatonc' };
+  };
+  assert.ok(typed);
+  assert.equal(isScaleId('dorian'), true);
+  assert.equal(isScaleId('minor-pentatonc'), false);
+  assert.equal(restoreState({ ...defaultState(), scaleId: 'minor-pentatonc' }).scaleId, defaultState().scaleId);
+  const dorian = reducer(defaultState(), { type: 'scale', value: 'dorian' });
+  assert.equal(reducer(dorian, { type: 'scale', value: 'minor-pentatonc' }), dorian);
+  assert.equal(decodeShare('v1~s:minor-pentatonc~r:2')!.scaleId, defaultState().scaleId);
+});
+import { isScaleId } from '../src/core/music';
+import type { ScaleId } from '../src/core/music';
+import { decodeShare } from '../src/core/state';
+import type { State } from '../src/core/state';

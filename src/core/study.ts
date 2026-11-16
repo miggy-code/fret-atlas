@@ -1,5 +1,5 @@
 import { mod, position, scaleById, selectedPitches, STRINGS, tuningFor } from './music';
-import type { Tuning } from './music';
+import type { ScaleId, Tuning } from './music';
 import { findShapes } from './shapes';
 import type { Shape, ShapeKind, ShapeRow } from './shapes';
 
@@ -10,7 +10,7 @@ export type StudyMode = typeof STUDY_MODES[number];
  * these fields, so callers pass it as it is; this layer never depends on how the view is stored.
  */
 export type StudyInput = {
-  root: number; scaleId: string; customPitches: number[];
+  root: number; scaleId: ScaleId; customPitches: number[];
   lowest: number; fourths: boolean; frets: number;
   studyMode: StudyMode; shapeKind: ShapeKind; form: number; studyFret: number | null; ghostForms: boolean;
 };

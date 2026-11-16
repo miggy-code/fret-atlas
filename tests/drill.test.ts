@@ -81,7 +81,7 @@ test('targeted degree practice stays in the current form and focused strings',()
 });
 
 test('form drills include adjacent blues notes and open-position notes', () => {
-  const blues = { ...defaultState(), scaleId: 'minor-blues' };
+  const blues = { ...defaultState(), scaleId: 'minor-blues' as const };
   const blueNotes = nextDrill(blues, activeStudy(blues), undefined, () => 0, { pitches: [3], label: 'blue note' })!;
   assert.deepEqual(blueNotes.targets.sort(), ['2:4', '3:8', '5:6']);
   const open = { ...blues, root: 3, studyFret: 0 };

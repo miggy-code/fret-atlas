@@ -15,7 +15,7 @@ test('independent major/minor triads have the correct pitches in every key',()=>
   }
 });
 test('triads overlay a named scale or custom selection without changing notes, patterns or marks',()=>{
-  for(const scaleId of ['minor-pentatonic','custom']) {
+  for(const scaleId of ['minor-pentatonic','custom'] as const) {
     const before={...defaultState(),scaleId,customPitches:[0,2],marks:['2:6']};
     const after=reducer(before,{type:'triad',value:'major'});
     assert.deepEqual(selectedPitches(after),selectedPitches(before));
