@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { connectedView, connectOffered, defaultState, reducer, restoreState, studyModeAvailable } from '../src/core/state';
+import { connectedView, connectOffered, defaultState, reducer, restoreState } from '../src/core/state';
 import { SCALES } from '../src/core/music';
 import type { State } from '../src/core/state';
+import { studyModeAvailable } from '../src/core/study';
 import type { StudyMode } from '../src/core/study';
 
 const modes: StudyMode[] = ['position', 'shape', 'diagonal', 'all', 'string', 'nps'];

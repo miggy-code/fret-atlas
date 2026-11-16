@@ -218,3 +218,14 @@ test('scale degree isolation dims non-isolated scale tones and highlights the se
   // State restoration handles isolatedTones
   assert.deepEqual(restoreState({ ...defaultState(), isolatedTones: [3, 7] }).isolatedTones, [3, 7]);
 });
+
+test('the music layer does not depend on the saved view', async () => {
+  const { readFile } = await import('node:fs/promises');
+  for (const file of ['study.ts', 'shapes.ts']) {
+    const source = await readFile(new URL(`../src/core/${file}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /from '\.\/state'/, file);
+  }
+  // A study needs only what it reads, not a whole saved view.
+  const choices = studyChoices({ root: 9, scaleId: 'minor-pentatonic', customPitches: [], lowest: 0, fourths: false, frets: 12, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, ghostForms: false });
+  assert.deepEqual(choices.map(choice => choice.id), studyChoices(defaultState()).map(choice => choice.id));
+});

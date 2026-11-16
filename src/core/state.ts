@@ -1,7 +1,7 @@
 import { isNeckLength, isNoteId, mod, NECK_LENGTHS, scaleById, SCALES, selectedPitches, triadOf } from './music';
 import type { Spelling, TriadQuality } from './music';
 import type { Shape, ShapeKind } from './shapes';
-import { activeStudy, STUDY_MODES, studyChoices } from './study';
+import { activeStudy, STUDY_MODES, studyChoices, studyModeAvailable } from './study';
 import type { StudyMode } from './study';
 
 const LABELS = ['none', 'notes', 'intervals', 'both'] as const;
@@ -79,16 +79,6 @@ const stringList = (raw: unknown[]) => [...new Set(raw.filter((n): n is number =
 // Before triads became an overlay, a triad was a scale of its own. Those saved views restore as custom notes with the triad shown.
 const LEGACY_TRIAD_SCALES = new Map<unknown, TriadQuality>([['major-triad', 'major'], ['minor-triad', 'minor']]);
 const pitchList = (raw: unknown, fallback: number[]) => Array.isArray(raw) ? [...new Set(raw.filter((p): p is number => integer(p, 0, 11)))].sort((a, b) => a - b) : fallback;
-/** Whether a study view makes sense for the current scale or custom notes; the view picker disables the rest. */
-export function studyModeAvailable(s: State, mode: StudyMode): boolean {
-  switch (mode) {
-    case 'position': return s.scaleId !== 'custom';
-    case 'shape': case 'diagonal': return !!scaleById(s.scaleId).family;
-    case 'string': return selectedPitches(s).length > 0;
-    case 'nps': return new Set(selectedPitches(s)).size === 7;
-    default: return true;
-  }
-}
 /** A disabled view must never stay selected: fall back to the nearest view the scale supports. */
 const settleStudyMode = (s: State): State => studyModeAvailable(s, s.studyMode) ? s : { ...s, studyMode: studyModeAvailable(s, 'position') ? 'position' : 'all', studyFret: null };
 /** Connect positions outlines the neighboring pentatonic forms, so only a scale with a family and a Position view offers it. */

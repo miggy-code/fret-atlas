@@ -1,11 +1,20 @@
 import { mod, position, scaleById, selectedPitches, STRINGS, tuningFor } from './music';
 import type { Tuning } from './music';
 import { findShapes } from './shapes';
-import type { Shape, ShapeRow } from './shapes';
-import type { State } from './state';
+import type { Shape, ShapeKind, ShapeRow } from './shapes';
 
 export const STUDY_MODES = ['position', 'shape', 'diagonal', 'all', 'string', 'nps'] as const;
 export type StudyMode = typeof STUDY_MODES[number];
+/**
+ * What the studies are built from: the key and notes, the instrument and the chosen view. The saved view has all of
+ * these fields, so callers pass it as it is; this layer never depends on how the view is stored.
+ */
+export type StudyInput = {
+  root: number; scaleId: string; customPitches: number[];
+  lowest: number; fourths: boolean; frets: number;
+  studyMode: StudyMode; shapeKind: ShapeKind; form: number; studyFret: number | null; ghostForms: boolean;
+};
+type Notes = Pick<StudyInput, 'root' | 'scaleId' | 'customPitches'>;
 /**
  * One thing to study on the neck: `rows` is where its notes lie, `shapes` the outlines that belong to it and `anchor`
  * its lowest fret, which orders the stepper. `form` numbers the choice within its view, so it means something
@@ -24,10 +33,10 @@ const FORM_ROWS = [
   [[10,12],[10,12],[9,12],[9,12],[10,12],[10,12]],
 ] as const;
 
-export const tuningOf = (s: Pick<State, 'lowest' | 'fourths'>): Tuning => tuningFor(s.lowest, s.fourths);
+export const tuningOf = (s: Pick<StudyInput, 'lowest' | 'fourths'>): Tuning => tuningFor(s.lowest, s.fourths);
 
 // Keep added tones close to the form's overall hand position, without changing its outlines.
-function scaleRows(rows: ShapeRow[], s: State, tuning: Tuning): ShapeRow[] {
+function scaleRows(rows: ShapeRow[], s: StudyInput, tuning: Tuning): ShapeRow[] {
   const added = scaleById(s.scaleId).tones.filter(t => !t.skeleton).map(t => mod(s.root + t.semitones));
   const left = Math.max(0, Math.min(...rows.map(row => row.left)) - 1);
   const right = Math.min(s.frets, Math.max(...rows.map(row => row.right)) + 1);
@@ -42,19 +51,34 @@ function scaleRows(rows: ShapeRow[], s: State, tuning: Tuning): ShapeRow[] {
 // The forms are the minor pentatonic's; a major-family scale wears those of its relative minor, nine semitones above its root.
 const RELATIVE_MINOR = 9;
 // The lowest fret where the forms' minor tonic falls on the lowest string: lowering the guitar moves it up the neck.
-const lowStringTonic = (s: State, tuning: Tuning) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? RELATIVE_MINOR : 0) - tuning.midi.at(-1)!);
+const lowStringTonic = (s: StudyInput, tuning: Tuning) => mod(s.root + (scaleById(s.scaleId).family === 'major' ? RELATIVE_MINOR : 0) - tuning.midi.at(-1)!);
+
+/**
+ * Whether a study view makes sense for the scale or custom notes; the view picker disables the rest.
+ * `studyChoices` builds nothing for a view that fails its rule here, so the generators below can rely on it.
+ */
+export function studyModeAvailable(s: Notes, mode: StudyMode): boolean {
+  switch (mode) {
+    // Position needs a named scale: forms for a pentatonic family, fret windows for the rest.
+    case 'position': return s.scaleId !== 'custom';
+    // Shape and Diagonal walk the pentatonic outlines.
+    case 'shape': case 'diagonal': return !!scaleById(s.scaleId).family;
+    case 'string': return selectedPitches(s).length > 0;
+    // Three notes per string climbs a seven-note scale.
+    case 'nps': return new Set(selectedPitches(s)).size === 7;
+    case 'all': return true;
+  }
+}
 
 // One string: the whole scale along a single string. Pick the string with the arrows.
-function stringChoices(s: State): Study[] {
-  if (!selectedPitches(s).length) return [];
+function stringChoices(s: StudyInput): Study[] {
   return STRINGS.map(string => ({ id: `string:${string}`, form: string, anchor: 0, label: `String ${string}`, rows: [{ string, left: 0, right: s.frets }], shapes: [] }));
 }
 
 // Three notes per string: seven scale notes ascending through all six strings, three on each.
 // Each position starts on a different scale degree of the lowest string and repeats an octave higher.
-function npsChoices(s: State, tuning: Tuning): Study[] {
+function npsChoices(s: StudyInput, tuning: Tuning): Study[] {
   const degrees = [...new Set(selectedPitches(s))].sort((a, b) => mod(a - s.root) - mod(b - s.root));
-  if (degrees.length !== 7) return [];
   const choices: Study[] = [];
   const low = tuning.midi.at(-1)!;
   degrees.forEach((pitch, k) => {
@@ -74,12 +98,13 @@ function npsChoices(s: State, tuning: Tuning): Study[] {
   return choices.sort((a, b) => a.anchor - b.anchor);
 }
 
-export function studyChoices(s: State): Study[] {
+export function studyChoices(s: StudyInput): Study[] {
+  if (!studyModeAvailable(s, s.studyMode)) return [];
   const tuning = tuningOf(s);
   if (s.studyMode === 'string') return stringChoices(s);
   if (s.studyMode === 'nps') return npsChoices(s, tuning);
   const scale = scaleById(s.scaleId);
-  if (!scale.family && s.scaleId !== 'custom' && s.studyMode === 'position') {
+  if (!scale.family && s.studyMode === 'position') {
     return Array.from({ length: Math.ceil((s.frets + 1) / 3) }, (_, i) => {
       const left = i * 3, right = Math.min(s.frets, left + 4);
       return { id: `position:${left}`, form: 1, anchor: left, label: `Position ${left}–${right}`, rows: STRINGS.map(string => ({ string, left, right })), shapes: [] };
@@ -130,20 +155,20 @@ export function studyChoices(s: State): Study[] {
   return choices.sort((a,b)=>a.anchor-b.anchor);
 }
 
-export function activeStudyFromChoices(s: State, choices: Study[]): Study | undefined {
+export function activeStudyFromChoices(s: StudyInput, choices: Study[]): Study | undefined {
   const sameForm = choices.filter(choice=>choice.form===s.form);
   const candidates = sameForm.length ? sameForm : choices;
   const preferred = s.studyFret ?? (scaleById(s.scaleId).family ? lowStringTonic(s, tuningOf(s)) : 0);
   return [...candidates].sort((a,b)=>Math.abs(a.anchor-preferred)-Math.abs(b.anchor-preferred) || b.anchor-a.anchor)[0];
 }
 
-export function activeStudy(s: State): Study | undefined {
+export function activeStudy(s: StudyInput): Study | undefined {
   return activeStudyFromChoices(s, studyChoices(s));
 }
 
 export const inStudy = (string: number, fret: number, study?: Study) => !study || study.rows.some(row=>row.string===string && fret>=row.left && fret<=row.right);
 
-export function ghostStudiesFromChoices(s: State, choices: Study[], current = activeStudyFromChoices(s, choices)): Study[] {
+export function ghostStudiesFromChoices(s: StudyInput, choices: Study[], current = activeStudyFromChoices(s, choices)): Study[] {
   if (s.studyMode !== 'position' || !s.ghostForms) return [];
   if (!current || choices.length < 2) return [];
   const index = choices.findIndex(choice => choice.id === current.id);
@@ -154,19 +179,19 @@ export function ghostStudiesFromChoices(s: State, choices: Study[], current = ac
   return neighbors;
 }
 
-export function ghostStudies(s: State): Study[] {
+export function ghostStudies(s: StudyInput): Study[] {
   const choices = studyChoices(s);
   return ghostStudiesFromChoices(s, choices);
 }
 
-export function deriveStudy(s: State) {
+export function deriveStudy(s: StudyInput) {
   const choices = studyChoices(s);
   const study = activeStudyFromChoices(s, choices);
   return { choices, study, ghosts: ghostStudiesFromChoices(s, choices, study) };
 }
 
 // Join neighboring root locations along the neck: the octave/unison skeleton.
-export function rootConnections(s: State) {
+export function rootConnections(s: StudyInput) {
   const tuning = tuningOf(s);
   const roots = STRINGS.flatMap(string=>Array.from({length:s.frets+1},(_,fret)=>position(string,fret,tuning))).filter(note=>note.pitch===s.root);
   const frets = [...new Set(roots.map(note=>note.fret))].sort((a,b)=>a-b);

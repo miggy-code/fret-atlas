@@ -1,7 +1,7 @@
 import { degreeLabel, noteId, pitchName, position, scaleById, selectedPitches, spellTone, stringName, STRINGS, toneAt } from './music';
-import { inFocus, studyModeAvailable } from './state';
+import { inFocus } from './state';
 import type { State } from './state';
-import { inStudy, tuningOf } from './study';
+import { inStudy, studyModeAvailable, tuningOf } from './study';
 import type { Study } from './study';
 import type { ShapeRow } from './shapes';
 
