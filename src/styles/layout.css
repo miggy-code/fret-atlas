@@ -86,3 +86,11 @@
 @media (pointer: coarse) {
   .marks-list button { min-height: 44px; }
 }
+
+/* Shown by AppErrorBoundary when rendering fails: plain text and the usual buttons, nothing that needs the board. */
+.app-error { max-width: 520px; margin: 15vh auto 0; padding: 0 16px; color: var(--ink); }
+.app-error h1 { margin: 0 0 8px; font-size: 20px; font-weight: 650; }
+.app-error p { margin: 0 0 16px; color: var(--muted); line-height: 1.5; }
+.app-error-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.app-error .text-button { border: 1px solid var(--line); }
+.app-error .primary, .app-error .primary:hover { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; }
