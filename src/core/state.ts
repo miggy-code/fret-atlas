@@ -147,7 +147,9 @@ function readState(raw: unknown): State {
   if (s.degreeColors) s.chordColors = false;
   return s;
 }
-type Preference = 'luckyCharms' | 'degreeColors' | 'fourths' | 'leftHanded' | 'stringNames' | 'skeleton' | 'warp' | 'ghostForms' | 'context' | 'focus' | 'chordColors' | 'wholeMap' | 'hideAdded';
+// On/off settings. The note view and note color flags are not here: they change only through `note-view` and `note-colors`,
+// which keep them a single choice.
+type Preference = 'fourths' | 'leftHanded' | 'stringNames' | 'skeleton' | 'warp' | 'ghostForms' | 'context' | 'focus' | 'wholeMap' | 'hideAdded';
 export type Action =
   | { type: 'study-mode'; value: StudyMode }
   | { type: 'shape-kind'; value: ShapeKind }
@@ -159,7 +161,6 @@ export type Action =
   | { type: 'clear-isolated-tones' }
   | { type: 'pattern'; value: ShapeKind }
   | { type: 'patterns'; value: ShapeKind[] }
-  | { type: 'labels'; value: Labels }
   | { type: 'note-view'; value: NoteView }
   | { type: 'note-colors'; value: NoteColors }
   | { type: 'triad'; value: Triad }
@@ -170,7 +171,6 @@ export type Action =
   | { type: 'range'; from: number; to: number }
   | { type: 'string'; value: number }
   | { type: 'overlay-row'; value: number }
-  | { type: 'focus-reset' }
   | { type: 'pitch'; value: number }
   | { type: 'pitches'; value: number[] }
   | { type: 'mark'; id: string }
@@ -223,7 +223,6 @@ function reduce(s: State, action: Action): State {
     case 'clear-isolated-tones': return { ...s, isolatedTones: [] };
     case 'pattern': return { ...s, patterns: toggleItem(s.patterns, action.value) };
     case 'patterns': return { ...s, patterns: action.value.filter(kind => kind === 'rectangle' || kind === 'stack') };
-    case 'labels': return { ...s, labels: action.value, luckyCharms: false };
     case 'note-view': return { ...s, labels: action.value === 'charms' ? 'none' : action.value, luckyCharms: action.value === 'charms' };
     case 'note-colors': return { ...s, degreeColors: action.value === 'degrees', chordColors: action.value === 'chord' };
     case 'triad': return { ...s, triad: action.value };
@@ -238,7 +237,6 @@ function reduce(s: State, action: Action): State {
     }
     case 'string': return integer(action.value, 1, STRING_COUNT) ? { ...s, strings: toggleItem(s.strings, action.value).sort() } : s;
     case 'overlay-row': return integer(action.value, 1, STRING_COUNT) ? { ...s, overlayRows: toggleItem(s.overlayRows, action.value).sort() } : s;
-    case 'focus-reset': return { ...s, focus: false, strings: [...STRINGS] };
     case 'pitch': return integer(action.value, 0, 11) ? { ...s, customPitches: toggleItem(selectedPitches(s), action.value).sort((a, b) => a - b), scaleId: 'custom' } : s;
     case 'pitches': return { ...s, customPitches: pitchList(action.value, []), scaleId: 'custom' };
     case 'mark': return isNoteId(action.id) ? { ...s, marks: toggleItem(s.marks, action.id) } : s;

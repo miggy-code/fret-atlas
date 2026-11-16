@@ -208,3 +208,21 @@ test('the G–B correction follows from the string pitches, for every tuning the
   assert.deepEqual([...STRINGS], Array.from({ length: STRING_COUNT }, (_, i) => i + 1));
 });
 import { degreeLabel, gbShift, LOWEST_STRING_CHOICES, STRING_COUNT } from '../src/core/music';
+
+test('note view and note colors change only through their own actions', () => {
+  // Checked by the compiler only: these dispatches could leave the flags in a combination the UI cannot show.
+  const refused = (): Action[] => [
+    // @ts-expect-error charms are a note view
+    { type: 'toggle', key: 'luckyCharms' },
+    // @ts-expect-error degree colors are a note color choice
+    { type: 'toggle', key: 'degreeColors' },
+    // @ts-expect-error chord colors are a note color choice
+    { type: 'toggle', key: 'chordColors' },
+    // @ts-expect-error labels change through note-view
+    { type: 'labels', value: 'notes' },
+    // @ts-expect-error nothing resets focus on its own
+    { type: 'focus-reset' },
+  ];
+  assert.ok(refused);
+});
+import type { Action } from '../src/core/state';
