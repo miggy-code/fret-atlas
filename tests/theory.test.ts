@@ -192,3 +192,19 @@ test('study views are one list, and each restores', () => {
   for (const studyMode of STUDY_MODES) assert.equal(restoreState({ ...defaultState(), scaleId: 'major', studyMode }).studyMode, studyMode);
   assert.equal(restoreState({ ...defaultState(), studyMode: 'sideways' }).studyMode, 'position');
 });
+
+test('a tone stores no fact the others contradict: its alteration is what its semitones and degree give', () => {
+  const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+  for (const scale of SCALES) for (const t of scale.tones) assert.equal(t.alteration, t.semitones - MAJOR[t.degree - 1], `${scale.id} ${degreeLabel(t)}`);
+});
+
+test('the G–B correction follows from the string pitches, for every tuning the app offers', () => {
+  for (const { lowered } of LOWEST_STRING_CHOICES) {
+    assert.equal(gbShift(tuningFor(lowered)), 1);
+    assert.equal(gbShift(tuningFor(lowered, true)), 0);
+    assert.equal(tuningFor(lowered).midi.length, STRING_COUNT);
+  }
+  assert.equal('shift' in tuningFor(0), false);
+  assert.deepEqual([...STRINGS], Array.from({ length: STRING_COUNT }, (_, i) => i + 1));
+});
+import { degreeLabel, gbShift, LOWEST_STRING_CHOICES, STRING_COUNT } from '../src/core/music';

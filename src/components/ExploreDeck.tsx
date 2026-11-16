@@ -1,5 +1,5 @@
 import type { CSSProperties, Dispatch, ReactNode } from 'react';
-import { degreeLabel, isScaleId, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRINGS } from '../core/music';
+import { degreeLabel, isScaleId, pitchName, scaleById, selectedPitches, SHARPS, spellTone, STRING_COUNT, STRINGS } from '../core/music';
 import type { Scale, TriadQuality } from '../core/music';
 import { noteColorsOf, noteViewOf, sectionModified } from '../core/state';
 import type { Action, NoteColors, NoteView, State } from '../core/state';
@@ -45,7 +45,7 @@ function overlaySummary(state: State, scale: Scale) {
     state.warp && !state.fourths && 'Warp',
     state.context && 'Notes outside the scale',
     state.hideAdded && scale.tones.some(t => !t.skeleton) && 'Pentatonic only',
-    scale.family && state.overlayRows.length < 6 && `Patterns on ${state.overlayRows.length} of 6 strings`,
+    scale.family && state.overlayRows.length < STRING_COUNT && `Patterns on ${state.overlayRows.length} of ${STRING_COUNT} strings`,
   ].filter(Boolean);
   return on.length ? `On: ${on.join(', ')}` : 'Patterns and visual guides';
 }
@@ -53,7 +53,7 @@ function focusSummary(state: State) {
   const strings = [...state.strings].sort((a, b) => a - b);
   const on = [
     state.focus && `Frets ${state.from}–${state.to}`,
-    strings.length < 6 && (strings.length ? `${strings.length === 1 ? 'String' : 'Strings'} ${strings.join(', ')}` : 'No strings'),
+    strings.length < STRING_COUNT && (strings.length ? `${strings.length === 1 ? 'String' : 'Strings'} ${strings.join(', ')}` : 'No strings'),
   ].filter(Boolean);
   return on.length ? `Showing only: ${on.join(' · ')}` : 'Limit notes and drills by fret and string';
 }

@@ -1,3 +1,4 @@
+import { STRING_COUNT } from './music';
 import type { Shape } from './shapes';
 
 export type Point = { x: number; y: number };
@@ -53,7 +54,7 @@ export function boardGeometry(frets: number, leftHanded: boolean, orientation: O
     // Margins beside and above the neck, for string names, fret numbers and inlays.
     labelAlong: EDGE,
     numberAcross: vertical ? breadth - VERTICAL_CROP : 22,
-    inlayAcross: vertical ? VERTICAL_CROP + 9 : across(6) + 43,
+    inlayAcross: vertical ? VERTICAL_CROP + 9 : across(STRING_COUNT) + 43,
     // The invisible touch target. Vertical spans the whole string column; its height is a little over the fret spacing
     // so that a phone, which scales the board down, still gives a 44px target. Neighbors overlap by a few units.
     hit: vertical ? { width: ROW, height: Math.max(cell, VERTICAL_HIT) } : { width: HIT_SIZE, height: HIT_SIZE },

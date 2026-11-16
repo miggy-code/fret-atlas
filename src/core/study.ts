@@ -1,4 +1,4 @@
-import { mod, position, scaleById, selectedPitches, STRINGS, tuningFor } from './music';
+import { gbShift, mod, position, scaleById, selectedPitches, STRING_COUNT, STRINGS, tuningFor } from './music';
 import type { ScaleId, Tuning } from './music';
 import { findShapes } from './shapes';
 import type { Shape, ShapeKind, ShapeRow } from './shapes';
@@ -85,9 +85,9 @@ function npsChoices(s: StudyInput, tuning: Tuning): Study[] {
     for (let octave = 0; octave < 3; octave++) {
       let midi = low + mod(pitch - low) + 12 * octave;
       const byString = new Map<number, number[]>();
-      for (let j = 0; j < 18; j++) {
+      for (let j = 0; j < 3 * STRING_COUNT; j++) {
         if (j) midi += mod(degrees[(k + j) % 7] - degrees[(k + j - 1) % 7]) || 12;
-        const string = 6 - Math.floor(j / 3);
+        const string = STRING_COUNT - Math.floor(j / 3);
         byString.set(string, [...(byString.get(string) ?? []), midi - tuning.midi[string - 1]]);
       }
       const rows = [...byString].map(([string, frets]) => ({ string, left: Math.min(...frets), right: Math.max(...frets) })).sort((a, b) => a.string - b.string);
@@ -117,12 +117,12 @@ export function studyChoices(s: StudyInput): Study[] {
   if (s.studyMode === 'diagonal') {
     const family = allShapes.filter(shape => shape.kind === s.shapeKind);
     // A diagonal advances two strings and two frets, plus the G–B correction (none in all fourths).
-    const chains = family.filter(shape => shape.rows.some(row=>row.string===6)).map(start => {
+    const chains = family.filter(shape => shape.rows.some(row=>row.string===STRING_COUNT)).map(start => {
       const chain = [start];
       let { bottom, base } = start;
       while (bottom > 2) {
         const nextBottom = bottom - 2;
-        const nextBase = base + 2 + (bottom >= 3 && nextBottom <= 2 ? tuning.shift : 0);
+        const nextBase = base + 2 + (bottom >= 3 && nextBottom <= 2 ? gbShift(tuning) : 0);
         const next = family.find(shape => shape.bottom === nextBottom && shape.base === nextBase);
         if (!next) break;
         chain.push(next); bottom = nextBottom; base = nextBase;
@@ -149,7 +149,7 @@ export function studyChoices(s: StudyInput): Study[] {
       const shape = positionShapes.filter(shape=>shape.kind===s.shapeKind).sort((a,b)=>b.rows.length-a.rows.length || a.rows[0].string-b.rows[0].string)[0];
       const shapes = s.studyMode === 'shape' ? shape ? [shape] : [] : positionShapes;
       if (!shapes.length) continue;
-      choices.push({id:`${i+1}:${base}`,form:i+1,anchor:Math.max(0,rows[5].left),label:`Form ${i+1}`,rows:scaleRows(s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,s,tuning),shapes});
+      choices.push({id:`${i+1}:${base}`,form:i+1,anchor:Math.max(0,rows[STRING_COUNT - 1].left),label:`Form ${i+1}`,rows:scaleRows(s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,s,tuning),shapes});
     }
   });
   return choices.sort((a,b)=>a.anchor-b.anchor);

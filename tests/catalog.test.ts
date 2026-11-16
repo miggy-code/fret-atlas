@@ -40,7 +40,7 @@ test('17 frets is a valid neck length and survives restore', () => {
 });
 
 // ---- Guitar-only extensions: tunings, extra pentatonics, One string, 3NPS, degree colors ----
-import { position, tuningFor } from '../src/core/music';
+import { gbShift, position, tuningFor } from '../src/core/music';
 import { studyChoices, tuningOf } from '../src/core/study';
 import { selectedPitches } from '../src/core/state';
 
@@ -58,7 +58,7 @@ test('lowering the guitar moves every open string down together; fourths raises 
   assert.equal(position(6, 0, tuningFor(2)).pitch, 2); // D
   assert.equal(position(6, 0, tuningFor(-2)).pitch, 6); // raising two semitones: F♯ on the lowest string
   assert.deepEqual(tuningFor(0, true).midi, [65, 60, 55, 50, 45, 40]);
-  assert.equal(tuningFor(0, true).shift, 0);
+  assert.equal(gbShift(tuningFor(0, true)), 0);
   const t = tuningFor(0, true).midi;
   assert.ok(t.slice(0, -1).every((m, i) => m - t[i + 1] === 5), 'adjacent strings are all fourths');
 });

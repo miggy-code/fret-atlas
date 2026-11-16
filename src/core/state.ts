@@ -1,4 +1,4 @@
-import { isNeckLength, isNoteId, isScaleId, mod, NECK_LENGTHS, scaleById, selectedPitches, triadOf } from './music';
+import { isNeckLength, isNoteId, isScaleId, mod, NECK_LENGTHS, scaleById, selectedPitches, STRING_COUNT, STRINGS, triadOf } from './music';
 import type { ScaleId, Spelling, TriadQuality } from './music';
 import type { Shape, ShapeKind } from './shapes';
 import { activeStudy, STUDY_MODES, studyChoices, studyModeAvailable } from './study';
@@ -71,11 +71,11 @@ export const sectionModified = (s: State, section: Section) => {
   return SECTION_KEYS[section].some(key => JSON.stringify(s[key]) !== JSON.stringify(defaults[key]));
 };
 export function defaultState(): State {
-  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 12, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [1, 2, 3, 4, 5, 6], context: false, focus: false, from: 3, to: 9, strings: [1, 2, 3, 4, 5, 6], marks: [] };
+  return { version: 4, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, wholeMap: false, hideAdded: false, root: 9, scaleId: 'minor-pentatonic', customPitches: [0, 2, 4, 7, 9], spelling: 'sharps', frets: 12, leftHanded: false, stringNames: true, labels: 'none', chordColors: false, degreeColors: false, luckyCharms: false, lowest: 0, fourths: false, triad: 'off', triadRoot: null, patterns: ['rectangle', 'stack'], skeleton: false, warp: true, ghostForms: false, isolatedTones: [], overlayRows: [...STRINGS], context: false, focus: false, from: 3, to: 9, strings: [...STRINGS], marks: [] };
 }
 const isRecord = (raw: unknown): raw is Record<string, unknown> => !!raw && typeof raw === 'object' && !Array.isArray(raw);
 const integer = (value: unknown, low: number, high: number) => typeof value === 'number' && Number.isInteger(value) && value >= low && value <= high;
-const stringList = (raw: unknown[]) => [...new Set(raw.filter((n): n is number => integer(n, 1, 6)))];
+const stringList = (raw: unknown[]) => [...new Set(raw.filter((n): n is number => integer(n, 1, STRING_COUNT)))];
 // Before triads became an overlay, a triad was a scale of its own. Those saved views restore as custom notes with the triad shown.
 const LEGACY_TRIAD_SCALES = new Map<unknown, TriadQuality>([['major-triad', 'major'], ['minor-triad', 'minor']]);
 const pitchList = (raw: unknown, fallback: number[]) => Array.isArray(raw) ? [...new Set(raw.filter((p): p is number => integer(p, 0, 11)))].sort((a, b) => a - b) : fallback;
@@ -236,9 +236,9 @@ function reduce(s: State, action: Action): State {
       const from = Math.max(0, Math.min(s.frets, Math.trunc(action.from)));
       return { ...s, from, to: Math.max(from, Math.min(s.frets, Math.trunc(action.to))) };
     }
-    case 'string': return integer(action.value, 1, 6) ? { ...s, strings: toggleItem(s.strings, action.value).sort() } : s;
-    case 'overlay-row': return integer(action.value, 1, 6) ? { ...s, overlayRows: toggleItem(s.overlayRows, action.value).sort() } : s;
-    case 'focus-reset': return { ...s, focus: false, strings: [1, 2, 3, 4, 5, 6] };
+    case 'string': return integer(action.value, 1, STRING_COUNT) ? { ...s, strings: toggleItem(s.strings, action.value).sort() } : s;
+    case 'overlay-row': return integer(action.value, 1, STRING_COUNT) ? { ...s, overlayRows: toggleItem(s.overlayRows, action.value).sort() } : s;
+    case 'focus-reset': return { ...s, focus: false, strings: [...STRINGS] };
     case 'pitch': return integer(action.value, 0, 11) ? { ...s, customPitches: toggleItem(selectedPitches(s), action.value).sort((a, b) => a - b), scaleId: 'custom' } : s;
     case 'pitches': return { ...s, customPitches: pitchList(action.value, []), scaleId: 'custom' };
     case 'mark': return isNoteId(action.id) ? { ...s, marks: toggleItem(s.marks, action.id) } : s;

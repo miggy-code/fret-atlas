@@ -19,15 +19,16 @@ export type Tone = { semitones: number; degree: number; alteration: number; skel
 export type Family = 'minor' | 'major';
 // Generic over the id so the catalog below keeps each id as a literal, from which `ScaleId` is derived.
 type ScaleOf<Id extends string> = { id: Id; name: string; group: string; tones: readonly Tone[]; family?: Family };
-const tone = (semitones: number, degree: number, alteration = 0, skeleton = true): Tone => ({ semitones, degree, alteration, skeleton });
-const minor = [tone(0, 1), tone(3, 3, -1), tone(5, 4), tone(7, 5), tone(10, 7, -1)];
+// The only way a tone is made: the alteration is derived from the major-scale natural for the degree, never passed in.
+const tone = (semitones: number, degree: number, skeleton = true): Tone => ({ semitones, degree, alteration: semitones - NATURALS[degree - 1], skeleton });
+const minor = [tone(0, 1), tone(3, 3), tone(5, 4), tone(7, 5), tone(10, 7)];
 const major = [tone(0, 1), tone(2, 2), tone(4, 3), tone(7, 5), tone(9, 6)];
 // A scale gets pentatonic rectangle/stack geometry only when it contains a whole pentatonic.
 const familyOf = (semitones: number[]): Family | undefined =>
   minor.every(t => semitones.includes(t.semitones)) ? 'minor' : major.every(t => semitones.includes(t.semitones)) ? 'major' : undefined;
-const diatonic = (steps: number[], family: Family | undefined) => steps.map((step, i) => tone(step, i + 1, step - NATURALS[i], !family || (family === 'minor' ? minor : major).some(t => t.semitones === step)));
-// Explicit [semitones, degree] pairs; the alteration is derived from the major-scale natural for that degree.
-const spelled = (pairs: [number, number][]) => pairs.map(([semitones, degree]) => tone(semitones, degree, semitones - NATURALS[degree - 1]));
+const diatonic = (steps: number[], family: Family | undefined) => steps.map((step, i) => tone(step, i + 1, !family || (family === 'minor' ? minor : major).some(t => t.semitones === step)));
+// Explicit [semitones, degree] pairs.
+const spelled = (pairs: [number, number][]) => pairs.map(([semitones, degree]) => tone(semitones, degree));
 const named = <Id extends string>(id: Id, name: string, group: string, tones: readonly Tone[], family?: Family): ScaleOf<Id> => ({ id, name, group, tones, family });
 const mode = <Id extends string>(id: Id, name: string, group: string, steps: number[]): ScaleOf<Id> => {
   const family = familyOf(steps);
@@ -37,9 +38,9 @@ const explicit = <Id extends string>(id: Id, name: string, group: string, pairs:
 const CATALOG = [
   named('minor-pentatonic', 'Minor pentatonic', 'Pentatonic & blues', minor, 'minor'),
   named('major-pentatonic', 'Major pentatonic', 'Pentatonic & blues', major, 'major'),
-  named('minor-blues', 'Blues', 'Pentatonic & blues', [...minor, tone(6, 5, -1, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
-  named('major-blues', 'Major blues', 'Pentatonic & blues', [...major, tone(3, 3, -1, false)].sort((a, b) => a.semitones - b.semitones), 'major'),
-  named('minor-hexatonic', 'Minor hexatonic', 'Pentatonic & blues', [...minor, tone(2, 2, 0, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
+  named('minor-blues', 'Blues', 'Pentatonic & blues', [...minor, tone(6, 5, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
+  named('major-blues', 'Major blues', 'Pentatonic & blues', [...major, tone(3, 3, false)].sort((a, b) => a.semitones - b.semitones), 'major'),
+  named('minor-hexatonic', 'Minor hexatonic', 'Pentatonic & blues', [...minor, tone(2, 2, false)].sort((a, b) => a.semitones - b.semitones), 'minor'),
   explicit('dominant-pentatonic-1', 'Dominant pentatonic 1', 'Pentatonic & blues', [[0, 1], [2, 2], [4, 3], [7, 5], [10, 7]]),
   explicit('dominant-pentatonic-2', 'Dominant pentatonic 2', 'Pentatonic & blues', [[0, 1], [4, 3], [5, 4], [7, 5], [10, 7]]),
   explicit('minor-major-pentatonic', 'Minor-major pentatonic', 'Pentatonic & blues', [[0, 1], [3, 3], [5, 4], [7, 5], [9, 6]]),
@@ -107,19 +108,26 @@ export function chordRole(scale: Scale, t: Tone): ChordRole | undefined {
 }
 
 // ---- The instrument: six strings, numbered 1 (high e) to 6 (low E), and up to 24 frets ----
+// This is a six-string guitar in standard or all-fourths tuning, transposed as a whole. Other string counts and uneven
+// tunings are out of scope; code that depends on the count says so with STRING_COUNT rather than a bare 6.
 export const STRINGS = [1, 2, 3, 4, 5, 6] as const;
+export const STRING_COUNT = STRINGS.length;
 export const MAX_FRET = 24;
 export const NECK_LENGTHS = [12, 15, 17, 22, 24] as const;
 export const isNeckLength = (frets: unknown): frets is number => (NECK_LENGTHS as readonly unknown[]).includes(frets);
 export const TUNING = [64, 59, 55, 50, 45, 40] as const;
-// High string first, like TUNING. `shift` is the one-fret G–B correction: 1 in standard tuning, 0 in all fourths.
-export type Tuning = { midi: readonly number[]; shift: number };
-export const STANDARD_TUNING: Tuning = { midi: TUNING, shift: 1 };
+// Open-string pitches, high string first like TUNING.
+export type Tuning = { midi: readonly number[] };
 // `lowered` drops every string by that many semitones (negative raises), keeping the same fingerings.
 export const tuningFor = (lowered = 0, fourths = false): Tuning => ({
   midi: (fourths ? [65, 60, 55, 50, 45, 40] : TUNING).map(midi => midi - lowered),
-  shift: fourths ? 0 : 1,
 });
+export const STANDARD_TUNING = tuningFor();
+/**
+ * The one-fret G–B correction, read from the pitches: neighbouring strings are a fourth (5 semitones) apart except G to B,
+ * a major third in standard tuning, so a shape crossing that pair moves one fret toward the bridge. 0 in all fourths.
+ */
+export const gbShift = (tuning: Tuning) => 5 - (tuning.midi[1] - tuning.midi[2]);
 export const LOWEST_STRING_CHOICES: readonly { lowered: number; label: string }[] = [
   { lowered: -2, label: 'F♯' }, { lowered: -1, label: 'F' }, { lowered: 0, label: 'E (standard)' }, { lowered: 1, label: 'E♭' },
   { lowered: 2, label: 'D' }, { lowered: 3, label: 'C♯' }, { lowered: 4, label: 'C' }, { lowered: 5, label: 'B' },
@@ -135,7 +143,8 @@ export const stringName = (string: number, tuning: Tuning, spelling: Spelling) =
 export type Note = { id: string; string: number; fret: number; midi: number; pitch: number; octave: number };
 export const noteId = (string: number, fret: number) => `${string}:${fret}`;
 export const parseNoteId = (id: string) => id.split(':').map(Number) as [string: number, fret: number];
-export const isNoteId = (id: unknown): id is string => typeof id === 'string' && /^[1-6]:(?:[0-9]|1[0-9]|2[0-4])$/.test(id);
+const NOTE_ID = new RegExp(`^[1-${STRING_COUNT}]:(?:[0-9]|1[0-9]|2[0-4])$`);
+export const isNoteId = (id: unknown): id is string => typeof id === 'string' && NOTE_ID.test(id);
 export function position(string: number, fret: number, tuning: Tuning = STANDARD_TUNING): Note {
   if (!Number.isInteger(string) || string < 1 || string > tuning.midi.length || !Number.isInteger(fret) || fret < 0 || fret > MAX_FRET) throw new RangeError('Invalid fretboard position');
   const midi = tuning.midi[string - 1] + fret;
