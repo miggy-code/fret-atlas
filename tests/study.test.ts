@@ -229,3 +229,27 @@ test('the music layer does not depend on the saved view', async () => {
   const choices = studyChoices({ root: 9, scaleId: 'minor-pentatonic' as const, customPitches: [], lowest: 0, fourths: false, frets: 12, studyMode: 'position', shapeKind: 'rectangle', form: 1, studyFret: null, ghostForms: false });
   assert.deepEqual(choices.map(choice => choice.id), studyChoices(defaultState()).map(choice => choice.id));
 });
+
+test('every row of every whole form belongs to exactly one outline, in every key, family scale and tuning', () => {
+  // The form table is written by hand and the outlines are computed; a form whose rows match no outline would be
+  // skipped without a word, so this guards the two against drifting apart.
+  const frets = Math.max(...NECK_LENGTHS);
+  for (const fourths of [false, true]) for (const { lowered: lowest } of LOWEST_STRING_CHOICES) for (const scale of SCALES.filter(s => s.family)) for (let root = 0; root < 12; root++) {
+    const s = { ...defaultState(), studyMode: 'position' as const, scaleId: scale.id, root, lowest, fourths, frets };
+    const choices = studyChoices(s);
+    const whole = formPlacements(s).filter(p => p.rows.every(row => row.left >= 0 && row.right <= frets));
+    assert.ok(new Set(whole.map(p => p.form)).size === 5, `${scale.id} root ${root} lowest ${lowest} fourths ${fourths}: every form fits whole`);
+    for (const placement of whole) {
+      const where = `${scale.id} root ${root} lowest ${lowest} fourths ${fourths} form ${placement.form} at ${placement.base}`;
+      const choice = choices.find(c => c.form === placement.form && c.anchor === placement.rows[STRING_COUNT - 1].left);
+      assert.ok(choice, `${where}: shown`);
+      for (const row of placement.rows) {
+        const owners: Shape[] = choice.shapes.filter(shape => shape.rows.some(r => r.string === row.string && r.left === row.left && r.right === row.right));
+        assert.equal(owners.length, 1, `${where}: string ${row.string} belongs to ${owners.map(o => o.id).join(', ') || 'no outline'}`);
+      }
+    }
+  }
+});
+import { formPlacements } from '../src/core/study';
+import type { Shape } from '../src/core/shapes';
+import { LOWEST_STRING_CHOICES, NECK_LENGTHS, STRING_COUNT } from '../src/core/music';

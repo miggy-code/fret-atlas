@@ -98,6 +98,21 @@ function npsChoices(s: StudyInput, tuning: Tuning): Study[] {
   return choices.sort((a, b) => a.anchor - b.anchor);
 }
 
+/**
+ * Where the five forms lie for this key and tuning, before any outline is matched to them: each form at every octave
+ * that reaches the neck. `base` is the fret of the forms' minor tonic on the lowest string for that octave.
+ */
+export function formPlacements(s: StudyInput, tuning = tuningOf(s)): { form: number; base: number; rows: ShapeRow[] }[] {
+  const tonic = lowStringTonic(s, tuning);
+  // The forms are written for standard tuning; all fourths raises the two highest strings by one fret's pitch.
+  const standard = tuningFor(s.lowest, false);
+  const offsets = standard.midi.map((midi, i) => midi - tuning.midi[i]);
+  return FORM_ROWS.flatMap((form, i) => [-2, -1, 0, 1, 2].map(octave => {
+    const base = tonic + 12 * octave;
+    return { form: i + 1, base, rows: form.map(([left,right],index)=>({string:index+1,left:base+left+offsets[index],right:base+right+offsets[index]})) };
+  })).filter(({ rows }) => !rows.some(row=>row.right<0) && !rows.every(row=>row.left>s.frets));
+}
+
 export function studyChoices(s: StudyInput): Study[] {
   if (!studyModeAvailable(s, s.studyMode)) return [];
   const tuning = tuningOf(s);
@@ -111,7 +126,6 @@ export function studyChoices(s: StudyInput): Study[] {
     });
   }
   if (!scale.family) return [];
-  const tonic = lowStringTonic(s, tuning);
   const allShapes = (['rectangle', 'stack'] as const).flatMap(kind => findShapes({root:s.root,scaleId:s.scaleId,kind,frets:s.frets,includeFretEdges:true,tuning}));
   if (s.studyMode === 'all') return [{id:'all',form:1,anchor:0,label:'Whole neck',rows:STRINGS.map(string=>({string,left:0,right:s.frets})),shapes:allShapes}];
   if (s.studyMode === 'diagonal') {
@@ -136,22 +150,14 @@ export function studyChoices(s: StudyInput): Study[] {
       rows:scaleRows(shapes.flatMap(shape=>shape.rows.map(row=>({...row,right:row.right+(s.shapeKind==='rectangle' && row.string===shape.bottom-1?2:0)}))),s,tuning),shapes,
     }));
   }
-  // The forms are written for standard tuning; all fourths raises the two highest strings by one fret's pitch.
-  const standard = tuningFor(s.lowest, false);
-  const offsets = standard.midi.map((midi, i) => midi - tuning.midi[i]);
   const choices: Study[] = [];
-  FORM_ROWS.forEach((form, i) => {
-    for (let octave = -2; octave <= 2; octave++) {
-      const base = tonic + 12 * octave;
-      const rows = form.map(([left,right],index)=>({string:index+1,left:base+left+offsets[index],right:base+right+offsets[index]}));
-      if (rows.some(row=>row.right<0) || rows.every(row=>row.left>s.frets)) continue;
-      const positionShapes = allShapes.filter(shape=>shape.rows.every(row=>rows.some(r=>r.string===row.string && r.left===row.left && r.right===row.right)));
-      const shape = positionShapes.filter(shape=>shape.kind===s.shapeKind).sort((a,b)=>b.rows.length-a.rows.length || a.rows[0].string-b.rows[0].string)[0];
-      const shapes = s.studyMode === 'shape' ? shape ? [shape] : [] : positionShapes;
-      if (!shapes.length) continue;
-      choices.push({id:`${i+1}:${base}`,form:i+1,anchor:Math.max(0,rows[STRING_COUNT - 1].left),label:`Form ${i+1}`,rows:scaleRows(s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,s,tuning),shapes});
-    }
-  });
+  for (const { form, base, rows } of formPlacements(s, tuning)) {
+    const positionShapes = allShapes.filter(shape=>shape.rows.every(row=>rows.some(r=>r.string===row.string && r.left===row.left && r.right===row.right)));
+    const shape = positionShapes.filter(shape=>shape.kind===s.shapeKind).sort((a,b)=>b.rows.length-a.rows.length || a.rows[0].string-b.rows[0].string)[0];
+    const shapes = s.studyMode === 'shape' ? shape ? [shape] : [] : positionShapes;
+    if (!shapes.length) continue;
+    choices.push({id:`${form}:${base}`,form,anchor:Math.max(0,rows[STRING_COUNT - 1].left),label:`Form ${form}`,rows:scaleRows(s.studyMode==='shape'?shapes.flatMap(shape=>shape.rows):rows,s,tuning),shapes});
+  }
   return choices.sort((a,b)=>a.anchor-b.anchor);
 }
 
