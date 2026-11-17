@@ -65,7 +65,10 @@ export const SCALES: readonly Scale[] = [
 ];
 export const scaleById = (id: string) => SCALES.find(s => s.id === id) ?? SCALES[0];
 export const degreeLabel = (t: Tone) => `${accidental(t.alteration)}${t.degree}`;
-export const genericDegree = (semitones: number) => ['1', '♭2', '2', '♭3', '3', '4', '♭5', '5', '♭6', '6', '♭7', '7'][mod(semitones)];
+// An interval read with no scale in hand takes its usual spelling: every altered degree is a flat (♭5, never ♯4).
+const GENERIC_DEGREES = [1, 2, 2, 3, 3, 4, 5, 5, 6, 6, 7, 7];
+export const genericTone = (semitones: number): Tone => { const s = mod(semitones), degree = GENERIC_DEGREES[s]; return tone(s, degree, s - NATURALS[degree - 1], false); };
+export const genericDegree = (semitones: number) => degreeLabel(genericTone(semitones));
 export const toneAt = (scale: Scale, root: number, pitch: number) => scale.tones.find(t => t.semitones === mod(pitch - root));
 /** The pitch classes on the board: a named scale transposed to its root, or the custom notes as they are. */
 export const selectedPitches = (s: { root: number; scaleId: string; customPitches: number[] }) =>

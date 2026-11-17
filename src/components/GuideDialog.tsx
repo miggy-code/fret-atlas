@@ -19,6 +19,8 @@ export function GuideDialog({ dialog, onClose }: { dialog: RefObject<HTMLDialogE
         <dd>The thin line between G and B, marked +1, is the tuning break: shapes shift one fret toward the bridge when they cross it. Diagonal joins already account for the shift; turning Warp off hides the guide without changing notes.</dd>
         <dt>Highlight a triad independently.</dt>
         <dd>Pick a root and quality in the Chord row below the board, then Show tones. Green rings show the chord tones across the neck, including tones outside the current scale. Hide tones returns to the underlying note map.</dd>
+        <dt>Learn a song through the forms.</dt>
+        <dd>Songs puts a traditional melody on the board. The form under the current note is outlined, the line runs to the next few notes, and the tones of the chord sounding are ringed in green. Labels names each note by its degree of the key or from the chord's root, so the same note reads as a 5 of the key and the root of the chord. Below the board the phrases, chords, forms and melody share one timeline. Play it back hides the melody and asks you to tap a phrase from memory.</dd>
         <dt>Return to defaults.</dt>
         <dd>A panel marked Changed has settings that differ from the defaults; Restore defaults inside it resets only that panel. Reset view in Settings restores every panel at once. Key, scale and marked notes always stay.</dd>
         <dt>Mark and navigate.</dt>

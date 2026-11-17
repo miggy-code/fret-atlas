@@ -1,4 +1,4 @@
-/* Songs: a melody's route through the forms, on the board and in the deck below it. */
+/* Songs: a melody's route through the forms, the chords under it, and what it is made of. */
 
 /* On the board the melody leads; the rest of its form stays as the map around it. */
 .is-singing .note-node:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .4; }
@@ -7,48 +7,170 @@
 .is-singing .note-node.is-playing .mark-ring { stroke: var(--accent); stroke-width: 3; opacity: 1; }
 .is-singing .note-node.is-song-next .mark-ring { stroke: var(--accent); stroke-dasharray: 4 3; opacity: 1; }
 .song-ahead { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .7; pointer-events: none; }
+/* The chord sounding: its tones under the hand are ringed, and in the chord lens they lead while the scale steps back. */
+.is-singing .note-node.is-song-chord:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .7; }
+.is-chord-lens .note-node.is-song-chord .note-symbol { opacity: 1; }
+/* From the chord, color means a chord tone and nothing else: the key's root and added tones go neutral. */
+.is-chord-lens .note-node:not(.is-song-chord):not(.context) { --marker: var(--skeleton-marker); --marker-fill: var(--skeleton-marker); --label: var(--skeleton-label); }
+.is-chord-lens .note-node:not(.is-song-chord) .note-face { stroke-dasharray: none; }
+.is-chord-lens .note-node.is-song-chord .triad-halo { opacity: .5; }
+/* Playing a phrase back: the whole form is the map, and only what has been played is marked. */
+.is-recalling .note-node:not(.is-song-note):not(.is-playing):not(.is-ghost) .note-symbol { opacity: .85; }
+.is-recalling .note-node.is-song-note .mark-ring { stroke: var(--good); stroke-width: 2.5; opacity: 1; }
+.is-recalling .note-node.is-song-next .mark-ring { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 4 3; opacity: 1; }
 
-.song-deck { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 20px 4px 24px; border-bottom: 1px solid var(--line); }
 .song-in { color: var(--muted); font-weight: 400; }
-.song-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
-.song-pick, .song-speed { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
-.song-pick select { min-height: 40px; font-size: 15px; font-weight: 600; }
-.song-source { flex: 1 1 320px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.song-source a { color: var(--accent); }
-.song-options { display: flex; flex-wrap: wrap; gap: 12px 24px; min-width: 0; }
-.song-option { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 13px; }
-/* On a phone the form choices scroll inside their strip rather than widening the page. */
-.song-option .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 
-.song-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-.song-transport .text-button { border: 1px solid var(--line); color: var(--ink); }
-.song-transport .text-button:disabled { color: var(--disabled-ink); }
-.song-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 0 auto; color: var(--muted); font-size: 13px; }
-.song-now strong { color: var(--ink); font-size: 22px; line-height: 1; }
-.song-now em { padding: 2px 8px; border-radius: 999px; background: var(--panel); color: var(--ink); font-size: 12px; font-style: normal; font-weight: 600; }
+/* Above the board: the song, the transport and the note under the cursor. */
+.song-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 0 0 4px; }
+.song-pick select { min-height: 44px; max-width: 100%; font-size: 15px; font-weight: 600; }
+.song-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.song-recall-start { border: 1px solid var(--line); color: var(--ink); }
+.song-recall-start svg { width: 16px; height: 16px; color: var(--accent); }
+.song-empty { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 
-.song-route-wrap h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 10px; font-size: 15px; font-weight: 600; }
-.song-route-wrap h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
-.song-route { display: flex; gap: 0; margin: 0; padding: 0; list-style: none; }
-.song-route li { display: flex; flex-basis: 0; align-items: stretch; min-width: 96px; }
-.song-route strong, .song-route small { white-space: nowrap; }
-.song-route button { display: grid; flex: 1; justify-items: start; gap: 2px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); text-align: left; }
-.song-route button:hover { border-color: var(--on-border); }
-.song-route button.is-current { border-color: var(--accent); background: var(--on-bg); box-shadow: inset 0 -3px var(--accent); }
-.song-route button strong { font-size: 13px; }
-.song-route button small { color: var(--muted); font-size: 11px; }
-/* A move sits on the seam between two forms, named the way the hand makes it. */
-.route-change { align-self: center; margin: 0 -2px; padding: 3px 7px; border-radius: 999px; background: var(--panel); color: var(--ink); font-size: 11px; font-weight: 600; z-index: 1; }
+.song-now { display: flex; flex-wrap: wrap; gap: 8px 0; margin: 0 0 0 auto; }
+.song-now > div { display: grid; align-content: center; gap: 3px; min-width: 0; padding: 2px 18px; border-left: 1px solid var(--line); }
+.song-now > div:last-child { padding-right: 4px; }
+.song-now dt { color: var(--muted); font-size: 11px; line-height: 1.3; white-space: nowrap; }
+.song-now dt b { color: var(--ink); font-size: 12px; font-weight: 700; }
+.song-now dt i { color: var(--muted); font-style: normal; font-weight: 600; }
+.song-now dd { display: flex; align-items: baseline; gap: 8px; margin: 0; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.song-now dd strong { color: var(--ink); font-size: 18px; line-height: 1.1; letter-spacing: -.2px; }
+
+/* A degree in a chip: filled with its degree color in the key, with its chord color over a chord. */
+.degree-chip { display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 6px; border: 1px solid var(--chip-border); border-radius: 6px; background: var(--chip, var(--surface)); color: var(--ink); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1; }
+.degree-chip.is-root, .degree-chip.is-skeleton, .degree-chip.is-added, .degree-chip.is-chord-tone { border-color: transparent; color: var(--degree-ink); }
+.degree-chip.is-root { --chip: var(--root); color: var(--root-label); }
+.degree-chip.is-added { border: 1px dashed var(--added); background: color-mix(in srgb, var(--chip) 35%, var(--surface)); color: var(--ink); }
+.degree-chip.is-outside { border: 1px dashed var(--shift); background: none; color: var(--shift); }
+.degree-chip.is-passing { border-style: dashed; background: none; color: var(--muted); }
+.degree-chip.role-root { --chip: var(--root); color: var(--root-label); }
+.degree-chip.role-third { --chip: var(--chord-third); }
+.degree-chip.role-fifth { --chip: var(--chord-fifth); }
+.degree-chip.role-seventh { --chip: var(--degree-7); }
+.degree-chip.role-color { --chip: var(--degree-6); }
+
+/* Playing a phrase back borrows the drill bar; it has no streak column, and a slipped note keeps an amber pip. */
+.drill-bar.song-recall { grid-template-columns: 1fr auto auto; outline: none; }
+.song-recall .drill-progress { max-width: 260px; }
+.song-recall .drill-progress i.slip { border-color: var(--mark); background: color-mix(in srgb, var(--mark) 45%, var(--surface)); }
+
+/* Below the board. */
+.song-deck { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 20px 4px 24px; border-bottom: 1px solid var(--line); }
+.song-deck h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+.song-deck h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
+
+/* The timeline: four lanes on one time axis. Labels stay put while a long song scrolls under them. */
+.song-lanes-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.song-lanes { --label: 68px; position: relative; display: grid; grid-template-columns: var(--label) minmax(calc(var(--bars) * 30px), 1fr); align-items: center; gap: 6px 0; }
+.lane-label { position: sticky; left: 0; z-index: 3; align-self: stretch; display: flex; align-items: center; background: var(--page); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+.lane-track { position: relative; height: 40px; margin: 0; padding: 0; list-style: none; }
+.lane-track li { position: absolute; top: 0; bottom: 0; display: flex; padding-right: 2px; }
+.lane-track button { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; padding: 3px 8px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); text-align: left; }
+.lane-track button:hover { border-color: var(--on-border); }
+.lane-track button.is-current { border-color: var(--accent); background: var(--on-bg); box-shadow: inset 0 -3px var(--accent); }
+.lane-track button strong { font-size: 13px; line-height: 1.2; white-space: nowrap; }
+.lane-track button small { color: var(--muted); font-size: 11px; line-height: 1.2; white-space: nowrap; }
+.lane-phrases { height: 28px; }
+.lane-phrases button { flex-direction: row; align-items: center; justify-content: flex-start; gap: 6px; background: var(--panel); }
+.lane-phrases button strong { color: var(--muted); font-size: 12px; }
+.lane-phrases button.is-current strong { color: var(--accent); }
+.phrase-clean { color: var(--good); font-weight: 700; }
+.lane-none { display: flex; align-items: center; margin: 0; color: var(--muted); font-size: 12px; }
+/* A move sits at the start of the form it leads into, named the way the hand makes it. */
+.route-change { position: absolute; top: 3px; right: 4px; padding: 1px 6px; border-radius: 999px; background: var(--panel); color: var(--ink); font-size: 10px; font-weight: 600; }
 .route-change.is-shift { background: color-mix(in srgb, var(--shift) 16%, var(--surface)); color: var(--shift); }
 .route-change.is-slide { background: color-mix(in srgb, var(--stack) 16%, var(--surface)); color: var(--stack); }
 .route-change.is-pivot { background: color-mix(in srgb, var(--good) 16%, var(--surface)); color: var(--good); }
-.song-key, .song-empty { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
-@media (max-width: 760px) {
+/* The melody's contour: each note a bar, as long as it lasts and as high as it sounds. */
+.lane-melody { height: 72px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); cursor: pointer; }
+.lane-melody i { position: absolute; bottom: calc(6px + (100% - 18px) * var(--height)); height: 6px; min-width: 3px; border-right: 1px solid var(--surface); border-radius: 2px; background: var(--core); }
+.lane-melody i.is-chord { background: var(--triad); }
+.lane-melody i.is-outside { background: var(--shift); }
+.lane-melody i.is-current { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 1; }
+.lane-bars, .lane-playhead { position: absolute; top: 0; bottom: 0; left: var(--label); right: 0; pointer-events: none; }
+.lane-bars i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: .7; }
+.lane-bars { z-index: 0; }
+.lane-track { z-index: 1; }
+.lane-playhead { z-index: 2; }
+.lane-playhead i { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--accent); transition: left .12s ease-out; }
+.lane-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0 68px; color: var(--muted); font-size: 12px; }
+.lane-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.lane-legend i { width: 16px; height: 6px; border-radius: 2px; background: var(--core); }
+.lane-legend i.is-chord { background: var(--triad); }
+.lane-legend i.is-outside { background: var(--shift); }
+
+.song-options { display: flex; flex-wrap: wrap; gap: 12px 28px; min-width: 0; }
+.song-option { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 13px; }
+/* On a phone the choices scroll inside their strip rather than widening the page. */
+.song-option .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.song-sound { gap: 8px 20px; }
+.song-speed { display: inline-flex; align-items: center; gap: 8px; }
+.song-speed select { height: 40px; }
+
+/* What the melody is made of. */
+.insight-grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, 1.2fr) minmax(300px, 1.2fr); align-items: start; gap: 20px 32px; }
+.degree-bars { margin: 0; }
+.degree-bars ol { display: flex; align-items: flex-end; gap: 6px; height: 132px; margin: 0; padding: 0; list-style: none; }
+.degree-bars li { flex: 1; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 4px; height: 100%; min-width: 0; color: var(--muted); font-size: 11px; }
+.degree-bars li i { align-self: end; width: 100%; max-width: 40px; height: max(2px, calc(100% * var(--share))); border-radius: 4px 4px 0 0; background: var(--chip, var(--core)); }
+.degree-bars li.is-root i { background: var(--root); }
+.degree-bars li.is-added i { border: 1px dashed var(--added); border-bottom: 0; background: color-mix(in srgb, var(--chip) 40%, var(--surface)); }
+.degree-bars li.is-outside i { border: 1px dashed var(--shift); border-bottom: 0; background: none; }
+.degree-bars li.is-unused i { border: 0; background: var(--line); }
+.degree-bars li strong { color: var(--ink); font-size: 13px; }
+.degree-bars li.is-unused strong { color: var(--disabled-ink); font-weight: 500; }
+.degree-bars li.is-outside strong { color: var(--shift); }
+.degree-bars figcaption, .chord-table caption { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: left; }
+.insight-lines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; color: var(--ink); font-size: 14px; line-height: 1.5; }
+.insight-lines li { padding-left: 14px; border-left: 2px solid var(--line); }
+.insight-lines li:first-child { border-left-color: var(--accent); }
+.chord-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.chord-table caption { caption-side: bottom; }
+.chord-table th, .chord-table td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.chord-table thead th { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+.chord-table tbody th button { min-height: 32px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 700; }
+.chord-table tbody th button:hover:not(:disabled) { border-color: var(--on-border); }
+.chord-roman { color: var(--ink); font-weight: 600; }
+.chord-degrees { display: flex; flex-wrap: wrap; gap: 4px; }
+.chord-share { color: var(--muted); text-align: right; }
+.chord-table th:last-child, .chord-table td:last-child { padding-right: 0; text-align: right; }
+
+.song-source { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.song-source a { color: var(--accent); }
+
+@media (max-width: 1180px) {
+  .insight-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .chord-table { grid-column: 1 / -1; }
   .song-now { margin-left: 0; width: 100%; }
-  .song-route { flex-wrap: wrap; row-gap: 8px; }
-  .song-transport .text-button, .song-pick select { min-height: 44px; }
+  .song-now > div:first-child { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 760px) {
+  .insight-grid { grid-template-columns: minmax(0, 1fr); }
+  .song-bar { gap: 10px 12px; }
+  .song-pick, .song-pick select { width: 100%; }
+  .song-now { gap: 10px 0; }
+  .song-now > div { flex: 1 1 50%; padding: 0 12px 0 0; border-left: 0; }
+  .song-now dd strong { font-size: 16px; }
+  .song-lanes { --label: 58px; }
+  .lane-legend { margin-left: 0; }
+  .drill-bar.song-recall { grid-template-columns: 1fr auto; }
+  .song-transport .icon-button, .song-speed select { min-width: 44px; min-height: 44px; }
+}
+/* Portrait phone: the bar rides above the neck like the form bar does, so the note being read stays in sight. */
+/* The song picker (its own first row, 44px and a 10px gap) scrolls away; the transport and the note stay. */
+.board-stage > .song-bar { position: sticky; top: -54px; z-index: 5; margin: 0; padding: 0 0 6px; background: var(--page); }
+.workspace[data-orientation='vertical'] .song-now dt { font-size: 10px; }
+.workspace[data-orientation='vertical'] .song-now > div { flex: 1 1 25%; padding-right: 6px; }
+.workspace[data-orientation='vertical'] .song-now dd { flex-direction: column; gap: 1px; white-space: normal; font-size: 11px; }
+.workspace[data-orientation='vertical'] .drill-bar.song-recall { grid-template-columns: 1fr auto; }
+/* Touch: every lane block is a full-size target. */
+@media (pointer: coarse) {
+  .lane-track, .lane-phrases { height: 44px; }
+  .chord-table tbody th button { min-width: 44px; min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .song-ahead { transition: none; }
+  .song-ahead, .lane-playhead i { transition: none; }
 }

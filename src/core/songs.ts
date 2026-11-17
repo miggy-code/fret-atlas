@@ -61,6 +61,48 @@ K:A
  E3/2-| E B,/4C/4| D3/2-| D3/4- C/4 B,/2| A,3/2-| A, A,/2| A,3/2-|\\
  A,||`,
   },
+  {
+    id: 'amazing-grace',
+    title: 'Amazing Grace',
+    source: 'https://abcnotation.com/tunePage?a=colinhume.com/ABC.txt/0030',
+    provenance: 'Traditional hymn tune "New Britain" (USA), in print since about 1830. From Colin Hume\'s website, which credits Carrell and Clayton, 1831.',
+    // The page writes no key signature, but the tune is in G: it ends on G and its chords are G, C and D7.
+    key: 'G',
+    abc: `X:31
+T:Amazing Grace
+C:'New Britain': James P. Carrell and David L. Clayton, 1831
+S:Colin Hume's website,  colinhume.com  - chords can also be printed below the stave.
+Q:1/4=112
+R:Waltz
+%%MIDI chordprog 19     % Church Organ
+%%MIDI bassprog 58      % Tuba
+%%MIDI program 60       % French Horn
+M:3/4
+%%MIDI beat 100 95 80
+L:1/4
+K:C
+D | [I: MIDI=gchord b2b] "G"G2B/G/ | "G7"B2A | "C"G2 E | "G"D2 "D7"D | "G"G2 B/G/ | "Em"B2A | "D"d3- | d2B |
+"G"d2 B/G/ | "G7"B2A | "C"G2E | "G"D2 "D7"D | "Em"G2B/G/ | "D7"B2A | "G"G3- | G2 |]`,
+  },
+  {
+    id: 'wayfaring-stranger',
+    title: 'Wayfaring Stranger',
+    source: 'https://abcnotation.com/tunePage?a=www.nigelgatherer.com/tunes/abc/tb12/0034',
+    provenance: 'Traditional (USA, spiritual). Transcribed by Nigel Gatherer from John Garst. The page gives the melody without chords.',
+    abc: `X:585
+T:I Am a Poor, Wayfaring Stranger
+S:John Garst
+Z:Nigel Gatherer
+L:1/8
+M:3/4
+K:Dm
+DDA | A3 GAG | F D2
+DDA | G3 FDC | D3
+AAc | d3 Acd | A G2
+AAc | d3 Acc | A3
+DDA | A3 GAG | F D2
+DDA | G3 FDC | D3 |]`,
+  },
 ];
 
 export const songById = (id: string) => SONGS.find(song => song.id === id);

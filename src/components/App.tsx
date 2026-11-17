@@ -19,7 +19,7 @@ import { MarksPanel } from './MarksPanel';
 import { PracticeDeck } from './PracticeDeck';
 import { useProgress } from './Progress';
 import { SettingsDialog } from './SettingsDialog';
-import { SongDeck, useSongs } from './Songs';
+import { RecallBar, SongBar, SongDeck, useSongs } from './Songs';
 import { FormBar, KeyScalePicker, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
 import { ModeTabs } from './ModeTabs';
 import type { Tab } from './ModeTabs';
@@ -189,16 +189,21 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const drillDeck = practicing && <div id="deck" role="tabpanel" aria-labelledby="practice-tab" ref={drillContainer} tabIndex={-1}>
     <DrillBar session={drill} onEnd={endPractice} />
   </div>;
+  // A song is played from a bar above the board. Playing a phrase back takes over like a drill: its prompt replaces the bar and the deck.
+  const recalling = singing && !!songs.recall;
+  const songBar = singing && (recalling
+    ? <div id="deck" role="tabpanel" aria-labelledby="songs-tab"><RecallBar songs={songs} /></div>
+    : <SongBar songs={songs} state={state} />);
   const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck && !singing} drill={drill.view}
     song={singing ? songs.board : undefined} playing={singing ? songs.board?.current : playback.playing}
     onMark={practicing ? drill.tap : singing ? songs.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
     {/* What is on the board and what the pointer is on read together, right under the neck. */}
     {!practicing && <div className="board-footer">
-      <BoardLegend state={viewState} shapes={shapes} scale={scale} />
+      <BoardLegend state={viewState} shapes={shapes} scale={scale} chord={singing && !recalling && songs.chord ? songs.chord.chord.symbol : undefined} />
       <NoteInspector inspected={inspected} state={viewState} tuning={tuning} scale={scale} />
     </div>}
   </Fretboard>;
-  const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
+  const deck = !practicing && !recalling && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
     {tab === 'songs' ? <SongDeck songs={songs} state={state} />
       : tab === 'practice'
       ? <PracticeDeck state={viewState} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
@@ -232,7 +237,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
             {!locked && <section className="study-controls" aria-label="Study controls"><StudyPicker {...studyProps} /></section>}
             {patternNotice}
             <div className="board-stage">
-              {practicing ? drillDeck : !singing && <FormBar {...studyProps} />}
+              {practicing ? drillDeck : singing ? songBar : <FormBar {...studyProps} />}
               {board}
             </div>
             {!locked && <StudyOptionsBar {...studyProps} />}
@@ -243,6 +248,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
             {!locked && <StudyControls {...studyProps} />}
             {patternNotice}
             {drillDeck}
+            {!vertical && songBar}
             {!singing && (state.studyMode === 'diagonal' || state.studyMode === 'all')
               && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
             {board}

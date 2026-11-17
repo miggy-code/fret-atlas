@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseAbc } from '../src/core/abc';
 import { inStudy } from '../src/core/study';
-import { pathForSong, songPath } from '../src/core/song';
+import { chordInForm, pathForSong, songPath } from '../src/core/song';
 import type { SongPath } from '../src/core/song';
 import { SONGS } from '../src/core/songs';
-import { tuningFor } from '../src/core/music';
+import { parseChord } from '../src/core/harmony';
+import { mod, parseNoteId, scaleById, tuningFor } from '../src/core/music';
 
 const neck = { frets: 12, lowest: 0, fourths: false };
 const abc = (body: string, key = 'Am', meter = '4/4') => parseAbc(`X:1\nT:Test\nM:${meter}\nL:1/4\nK:${key}\n${body}`);
@@ -119,3 +120,55 @@ for (const song of SONGS) {
     assert.ok(path.notes.filter(n => n.stretch).length <= path.notes.length / 4, 'most notes sit inside their form');
   });
 }
+
+const song = (id: string) => { const found = SONGS.find(s => s.id === id); assert.ok(found, id); return found; };
+
+test('the path carries the chords of its source, merged where one repeats, and every note knows its chord', () => {
+  const path = songPath(abc('E | "Am"A, C D E | "Am"G A "G"B d | "G"d4'), neck, { octave: 0 });
+  assert.deepEqual(path.chords.map(c => [c.chord.symbol, c.start, c.beats]), [['Am', 1, 6], ['G', 7, 6]]);
+  assert.deepEqual(path.notes.map(n => n.chord), [null, 0, 0, 0, 0, 0, 0, 1, 1, 1], 'a pickup before the first chord has none');
+  assert.deepEqual(path.bars, [0, 1, 5, 9]);
+  assert.deepEqual(songPath(abc('A, C D E'), neck).chords, []);
+});
+
+test('House of the Rising Sun keeps its changes in order', () => {
+  const path = pathForSong(song('house-of-the-rising-sun'), neck);
+  assert.deepEqual(path.chords.map(c => c.chord.symbol), ['Dm', 'A7', 'Dm', 'C7', 'F', 'A7', 'Dm', 'B♭7', 'Dm', 'A7', 'Dm']);
+  assert.equal(path.notes[0].chord, null);
+  assert.equal(path.chords.at(-1)!.start + path.chords.at(-1)!.beats, path.length, 'the last chord lasts to the end');
+});
+
+test("a chord's tones under the hand lie inside the form, or one fret past it for a tone the scale lacks", () => {
+  const path = pathForSong(song('house-of-the-rising-sun'), neck);
+  const study = path.segments[0].study;
+  const tuning = tuningFor(0, false);
+  const scale = scaleById(path.scaleId);
+  const inScale = (pitch: number) => scale.tones.some(t => mod(path.root + t.semitones) === pitch);
+  for (const symbol of ['Dm', 'A7']) {
+    const chord = parseChord(symbol)!;
+    const placed = chordInForm(chord, study, neck, path);
+    assert.ok(placed.length >= chord.tones.length, `${symbol} is reachable in the form`);
+    for (const { id, tone } of placed) {
+      const [string, fret] = parseNoteId(id);
+      assert.equal(mod(tuning.midi[string - 1] + fret), tone.pitch, `${id} sounds the chord's ${tone.label}`);
+      const row = study.rows.find(r => r.string === string)!;
+      const past = Math.max(0, row.left - fret, fret - row.right);
+      assert.ok(inScale(tone.pitch) ? past === 0 : past <= 1, `${id} is under the hand`);
+    }
+    // Every chord tone that lies inside the form is listed.
+    for (const row of study.rows) for (let fret = Math.max(0, row.left); fret <= Math.min(neck.frets, row.right); fret++) {
+      const pitch = mod(tuning.midi[row.string - 1] + fret);
+      if (chord.tones.some(t => t.pitch === pitch)) assert.ok(placed.some(p => p.id === `${row.string}:${fret}`), `${row.string}:${fret} is listed`);
+    }
+  }
+  const seventh = chordInForm(parseChord('A7')!, study, neck, path);
+  assert.ok(seventh.some(p => p.tone.pitch === 1), "A7's C♯ is shown though D natural minor has no C♯");
+});
+
+test('a song names its real key when the ABC header does not', () => {
+  // This Amazing Grace is written with no key signature, but it is in G: G major pentatonic, ending on G.
+  const path = pathForSong(song('amazing-grace'), neck);
+  assert.equal(path.root, 7);
+  assert.equal(path.scaleId, 'major');
+  assert.equal(mod(path.notes.at(-1)!.midi), 7);
+});

@@ -1,11 +1,14 @@
 // Reads the part of ABC notation that a single-line traditional melody uses, so songs are stored exactly as published.
-// Chord symbols, decorations, grace notes, slurs and lyrics are skipped; they carry no melody pitch or time.
+// Chord symbols are kept as text with their beat. Decorations, grace notes, slurs and lyrics are skipped.
 import { mod } from './music';
 
 export type Mode = 'major' | 'dorian' | 'phrygian' | 'lydian' | 'mixolydian' | 'minor' | 'locrian';
 /** `start` and `beats` are in quarter notes. `midi` is the written pitch: ABC `C` is middle C (60). */
 export type AbcNote = { midi: number; start: number; beats: number };
-export type AbcTune = { title: string; meter: [number, number]; tempo: number; key: { tonic: number; mode: Mode }; notes: AbcNote[]; length: number };
+/** A chord symbol as the page writes it (`Dm`, `A7`), from the beat it is written over. */
+export type AbcChord = { symbol: string; start: number };
+/** `bars` holds the beat each bar starts on, a pickup bar included. Repeats are played through in `notes`, `chords` and `bars` alike. */
+export type AbcTune = { title: string; meter: [number, number]; tempo: number; key: { tonic: number; mode: Mode }; notes: AbcNote[]; chords: AbcChord[]; bars: number[]; length: number };
 
 const LETTER_SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const LETTER_FIFTHS: Record<string, number> = { F: -1, C: 0, G: 1, D: 2, A: 3, E: 4, B: 5 };
@@ -38,7 +41,7 @@ const fraction = (text: string) => {
 };
 
 type Bar = { start?: boolean; end?: boolean; ending?: number; close?: boolean };
-type Item = { kind: 'note'; midi: number; beats: number; tie: boolean } | { kind: 'rest'; beats: number } | { kind: 'bar'; bar: Bar };
+type Item = { kind: 'note'; midi: number; beats: number; tie: boolean } | { kind: 'rest'; beats: number } | { kind: 'chord'; symbol: string } | { kind: 'bar'; bar: Bar };
 
 export function parseAbc(abc: string): AbcTune {
   const header: Record<string, string> = {};
@@ -114,7 +117,14 @@ export function parseAbc(abc: string): AbcTune {
     }
     const endingMatch = /^\[(\d)/.exec(rest);
     if (endingMatch) { i += endingMatch[0].length; bar({ ending: Number(endingMatch[1]) }); continue; }
-    if (ch === '"') { i = text.indexOf('"', i + 1) + 1 || text.length; continue; }
+    if (ch === '"') {
+      // Quoted text is a chord symbol unless it opens with a placement mark, which makes it a note to the reader.
+      const close = text.indexOf('"', i + 1);
+      const symbol = text.slice(i + 1, close === -1 ? text.length : close).trim();
+      if (symbol && !'^_<>@'.includes(symbol[0])) items.push({ kind: 'chord', symbol });
+      i = close === -1 ? text.length : close + 1;
+      continue;
+    }
     if (ch === '!' || ch === '+') { const close = text.indexOf(ch, i + 1); i = close === -1 ? i + 1 : close + 1; continue; }
     if (ch === '{') { i = text.indexOf('}', i) + 1 || text.length; continue; }
     if (rest.startsWith('[K:')) { const close = text.indexOf(']', i); key = parseKey(text.slice(i + 3, close)); i = close + 1; continue; }
@@ -133,7 +143,7 @@ export function parseAbc(abc: string): AbcTune {
       const run = /^(>+|<+)/.exec(rest)![0];
       const long = 2 - 1 / 2 ** run.length, short = 1 / 2 ** run.length;
       const last = items[items.length - 1];
-      if (last && last.kind !== 'bar') last.beats *= ch === '>' ? long : short;
+      if (last && (last.kind === 'note' || last.kind === 'rest')) last.beats *= ch === '>' ? long : short;
       broken = ch === '>' ? short : long;
       i += run.length;
       continue;
@@ -173,6 +183,7 @@ export function parseAbc(abc: string): AbcTune {
   for (let k = 0; k < items.length; k++) {
     const item = items[k];
     if (item.kind !== 'bar') { if (!skipping) played.push(item); continue; }
+    if (!skipping) played.push(item);
     const b = item.bar;
     if (inEnding && (b.close || b.start) && !b.end) { inEnding = false; skipping = false; pass = 1; }
     if (b.end && !skipping) {
@@ -184,15 +195,20 @@ export function parseAbc(abc: string): AbcTune {
   }
 
   const notes: AbcNote[] = [];
+  const chords: AbcChord[] = [];
+  const bars = [0];
   let time = 0, tied = false;
   for (const item of played) {
     if (item.kind === 'rest') { time += item.beats; tied = false; continue; }
-    if (item.kind !== 'note') continue;
+    if (item.kind === 'chord') { chords.push({ symbol: item.symbol, start: time }); continue; }
+    if (item.kind === 'bar') { if (time > bars[bars.length - 1]) bars.push(time); continue; }
     const last = notes[notes.length - 1];
     if (tied && last && last.midi === item.midi) last.beats += item.beats;
     else notes.push({ midi: item.midi, start: time, beats: item.beats });
     time += item.beats;
     tied = item.tie;
   }
-  return { title: header.T?.trim() ?? 'Untitled', meter, tempo, key: { tonic: firstKey.tonic, mode: firstKey.mode }, notes, length: time };
+  // The closing bar line starts no bar.
+  if (bars.length > 1 && bars[bars.length - 1] >= time) bars.pop();
+  return { title: header.T?.trim() ?? 'Untitled', meter, tempo, key: { tonic: firstKey.tonic, mode: firstKey.mode }, notes, chords, bars, length: time };
 }

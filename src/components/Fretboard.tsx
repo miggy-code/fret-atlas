@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { arrowStep, boardGeometry, ROW, shapePath, sharedShapePath } from '../core/geometry';
 import type { Point } from '../core/geometry';
-import { noteAt, parseNoteId, position, stringName } from '../core/music';
+import { genericDegree, noteAt, parseNoteId, position, stringName } from '../core/music';
 import { Charm } from './Charm';
 import { notePresentation } from '../core/presentation';
 import { insideShape } from '../core/shapes';
@@ -14,6 +14,9 @@ import type { Study } from '../core/study';
 import type { DrillView } from './Drill';
 import type { SongBoard } from './Songs';
 import { useBoardOrientation } from './useBoardOrientation';
+
+// The chord lens reuses the board's chord colors: root red, third yellow, fifth purple.
+const CHORD_ROLE_COLOR = { root: 'var(--root)', third: 'var(--chord-third)', fifth: 'var(--chord-fifth)', seventh: 'var(--degree-7)', color: 'var(--degree-6)' } as const;
 
 interface Props { state: State; shapes: Shape[]; study: Study | undefined; ghosts: Study[]; fitNeck?: boolean; drill?: DrillView; song?: SongBoard; playing?: string | null; children?: ReactNode; onMark: (id: string) => void; onInspect: (id: string) => void }
 
@@ -126,7 +129,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
   const numberAt = (fret: number) => geo.project(geo.along(fret), geo.numberAcross);
   return <div data-orientation={orientation} className={`board-shell ${scrollEdges.left ? 'has-left' : ''} ${scrollEdges.right ? 'has-right' : ''}`} onPointerLeave={() => setEmphasized(null)}>
     <div ref={scrollRef} className="board-scroll" role="region" aria-label={`Fretboard. Tab to a note; arrow keys navigate, Enter marks. ${vertical ? 'Scroll the page for more frets.' : 'Scroll horizontally for more frets.'}`}>
-      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : entering ? 'form-enter' : ''} ${drill?.complete ? 'drill-complete' : ''} ${song ? 'is-singing' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { '--board-width': vertical ? view.width : geo.width } as CSSProperties} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'} data-orientation={orientation}>
+      <svg className={`fretboard ${shapes.length ? 'has-patterns' : ''} ${state.studyMode === 'all' ? 'is-whole-neck' : ''} ${drill ? 'is-drilling' : entering ? 'form-enter' : ''} ${drill?.complete ? 'drill-complete' : ''} ${song ? 'is-singing' : ''} ${song?.recalling ? 'is-recalling' : ''} ${song?.chord?.relabel ? 'is-chord-lens' : ''}`} role="group" aria-label="Interactive six-string guitar fretboard" viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} style={fitNeck ? { width: '100%', maxWidth: fitRight - fitLeft, overflow: 'hidden' } : { '--board-width': vertical ? view.width : geo.width } as CSSProperties} data-labels={state.labels} data-handedness={state.leftHanded ? 'left' : 'right'} data-orientation={orientation}>
         <title>{vertical
           ? `Guitar fretboard, nut at top, ${state.leftHanded ? 'high' : 'low'} strings on the left`
           : `Guitar fretboard, high strings above, nut ${state.leftHanded ? 'right' : 'left'}`}</title>
@@ -195,21 +198,24 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
         {tuning.midi.flatMap((_, i) => frets.map(fret => {
           const note = position(i + 1, fret, tuning);
           const p = notePresentation(note, state, shapes, study, ghosts);
-          const label = state.labels === 'intervals' ? p.interval : p.name;
+          // A song's chord lens names every note from the root of the chord sounding, and colors the chord's own tones by role.
+          const chordTone = song?.chord?.tones[note.id];
+          const lens = song?.chord?.relabel ? song.chord : undefined;
+          const label = lens ? chordTone?.label ?? genericDegree(note.pitch - lens.root) : state.labels === 'intervals' ? p.interval : p.name;
           // While drilling, only answers already found are drawn, and nothing names a hidden note.
           const drillFound = drill?.found.includes(note.id) ?? false;
-          const drillMiss = drill?.miss === note.id;
+          const drillMiss = drill?.miss === note.id || song?.miss === note.id;
           const assisted = !!drill && (drill.hint === note.id || (drill.revealed && drill.drill.targets.includes(note.id)));
           // A song's notes always show, even one outside the scale.
           const songNote = !!song && (song.notes.includes(note.id) || song.ahead.includes(note.id));
-          const visible = drill ? drillFound || drillMiss || assisted : p.visible || songNote;
+          const visible = drill ? drillFound || drillMiss || assisted : p.visible || songNote || !!chordTone || drillMiss;
           const aria = drill && !drillFound ? `String ${note.string}, ${fret === 0 ? 'open' : `fret ${fret}`}` : p.aria;
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={aria} aria-pressed={drill ? undefined : p.marked}
             data-note-id={note.id} data-active={p.active ? 'true' : 'false'} data-triad={p.triad ? 'true' : undefined} data-tone-kind={p.kind} data-shape-member={p.member ? 'true' : undefined} data-visible={visible ? 'true' : 'false'} data-drill={drillFound ? 'found' : drillMiss ? 'miss' : undefined}
             data-charm-degree={p.charm}
-            className={`note-node ${p.charm ? 'lucky-charm' : ''} ${p.kind} ${p.chordRole ?? ''} ${p.degreeColored ? 'degree-colored' : ''} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${assisted ? 'is-drill-hint' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${songNote ? 'is-song-note' : ''} ${song?.next === note.id ? 'is-song-next' : ''} ${song?.stretch.includes(note.id) ? 'is-song-stretch' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
-            transform={`translate(${geo.at(fret, i + 1).x},${geo.at(fret, i + 1).y})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(p.color === undefined ? {} : { '--degree-color': p.color }) } as CSSProperties}
+            className={`note-node ${p.charm ? 'lucky-charm' : ''} ${p.kind} ${p.chordRole ?? ''} ${p.degreeColored ? 'degree-colored' : ''} ${visible ? '' : 'is-hidden'} ${drillFound ? 'is-drill-found' : ''} ${assisted ? 'is-drill-hint' : ''} ${drillMiss ? 'is-drill-miss' : ''} ${playing === note.id ? 'is-playing' : ''} ${songNote ? 'is-song-note' : ''} ${chordTone ? `is-song-chord chord-${chordTone.role}` : ''} ${lens && chordTone ? 'degree-colored' : ''} ${song?.next === note.id ? 'is-song-next' : ''} ${song?.stretch.includes(note.id) ? 'is-song-stretch' : ''} ${p.background && !p.marked && !p.triad ? 'is-background' : ''} ${p.marked ? 'is-marked' : ''} ${p.triad ? 'is-triad' : ''} ${p.member ? 'is-member' : ''} ${p.run ? 'is-run' : ''} ${p.ghost ? 'is-ghost' : ''} ${p.degreeDimmed ? 'is-degree-dimmed' : ''} ${p.isolated && visible ? 'is-degree-isolated' : ''} ${state.labels === 'both' ? 'both-labels' : ''}`}
+            transform={`translate(${geo.at(fret, i + 1).x},${geo.at(fret, i + 1).y})`} style={{ '--note-label-size': label.length > 2 ? '11px' : '13px', '--wave': Math.abs(fret - studyLeft), ...(lens && chordTone ? { '--degree-color': CHORD_ROLE_COLOR[chordTone.role] } : p.color === undefined ? {} : { '--degree-color': p.color }) } as CSSProperties}
             onFocus={() => { setCursor(note.id); setEmphasized(note.id); onInspect(note.id); }} onPointerEnter={() => { setEmphasized(note.id); onInspect(note.id); }}
             onClick={() => { setCursor(note.id); onInspect(note.id); onMark(note.id); }} onKeyDown={event => navigate(event, note.id)}>
             <title>{aria}</title>
@@ -218,14 +224,14 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
             <rect className="mark-ring" x="-17" y="-17" width="34" height="34" rx="7" />
             <g className="note-symbol">
               {drillMiss ? <><circle className="note-face" r="11" /><path className="miss-cross" d="M-4,-4 4,4M4,-4-4,4" /></>
-                : p.kind === 'context' && !p.marked && !p.triad && !songNote
+                : p.kind === 'context' && !p.marked && !p.triad && !songNote && !chordTone
                 ? <circle className="note-face" r="3" />
                 : p.charm ? <Charm degree={p.charm} />
                 : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
-              {p.triad && <circle className="triad-halo" r="18" />}
+              {(p.triad || chordTone) && <circle className="triad-halo" r="18" />}
               {(drillFound || playing === note.id) && <circle className="note-burst" r="13" />}
-              {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad || songNote) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
+              {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad || songNote || chordTone) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
               {!drillMiss && state.labels === 'both' && (p.selected || p.marked || p.triad || songNote) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
               {!drillMiss && state.labels === 'none' && (p.charm === undefined || p.charm === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>
@@ -237,7 +243,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           const tipNote = noteAt(tipId, tuning);
           const { string: tipString, fret: tipFret } = tipNote;
           const tipP = notePresentation(tipNote, state, shapes, study, ghosts);
-          if (!tipP.visible && !tipP.marked && !tipP.triad && !song?.notes.includes(tipId)) return null;
+          if (!tipP.visible && !tipP.marked && !tipP.triad && !song?.notes.includes(tipId) && !song?.chord?.tones[tipId]) return null;
           const tipMembership = shapes.filter(s => insideShape(tipString, tipFret, s));
           const tipMemberLabel = [...new Set(tipMembership.map(s => s.kind === 'rectangle' ? 'Rectangle' : 'Stack'))].join(' & ');
           // The chip sits above its note, or below it where the header is above: the first string when horizontal, the open fret when vertical.

@@ -65,3 +65,24 @@ test('the header gives title, meter, tempo in quarter notes, and key', () => {
   assert.deepEqual(t.key, { tonic: 4, mode: 'minor' });
   assert.equal(parseAbc('X:1\nM:3/4\nL:1/8\nQ:1/4=120\nK:C\nC').tempo, 120);
 });
+
+test('chord symbols are kept with the beat they start on; text annotations are not chords', () => {
+  const t = tune('"Am"A2 B2 | "^slowly""G7"c4 | "_below"d4 "<left"e4');
+  assert.deepEqual(t.chords, [{ symbol: 'Am', start: 0 }, { symbol: 'G7', start: 2 }]);
+  assert.deepEqual(t.notes.map(n => n.midi), [69, 71, 72, 74, 76]);
+});
+
+test('a chord symbol between tied notes or after a broken rhythm leaves the lengths alone', () => {
+  const t = tune('"C"A4-|"F"A4 "G"B>c', 'L:1/8\nK:C');
+  assert.deepEqual(t.notes.map(n => n.beats), [4, .75, .25]);
+  assert.deepEqual(t.chords, [{ symbol: 'C', start: 0 }, { symbol: 'F', start: 2 }, { symbol: 'G', start: 4 }]);
+});
+
+test('bars start where the bar lines fall, a pickup bar first; repeats bring their bars and chords round again', () => {
+  const pickup = tune('G2 | A8 | B8 |]');
+  assert.deepEqual(pickup.bars, [0, 1, 5]);
+  assert.equal(pickup.length, 9);
+  const repeated = tune('|: "C"C8 :| "G"D8');
+  assert.deepEqual(repeated.bars, [0, 4, 8]);
+  assert.deepEqual(repeated.chords, [{ symbol: 'C', start: 0 }, { symbol: 'C', start: 4 }, { symbol: 'G', start: 8 }]);
+});

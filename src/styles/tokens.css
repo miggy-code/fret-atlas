@@ -12,6 +12,8 @@
      and the other degrees add four hues that differ from those three and from each other. Bright fills under a dark label, so dark mode keeps them. */
   --chord-third: #e3b341; --chord-fifth: #a365b5;
   --degree-1: var(--root); --degree-2: #3fae6a; --degree-3: var(--chord-third); --degree-4: #3cb8d6; --degree-5: var(--chord-fifth); --degree-6: #5b8def; --degree-7: #ee8a3c;
+  /* Text on a degree or chord-tone fill. The fills stay bright in both themes, so this ink stays dark in both. */
+  --degree-ink: #14202a;
   /* One "on" idiom for every toggle chip, and one filled primary action. */
   --on-bg: color-mix(in srgb, var(--accent) 12%, var(--surface)); --on-border: color-mix(in srgb, var(--accent) 55%, var(--surface)); --on-accent: #fff;
 
