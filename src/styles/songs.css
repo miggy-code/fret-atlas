@@ -1,0 +1,54 @@
+/* Songs: a melody's route through the forms, on the board and in the deck below it. */
+
+/* On the board the melody leads; the rest of its form stays as the map around it. */
+.is-singing .note-node:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .4; }
+.is-singing .note-node.is-song-note .note-symbol { opacity: 1; }
+.is-singing .note-node.is-song-stretch .note-face { stroke-dasharray: 3 2; }
+.is-singing .note-node.is-playing .mark-ring { stroke: var(--accent); stroke-width: 3; opacity: 1; }
+.is-singing .note-node.is-song-next .mark-ring { stroke: var(--accent); stroke-dasharray: 4 3; opacity: 1; }
+.song-ahead { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .7; pointer-events: none; }
+
+.song-deck { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 20px 4px 24px; border-bottom: 1px solid var(--line); }
+.song-in { color: var(--muted); font-weight: 400; }
+.song-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
+.song-pick, .song-speed { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.song-pick select { min-height: 40px; font-size: 15px; font-weight: 600; }
+.song-source { flex: 1 1 320px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.song-source a { color: var(--accent); }
+.song-options { display: flex; flex-wrap: wrap; gap: 12px 24px; min-width: 0; }
+.song-option { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 13px; }
+/* On a phone the form choices scroll inside their strip rather than widening the page. */
+.song-option .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+
+.song-transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.song-transport .text-button { border: 1px solid var(--line); color: var(--ink); }
+.song-transport .text-button:disabled { color: var(--disabled-ink); }
+.song-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 0 auto; color: var(--muted); font-size: 13px; }
+.song-now strong { color: var(--ink); font-size: 22px; line-height: 1; }
+.song-now em { padding: 2px 8px; border-radius: 999px; background: var(--panel); color: var(--ink); font-size: 12px; font-style: normal; font-weight: 600; }
+
+.song-route-wrap h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+.song-route-wrap h3 span { color: var(--muted); font-size: 13px; font-weight: 400; }
+.song-route { display: flex; gap: 0; margin: 0; padding: 0; list-style: none; }
+.song-route li { display: flex; flex-basis: 0; align-items: stretch; min-width: 96px; }
+.song-route strong, .song-route small { white-space: nowrap; }
+.song-route button { display: grid; flex: 1; justify-items: start; gap: 2px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); text-align: left; }
+.song-route button:hover { border-color: var(--on-border); }
+.song-route button.is-current { border-color: var(--accent); background: var(--on-bg); box-shadow: inset 0 -3px var(--accent); }
+.song-route button strong { font-size: 13px; }
+.song-route button small { color: var(--muted); font-size: 11px; }
+/* A move sits on the seam between two forms, named the way the hand makes it. */
+.route-change { align-self: center; margin: 0 -2px; padding: 3px 7px; border-radius: 999px; background: var(--panel); color: var(--ink); font-size: 11px; font-weight: 600; z-index: 1; }
+.route-change.is-shift { background: color-mix(in srgb, var(--shift) 16%, var(--surface)); color: var(--shift); }
+.route-change.is-slide { background: color-mix(in srgb, var(--stack) 16%, var(--surface)); color: var(--stack); }
+.route-change.is-pivot { background: color-mix(in srgb, var(--good) 16%, var(--surface)); color: var(--good); }
+.song-key, .song-empty { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .song-now { margin-left: 0; width: 100%; }
+  .song-route { flex-wrap: wrap; row-gap: 8px; }
+  .song-transport .text-button, .song-pick select { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .song-ahead { transition: none; }
+}

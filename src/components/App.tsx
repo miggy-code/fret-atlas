@@ -19,8 +19,10 @@ import { MarksPanel } from './MarksPanel';
 import { PracticeDeck } from './PracticeDeck';
 import { useProgress } from './Progress';
 import { SettingsDialog } from './SettingsDialog';
+import { SongDeck, useSongs } from './Songs';
 import { FormBar, KeyScalePicker, StudyControls, StudyOptionsBar, StudyPicker } from './StudyControls';
 import { ModeTabs } from './ModeTabs';
+import type { Tab } from './ModeTabs';
 import { Topbar } from './Topbar';
 import { pluck } from './audio';
 import { useBoardOrientation } from './useBoardOrientation';
@@ -44,9 +46,14 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const [state, dispatch] = useReducer(reducer, undefined, () => account ? restoreState(account.settings.view) : loadState());
   const { darkMode, sound, toggleDarkMode, toggleSound, restore: restorePreferences } = useDevicePreferences(account);
   const { storageWorks, matched } = useSavedView(state, darkMode, sound, account);
-  const [mode, setMode] = useState<'explore' | 'practice' | 'drill'>('explore');
-  const tab = mode === 'explore' ? 'explore' : 'practice';
+  const [mode, setMode] = useState<Tab | 'drill'>('explore');
+  const tab: Tab = mode === 'drill' ? 'practice' : mode;
   const practicing = mode === 'drill';
+  // A song takes over the board (its key, scale and form) while the Songs tab is open; the saved view is untouched.
+  const singing = mode === 'songs';
+  const songs = useSongs(state, sound, singing);
+  // Drills and songs both set the board themselves, so the study controls step aside for them.
+  const locked = practicing || singing;
   // Practice picks its own degrees (intervals from the root), apart from Explore's isolation, so practicing never changes the map.
   // It lives here because the Practice deck unmounts while a drill runs.
   const [practiceDegrees, setPracticeDegrees] = useState<number[]>([0]);
@@ -68,11 +75,12 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const { share, manualLink } = useShare(state, notify);
   const orientation = useBoardOrientation();
   const vertical = orientation === 'vertical';
-  const scale = scaleById(state.scaleId);
   const tuning = tuningOf(state);
   // Connecting from another view lasts until the next view change, or until the scale no longer offers it.
   if (connecting && !connectOffered(state)) setConnecting(false);
-  const viewState = useMemo(() => connectedView(state, connecting), [state, connecting]);
+  const atlasView = useMemo(() => connectedView(state, connecting), [state, connecting]);
+  const viewState = singing && songs.view ? songs.view : atlasView;
+  const scale = scaleById(viewState.scaleId);
   const { choices, study, ghosts } = useMemo(() => deriveStudy(viewState), [viewState]);
   const shapes = useMemo(() => visibleShapes(viewState, study), [viewState, study]);
   const progress = useProgress(account && { initial: account.progress, onChange: account.onProgress, onClear: account.onClear });
@@ -102,10 +110,10 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
   // Six seconds with a form on screen counts as having seen it.
   useEffect(() => {
-    if (!family || !formStudy || practicing) return;
+    if (!family || !formStudy || locked) return;
     const timer = setTimeout(() => progress.mark(family, state.root, formStudy.form, 1), 6000);
     return () => clearTimeout(timer);
-  }, [family, formStudy?.id, state.root, practicing]);
+  }, [family, formStudy?.id, state.root, locked]);
   // A playing run belongs to the form it started on.
   useEffect(() => { playback.stop(); }, [study?.id]);
 
@@ -121,7 +129,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
       notify(`All five forms of ${pitchName(root, state.spelling)} ${family} practiced`);
     }
   }
-  function stopSounds() { playback.stop(); chord.stop(); }
+  function stopSounds() { playback.stop(); chord.stop(); songs.stop(); }
   // With no request, a drill deals random notes along a string or in the active form.
   function startFind(next: DrillRequest | undefined, trigger: string) {
     practiceTrigger.current = trigger;
@@ -132,7 +140,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
     stopSounds();
     setRequest(undefined); setMode('practice');
   }
-  function chooseTab(next: 'explore' | 'practice') {
+  function chooseTab(next: Tab) {
     if (practicing) { practiceTrigger.current = ''; endPractice(); }
     stopSounds();
     setMode(next);
@@ -169,7 +177,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const tuningLabel = state.fourths ? 'All fourths'
     : state.lowest === 0 ? 'Standard tuning'
     : `Tuned ${LOWEST_STRING_CHOICES.find(c => c.lowered === state.lowest)?.label} lowest`;
-  const showPatternNotice = !practicing && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length;
+  const showPatternNotice = !locked && scale.family && !['string', 'nps'].includes(state.studyMode) && state.patterns.length > 0 && !shapes.length;
 
   const studyProps = {
     state: viewState, dispatch: studyDispatch, scale, study, choiceCount: choices.length,
@@ -181,16 +189,18 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
   const drillDeck = practicing && <div id="deck" role="tabpanel" aria-labelledby="practice-tab" ref={drillContainer} tabIndex={-1}>
     <DrillBar session={drill} onEnd={endPractice} />
   </div>;
-  const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck} drill={drill.view} playing={playback.playing}
-    onMark={practicing ? drill.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
+  const board = <Fretboard state={boardState} shapes={practicing ? [] : shapes} study={study} ghosts={ghosts} fitNeck={fitNeck && !singing} drill={drill.view}
+    song={singing ? songs.board : undefined} playing={singing ? songs.board?.current : playback.playing}
+    onMark={practicing ? drill.tap : singing ? songs.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
     {/* What is on the board and what the pointer is on read together, right under the neck. */}
     {!practicing && <div className="board-footer">
       <BoardLegend state={viewState} shapes={shapes} scale={scale} />
-      <NoteInspector inspected={inspected} state={state} tuning={tuning} scale={scale} />
+      <NoteInspector inspected={inspected} state={viewState} tuning={tuning} scale={scale} />
     </div>}
   </Fretboard>;
   const deck = !practicing && <div id="deck" role="tabpanel" aria-labelledby={`${tab}-tab`}>
-    {tab === 'practice'
+    {tab === 'songs' ? <SongDeck songs={songs} state={state} />
+      : tab === 'practice'
       ? <PracticeDeck state={viewState} dispatch={dispatch} scale={scale} study={study} family={family} progress={progress.progress}
         onClearProgress={progress.clear} synced={!!account} chord={{ root: chord.root, kind: chord.kind }} onChord={chord.change}
         degrees={practiceDegrees} onDegrees={setPracticeDegrees} playing={playback.running}
@@ -209,8 +219,8 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
         <div className="board-heading">
           {/* Key and scale are the heading: the selects name the study, so the h1 is only shown where they are not (a drill). */}
           <div className="board-title">
-            <h1 className={practicing ? undefined : 'sr-only'}><span className="tonic-badge">{pitchName(state.root, state.spelling)}</span> {scale.name}</h1>
-            {!practicing && !vertical && <KeyScalePicker state={viewState} dispatch={studyDispatch} />}
+            <h1 className={locked ? undefined : 'sr-only'}>{singing && <>{songs.song.title} <span className="song-in">in</span> </>}<span className="tonic-badge">{pitchName(viewState.root, state.spelling)}</span> {scale.name}</h1>
+            {!locked && !vertical && <KeyScalePicker state={viewState} dispatch={studyDispatch} />}
             <p>{tuningLabel} <span>·</span> High strings above <span>·</span> Nut {state.leftHanded ? 'right' : 'left'}</p>
           </div>
           {!vertical && tabs}
@@ -219,27 +229,27 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
           // A phone reads top to bottom: pick key, scale and view, then the form attached to the board, then the board,
           // then everything secondary. The form bar (or the drill prompt) sticks while a long neck scrolls under it.
           ? <>
-            {!practicing && <section className="study-controls" aria-label="Study controls"><StudyPicker {...studyProps} /></section>}
+            {!locked && <section className="study-controls" aria-label="Study controls"><StudyPicker {...studyProps} /></section>}
             {patternNotice}
             <div className="board-stage">
-              {practicing ? drillDeck : <FormBar {...studyProps} />}
+              {practicing ? drillDeck : !singing && <FormBar {...studyProps} />}
               {board}
             </div>
-            {!practicing && <StudyOptionsBar {...studyProps} />}
+            {!locked && <StudyOptionsBar {...studyProps} />}
             {tabs}
             {deck}
           </>
           : <>
-            {!practicing && <StudyControls {...studyProps} />}
+            {!locked && <StudyControls {...studyProps} />}
             {patternNotice}
             {drillDeck}
-            {(state.studyMode === 'diagonal' || state.studyMode === 'all')
+            {!singing && (state.studyMode === 'diagonal' || state.studyMode === 'all')
               && <button className={`fit-neck ${state.frets > 17 ? 'long-neck' : ''}`} type="button" aria-pressed={fitNeck} onClick={() => setFitNeck(value => !value)}>Fit neck to screen</button>}
             {board}
             {deck}
           </>}
       </section>
-      <MarksPanel state={state} dispatch={dispatch} scale={scale} tuning={tuning} />
+      {!singing && <MarksPanel state={state} dispatch={dispatch} scale={scale} tuning={tuning} />}
       {manualLink && <label className="manual-link">View link<input readOnly value={manualLink} onFocus={e => e.target.select()} /></label>}
       <footer className="page-footer">
         <span role="status">{account ? account.status : storageWorks ? 'Saved on this device' : 'Storage unavailable · use Share view'}</span>
