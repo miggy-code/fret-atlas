@@ -26,6 +26,8 @@ import type { Backing } from './usePlayback';
  */
 export type SongBoard = {
   notes: string[]; ahead: string[]; current: string | null; next: string | null; stretch: string[]; miss: string | null; recalling: boolean;
+  /** The next few notes by position, each numbered with the first step (1 = next) that plays it. */
+  steps: Record<string, number>;
   /** `relabel` names every note on the board from this chord's root instead of from the key. */
   chord?: { root: number; tones: Record<string, ChordTone>; relabel: boolean };
 };
@@ -90,7 +92,7 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
     if (recall) {
       const played = path.notes.slice(recall.from, recall.at);
       const ringed = recall.hinted && !recall.done ? path.notes[recall.at].id : null;
-      return { notes: [...new Set(played.map(n => n.id))], ahead: ringed ? [ringed] : [], current: played.at(-1)?.id ?? null, next: ringed, stretch: [], miss: recall.miss, recalling: true };
+      return { notes: [...new Set(played.map(n => n.id))], ahead: ringed ? [ringed] : [], current: played.at(-1)?.id ?? null, next: ringed, stretch: [], miss: recall.miss, recalling: true, steps: {} };
     }
     const ids = path.notes.slice(segment.from, segment.to + 1);
     const neck = { frets: state.frets, lowest: state.lowest, fourths: state.fourths };
@@ -99,6 +101,7 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
       ahead: path.notes.slice(at, at + AHEAD + 1).map(n => n.id).filter((id, k, all) => id !== all[k - 1]),
       current: note.id,
       next: path.notes[at + 1]?.id ?? null,
+      steps: path.notes.slice(at + 1, at + AHEAD + 1).reduceRight<Record<string, number>>((steps, n, k) => ({ ...steps, [n.id]: k + 1 }), {}),
       stretch: [...new Set(ids.filter(n => n.stretch).map(n => n.id))],
       miss: null, recalling: false,
       chord: chord && { root: chord.chord.root, relabel: shown === 'chord', tones: Object.fromEntries(chordInForm(chord.chord, segment.study, neck, path).map(p => [p.id, p.tone])) },

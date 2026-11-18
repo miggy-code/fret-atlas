@@ -222,6 +222,8 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
             <rect className="note-hit" x={-geo.hit.width / 2} y={-geo.hit.height / 2} width={geo.hit.width} height={geo.hit.height} rx="7" />
             <rect className="focus-ring" x="-20" y="-20" width="40" height="40" rx="9" />
             <rect className="mark-ring" x="-17" y="-17" width="34" height="34" rx="7" />
+            {/* A chord tone under the hand is shaded, never ringed: rings belong to the melody. */}
+            {chordTone && <circle className="song-chord-shade" r="21" />}
             <g className="note-symbol">
               {drillMiss ? <><circle className="note-face" r="11" /><path className="miss-cross" d="M-4,-4 4,4M4,-4-4,4" /></>
                 : p.kind === 'context' && !p.marked && !p.triad && !songNote && !chordTone
@@ -229,12 +231,15 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
                 : p.charm ? <Charm degree={p.charm} />
                 : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
-              {(p.triad || chordTone) && <circle className="triad-halo" r="18" />}
+              {p.triad && <circle className="triad-halo" r="18" />}
               {(drillFound || playing === note.id) && <circle className="note-burst" r="13" />}
               {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad || songNote || chordTone) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
               {!drillMiss && state.labels === 'both' && (p.selected || p.marked || p.triad || songNote) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
               {!drillMiss && state.labels === 'none' && (p.charm === undefined || p.charm === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>
+            {song?.steps[note.id] !== undefined && <g className="song-step" aria-hidden="true" transform="translate(15,-15)">
+              <circle r="8" /><text textAnchor="middle" dominantBaseline="central">{song.steps[note.id]}</text>
+            </g>}
           </g>;
         }))}
         {(() => {

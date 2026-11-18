@@ -8,6 +8,8 @@
   --root: #d7263d; --core: #4b6574; --added: #236fa8;
   --rectangle: #b84b2c; --stack: #436ca7; --shift: #c33f43; --overlay: #8975b9; --focus: #2863d4; --mark: #a37016;
   --triad: #3d806c; --accent: #226863; --good: #1f9d63; --hot: #f0661d;
+  /* A song's melody marks (now, next, the line ahead) are drawn in ink so no tone or chord color is mistaken for them. */
+  --melody: #1b2a33; --on-melody: #fff;
   /* Scale degrees extend the chord-tone colors: the root is red, the third yellow and the fifth purple exactly as in Chord tones,
      and the other degrees add four hues that differ from those three and from each other. Bright fills under a dark label, so dark mode keeps them. */
   --chord-third: #e3b341; --chord-fifth: #a365b5;
@@ -56,6 +58,7 @@ html[data-theme='dark'] {
   --root: #ff5c6c; --core: #b3c3cb; --added: #78bee9;
   --rectangle: #f07b57; --stack: #79a8eb; --shift: #ff8585; --overlay: #b7a6e4; --focus: #88c7ff; --mark: #e0b568;
   --triad: #79bda4; --accent: #79c5b0; --good: #4fd497; --hot: #ff8a3d;
+  --melody: #f2f5f7; --on-melody: #111416;
   --on-accent: #10231e;
 
   --quiet-ink: #b7c9d2;

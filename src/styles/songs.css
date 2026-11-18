@@ -1,19 +1,29 @@
 /* Songs: a melody's route through the forms, the chords under it, and what it is made of. */
 
-/* On the board the melody leads; the rest of its form stays as the map around it. */
+/* On the board the melody leads, drawn in ink: a ring is the note now, a dashed ring the next, numbers the order after it.
+   The form's outlines and the rest of its notes stay as a faded map. */
 .is-singing .note-node:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .4; }
 .is-singing .note-node.is-song-note .note-symbol { opacity: 1; }
 .is-singing .note-node.is-song-stretch .note-face { stroke-dasharray: 3 2; }
-.is-singing .note-node.is-playing .mark-ring { stroke: var(--accent); stroke-width: 3; opacity: 1; }
-.is-singing .note-node.is-song-next .mark-ring { stroke: var(--accent); stroke-dasharray: 4 3; opacity: 1; }
-.song-ahead { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .7; pointer-events: none; }
-/* The chord sounding: its tones under the hand are ringed, and in the chord lens they lead while the scale steps back. */
+.is-singing .note-node.is-playing .mark-ring { stroke: var(--melody); stroke-width: 2.2; opacity: 1; transform: scale(1.45); }
+.is-singing .note-node.is-song-next .mark-ring { stroke: var(--melody); stroke-width: 2; stroke-dasharray: 4 3; opacity: 1; }
+.is-singing .shape-outline, .is-singing .shared-rail { opacity: .3; }
+.song-ahead { fill: none; stroke: var(--melody); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 6; opacity: .75; pointer-events: none; }
+.song-step { pointer-events: none; }
+.song-step circle { fill: var(--melody); stroke: var(--neck); stroke-width: 1.5; }
+.song-step text { fill: var(--on-melody); font-size: 10px; font-weight: 700; }
+/* The chord sounding is shaded behind its tones under the hand: where the chord sits, not a grip to hold. */
+.song-chord-shade { fill: var(--triad); opacity: .22; pointer-events: none; }
 .is-singing .note-node.is-song-chord:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .7; }
 .is-chord-lens .note-node.is-song-chord .note-symbol { opacity: 1; }
 /* From the chord, color means a chord tone and nothing else: the key's root and added tones go neutral. */
 .is-chord-lens .note-node:not(.is-song-chord):not(.context) { --marker: var(--skeleton-marker); --marker-fill: var(--skeleton-marker); --label: var(--skeleton-label); }
 .is-chord-lens .note-node:not(.is-song-chord) .note-face { stroke-dasharray: none; }
-.is-chord-lens .note-node.is-song-chord .triad-halo { opacity: .5; }
+.legend-song { display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 4px; font-style: normal; }
+.legend-song.now { border: 2.5px solid var(--melody); }
+.legend-song.step { border-radius: 50%; background: var(--melody); color: var(--on-melody); font-size: 9px; font-weight: 700; }
+.legend-song.shade { border-radius: 50%; background: color-mix(in srgb, var(--triad) 30%, transparent); }
+.legend-note.song { border-color: var(--ink); background: var(--ink); }
 /* Playing a phrase back: the whole form is the map, and only what has been played is marked. */
 .is-recalling .note-node:not(.is-song-note):not(.is-playing):not(.is-ghost) .note-symbol { opacity: .85; }
 .is-recalling .note-node.is-song-note .mark-ring { stroke: var(--good); stroke-width: 2.5; opacity: 1; }

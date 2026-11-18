@@ -199,7 +199,7 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
     onMark={practicing ? drill.tap : singing ? songs.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
     {/* What is on the board and what the pointer is on read together, right under the neck. */}
     {!practicing && <div className="board-footer">
-      <BoardLegend state={viewState} shapes={shapes} scale={scale} chord={singing && !recalling && songs.chord ? songs.chord.chord.symbol : undefined} />
+      <BoardLegend state={viewState} shapes={shapes} scale={scale} song={singing && !recalling ? { chord: songs.chord?.chord.symbol } : undefined} />
       <NoteInspector inspected={inspected} state={viewState} tuning={tuning} scale={scale} />
     </div>}
   </Fretboard>;

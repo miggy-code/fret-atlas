@@ -78,7 +78,42 @@ test('every song fits the default neck and can be listened to', async ({ page })
   await expect(bar.getByRole('button', { name: 'Listen' })).toBeVisible();
 });
 
-test('the chord under each note is named, ringed on the board, and can rename the board from its own root', async ({ page }) => {
+test('the board tells the melody from the chord: the melody is ringed and numbered, the chord sits behind it as a shade', async ({ page }) => {
+  await openSongs(page);
+  const bar = player(page);
+  await bar.getByRole('button', { name: 'Next note' }).click();
+  await expect(bar.locator('.song-now')).toContainText('Note 2 of 37');
+
+  // The next notes are numbered in the order they are played; the current one is ringed solid.
+  const path = pathForSong(SONGS[0], { frets: 12, lowest: 0, fourths: false });
+  const coming = path.notes.slice(2, 6).map(n => n.id);
+  await expect(page.locator('.note-node.is-playing')).toHaveAttribute('data-note-id', path.notes[1].id);
+  await expect(note(page, coming[0]).locator('.song-step')).toHaveText('1');
+  const firstStep = new Map<string, number>();
+  coming.forEach((id, k) => { if (!firstStep.has(id)) firstStep.set(id, k + 1); });
+  for (const [id, step] of firstStep) await expect(note(page, id).locator('.song-step')).toHaveText(String(step));
+  await expect(page.locator('.song-step')).toHaveCount(firstStep.size);
+
+  // Dm's tones are shaded, not ringed, so a ring always means the melody.
+  await expect(page.locator('.is-singing .triad-halo')).toHaveCount(0);
+  await expect(note(page, '5:5').locator('.song-chord-shade')).toHaveCount(1);
+  const ring = await page.locator('.note-node.is-playing .mark-ring').evaluate(n => getComputedStyle(n).stroke);
+  const shade = await note(page, '5:5').locator('.song-chord-shade').evaluate(n => getComputedStyle(n).fill);
+  expect(ring).not.toBe(shade);
+  // The current note is drawn larger, and its ring stays outside it.
+  const [face, outer] = await page.locator('.note-node.is-playing').evaluate(n => [n.querySelector('.note-face')!, n.querySelector('.mark-ring')!].map(e => e.getBoundingClientRect().width));
+  expect(outer).toBeGreaterThan(face);
+
+  // The legend names each mark, and says the chord is not fingered.
+  const legend = page.locator('.board-legend');
+  for (const text of ['Now', 'Next, in order', 'Melody in this form', 'Dm chord tones, not fingered']) await expect(legend).toContainText(text);
+
+  // The form's outlines stay, faded behind the melody.
+  const outline = await page.locator('.shape-outline').first().evaluate(n => Number(getComputedStyle(n).opacity));
+  expect(outline).toBeLessThan(.5);
+});
+
+test('the chord under each note is named, shaded on the board, and can rename the board from its own root', async ({ page }) => {
   await openSongs(page);
   const bar = player(page), deck = study(page);
   const chordFact = bar.locator('.song-now [data-fact="chord"]');

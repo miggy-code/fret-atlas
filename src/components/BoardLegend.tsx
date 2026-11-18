@@ -7,7 +7,7 @@ import type { Shape } from '../core/shapes';
 const shapeName = (kind: string) => kind === 'rectangle' ? 'Rectangle' : 'Stack';
 
 /** Names only the layers that are on the board right now. */
-export function BoardLegend({ state, shapes, scale, chord }: { state: State; shapes: Shape[]; scale: Scale; chord?: string }) {
+export function BoardLegend({ state, shapes, scale, song }: { state: State; shapes: Shape[]; scale: Scale; song?: { chord?: string } }) {
   const warp = state.warp && !state.fourths;
   const triad = shownTriad(state);
   const kinds = (['rectangle', 'stack'] as const).filter(kind => shapes.some(shape => shape.kind === kind));
@@ -24,8 +24,13 @@ export function BoardLegend({ state, shapes, scale, chord }: { state: State; sha
     {triad && <span className="triad-legend">
       <i className="legend-triad" />{pitchName(triad.root, state.spelling)} {triad.quality} triad
     </span>}
-    {/* A song rings the tones of the chord sounding, the way a triad is ringed. */}
-    {chord && <span className="triad-legend"><i className="legend-triad" />{chord} chord tones</span>}
+    {/* A song draws its melody in rings and numbers, and shades the chord sounding: the chord is a reference, not a grip. */}
+    {song && <>
+      <span><i className="legend-song now" />Now</span>
+      <span><i className="legend-song step">1</i>Next, in order</span>
+      <span><i className="legend-note song" />Melody in this form</span>
+      {song.chord && <span className="song-chord-legend"><i className="legend-song shade" />{song.chord} chord tones, not fingered</span>}
+    </>}
     {state.isolatedTones.length > 0 && <span>Degree isolated</span>}
     {state.marks.length > 0 && <span><i className="legend-note marked" />Marked</span>}
   </div></div>;
