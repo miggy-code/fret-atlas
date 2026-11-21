@@ -11,6 +11,7 @@ import type { DrillRequest } from '../core/drill';
 import { levelOf, practicedForms } from '../core/progress';
 import type { Progress } from '../core/progress';
 import { BoardLegend } from './BoardLegend';
+import { ChordDiagram } from './ChordDiagram';
 import { DrillBar, useDrill } from './Drill';
 import { ExploreDeck } from './ExploreDeck';
 import { Fretboard } from './Fretboard';
@@ -199,7 +200,8 @@ export function App({ accountMenu, account }: { accountMenu?: ReactNode; account
     onMark={practicing ? drill.tap : singing ? songs.tap : markNote} onInspect={practicing ? () => {} : setInspected}>
     {/* What is on the board and what the pointer is on read together, right under the neck. */}
     {!practicing && <div className="board-footer">
-      <BoardLegend state={viewState} shapes={shapes} scale={scale} song={singing && !recalling ? { chord: songs.chord?.chord.symbol } : undefined} />
+      {singing && !recalling && songs.board?.chord?.grip && <ChordDiagram symbol={songs.board.chord.symbol} grip={songs.board.chord.grip} leftHanded={state.leftHanded} />}
+      <BoardLegend state={viewState} shapes={shapes} scale={scale} song={singing && !recalling ? { chord: songs.chord?.chord.symbol, grip: songs.board?.chord?.grip } : undefined} />
       <NoteInspector inspected={inspected} state={viewState} tuning={tuning} scale={scale} />
     </div>}
   </Fretboard>;

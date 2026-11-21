@@ -2,6 +2,11 @@ import type { Song } from './song';
 
 // Traditional melodies, each copied verbatim from the ABC page named in `source`. Only the sung tune is used, never a
 // later recorded arrangement. Fingering is not stored: `songPath` works it out from the forms.
+//
+// What is heard is what is drawn. A song's chords are strummed only as grips the board draws, in the form the melody is
+// in, and `songPath` places a song with chords where its chords are strummed. `tests/song-catalog.test.ts` checks every
+// song here against that rule: each chord must be one the app reads and has a grip for, within a fret of the melody's form.
+// A song that fails needs a placement or a grip added, never a chord the board leaves out.
 export const SONGS: readonly Song[] = [
   {
     id: 'house-of-the-rising-sun',

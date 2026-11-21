@@ -29,13 +29,13 @@ test('a song takes over the board, shows its route through the forms, and steps 
 
   const route = deck.getByRole('list', { name: 'Route through the forms' });
   await expect(route.getByRole('listitem')).toHaveCount(1);
-  await expect(deck.locator('.song-timeline h3')).toContainText('Stays in Form 4 the whole way');
+  await expect(deck.locator('.song-timeline h3')).toContainText('Stays in Form 2 the whole way');
 
   // The first note is lit and the next one is ringed; Next and tapping the ringed note both move on.
   const now = bar.locator('.song-now');
   await expect(now).toContainText('Note 1 of 37');
-  await expect(page.locator('.note-node.is-playing')).toHaveAttribute('data-note-id', '4:7');
-  await expect(page.locator('.note-node.is-song-next')).toHaveAttribute('data-note-id', '5:5');
+  await expect(page.locator('.note-node.is-playing')).toHaveAttribute('data-note-id', '3:2');
+  await expect(page.locator('.note-node.is-song-next')).toHaveAttribute('data-note-id', '4:0');
   await expect(page.locator('.song-ahead')).toHaveCount(1);
   await bar.getByRole('button', { name: 'Next note' }).click();
   await expect(now).toContainText('Note 2 of 37');
@@ -94,23 +94,86 @@ test('the board tells the melody from the chord: the melody is ringed and number
   for (const [id, step] of firstStep) await expect(note(page, id).locator('.song-step')).toHaveText(String(step));
   await expect(page.locator('.song-step')).toHaveCount(firstStep.size);
 
-  // Dm's tones are shaded, not ringed, so a ring always means the melody.
+  // The song is played where its chords are strummed, so the open Dm (xx0231) is in the form, and it is what is shaded:
+  // the notes the hand holds, never ringed, since a ring always means the melody.
   await expect(page.locator('.is-singing .triad-halo')).toHaveCount(0);
-  await expect(note(page, '5:5').locator('.song-chord-shade')).toHaveCount(1);
+  const held = () => page.locator('.note-node:has(.song-chord-shade)').evaluateAll(nodes => nodes.map(n => n.getAttribute('data-note-id')).sort());
+  await expect.poll(held).toEqual(['1:1', '2:3', '3:2', '4:0']);
   const ring = await page.locator('.note-node.is-playing .mark-ring').evaluate(n => getComputedStyle(n).stroke);
-  const shade = await note(page, '5:5').locator('.song-chord-shade').evaluate(n => getComputedStyle(n).fill);
+  const shade = await note(page, '4:0').locator('.song-chord-shade').evaluate(n => getComputedStyle(n).fill);
   expect(ring).not.toBe(shade);
   // The current note is drawn larger, and its ring stays outside it.
   const [face, outer] = await page.locator('.note-node.is-playing').evaluate(n => [n.querySelector('.note-face')!, n.querySelector('.mark-ring')!].map(e => e.getBoundingClientRect().width));
   expect(outer).toBeGreaterThan(face);
 
-  // The legend names each mark, and says the chord is not fingered.
+  // The grip is drawn as one shape across its strings, low to high, plainly visible over the form, not just a halo per note.
+  const grip = page.locator('.song-grip');
+  const covers = async (ids: string[]) => {
+    await expect(grip).toHaveCount(1);
+    expect(await grip.evaluate(n => (n as SVGPolylineElement).points.length)).toBe(ids.length);
+    expect(await grip.evaluate(n => Number(getComputedStyle(n).opacity))).toBeGreaterThanOrEqual(.3);
+    const box = (await grip.boundingBox())!;
+    for (const id of ids) {
+      const c = (await note(page, id).locator('.note-face').boundingBox())!;
+      expect(c.x + c.width / 2).toBeGreaterThanOrEqual(box.x); expect(c.x + c.width / 2).toBeLessThanOrEqual(box.x + box.width);
+      expect(c.y + c.height / 2).toBeGreaterThanOrEqual(box.y); expect(c.y + c.height / 2).toBeLessThanOrEqual(box.y + box.height);
+    }
+  };
+  await covers(['4:0', '3:2', '2:3', '1:1']);
+  await expect(page.locator('.song-barre')).toHaveCount(0);
+  await expect(page.getByRole('img', { name: /^Dm grip/ })).toHaveAccessibleName('Dm grip, D shape: x x 0 2 3 1, fingers x x 0 2 3 1');
   const legend = page.locator('.board-legend');
-  for (const text of ['Now', 'Next, in order', 'Melody in this form', 'Dm chord tones, not fingered']) await expect(legend).toContainText(text);
+  for (const text of ['Now', 'Next, in order', 'Melody in this form', 'Dm grip, D shape']) await expect(legend).toContainText(text);
+  // One grip per chord: the one in the form is the one heard, so there is nothing to choose.
+  await expect(study(page).getByRole('button', { name: 'Near the melody' })).toHaveCount(0);
+
+  // Under F it is the F barre, 133211, the first finger laid across the first fret.
+  await study(page).getByRole('list', { name: 'Chords' }).getByRole('button', { name: /^F/ }).click();
+  await expect.poll(held).toEqual(['1:1', '2:1', '3:2', '4:3', '5:3', '6:1']);
+  await covers(['6:1', '5:3', '4:3', '3:2', '2:1', '1:1']);
+  await expect(page.locator('.song-barre')).toHaveCount(1);
+  await expect(page.getByRole('img', { name: /^F grip/ })).toHaveAccessibleName('F grip, E shape, barre at fret 1: 1 3 3 2 1 1, fingers 1 3 4 2 1 1');
 
   // The form's outlines stay, faded behind the melody.
   const outline = await page.locator('.shape-outline').first().evaluate(n => Number(getComputedStyle(n).opacity));
   expect(outline).toBeLessThan(.5);
+});
+
+// Records every note sent to the synth: the app's own audio module, with one line added to note each pluck.
+async function listenIn(page: Page) {
+  await page.route(/\/src\/components\/audio\.ts/, async route => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(/export function pluck\(([^)]*)\)\s*\{/, match => `${match} ((window as any).__plucks ??= []).push({ midi: arguments[0], level: arguments[2] ?? 1 });`.replace('(window as any)', 'window'));
+    expect(body).toContain('__plucks');
+    await route.fulfill({ response, body });
+  });
+}
+const heard = (page: Page) => page.evaluate(() => { const plucks = (window as any).__plucks ?? []; (window as any).__plucks = []; return plucks as { midi: number; level: number }[]; });
+const OPEN = [64, 59, 55, 50, 45, 40];
+const midiOf = (id: string) => { const [string, fret] = id.split(':').map(Number); return OPEN[string - 1] + fret; };
+
+test('every note heard is on the board: the melody note, and the grip under it, which flashes as it is struck', async ({ page }) => {
+  await listenIn(page);
+  await openSongs(page);
+  const bar = player(page);
+  const held = () => page.locator('.note-node:has(.song-chord-shade)').evaluateAll(nodes => nodes.map(n => n.getAttribute('data-note-id')!));
+  for (let k = 1; k < 16; k++) {
+    await heard(page);
+    await bar.getByRole('button', { name: 'Next note' }).click();
+    await expect(bar.locator('.song-now')).toContainText(`Note ${k + 1} of 37`);
+    const now = (await page.locator('.note-node.is-playing').getAttribute('data-note-id'))!;
+    const plucks = await heard(page);
+    const melody = plucks.filter(p => p.level > .5), chord = plucks.filter(p => p.level <= .5);
+    expect(melody.map(p => p.midi), `note ${k + 1}`).toEqual([midiOf(now)]);
+    // The chord heard is exactly the grip shaded, string for string.
+    const shaded = (await held()).map(midiOf).sort((a, b) => a - b);
+    expect(chord.map(p => p.midi).sort((a, b) => a - b), `chord under note ${k + 1}`).toEqual(shaded);
+  }
+  // Each strum flashes the grip, so the eye catches the chord sounding as well as the melody.
+  const strikes = () => page.locator('.song-grip').getAttribute('data-strikes').then(Number);
+  const before = await strikes();
+  await bar.getByRole('button', { name: 'Listen' }).click();
+  await expect.poll(strikes).toBeGreaterThan(before);
 });
 
 test('the chord under each note is named, shaded on the board, and can rename the board from its own root', async ({ page }) => {
@@ -125,9 +188,9 @@ test('the chord under each note is named, shaded on the board, and can rename th
   await bar.getByRole('button', { name: 'Next note' }).click();
   await expect(chordFact).toContainText('Over Dm i');
   await expect(chordFact).toContainText('chord root');
-  await expect(page.locator('.board-legend')).toContainText('Dm chord tones');
-  await expect(note(page, '5:5')).toHaveClass(/is-song-chord chord-root/);
-  await expect(note(page, '5:8')).toHaveClass(/chord-third/);
+  await expect(page.locator('.board-legend')).toContainText('Dm grip');
+  await expect(note(page, '4:0')).toHaveClass(/is-song-chord chord-root/);
+  await expect(note(page, '4:3')).toHaveClass(/chord-third/);
   const chords = deck.getByRole('list', { name: 'Chords' });
   await expect(chords.getByRole('button').first()).toHaveAttribute('aria-current', 'step');
   await expect(chords.getByRole('button')).toHaveText(['Dmi', 'A7V7', 'Dmi', 'C7♭VII7', 'F♭III', 'A7V7', 'Dmi', 'B♭7♭VI7', 'Dmi', 'A7V7', 'Dmi']);
@@ -140,13 +203,13 @@ test('the chord under each note is named, shaded on the board, and can rename th
   await expect(note(page, '5:4')).toHaveAttribute('data-visible', 'true');
 
   // By degree of the key the A is a 5; named from the chord it is the root.
-  await expect(note(page, '4:7').locator('.note-label')).toHaveText('5');
+  await expect(note(page, '3:2').locator('.note-label')).toHaveText('5');
   await deck.getByRole('button', { name: 'From the chord' }).click();
-  await expect(note(page, '4:7').locator('.note-label')).toHaveText('R');
+  await expect(note(page, '3:2').locator('.note-label')).toHaveText('R');
   await expect(note(page, '5:4').locator('.note-label')).toHaveText('3');
-  await expect(note(page, '5:5').locator('.note-label')).toHaveText('4');
+  await expect(note(page, '4:0').locator('.note-label')).toHaveText('4');
   await deck.getByRole('button', { name: 'Note names' }).click();
-  await expect(note(page, '4:7').locator('.note-label')).toHaveText('A');
+  await expect(note(page, '3:2').locator('.note-label')).toHaveText('A');
 
   // What the melody is made of, in numbers and in sentences.
   const insights = deck.getByRole('region', { name: 'In this melody' });

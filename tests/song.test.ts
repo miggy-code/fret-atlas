@@ -5,6 +5,7 @@ import { inStudy } from '../src/core/study';
 import { chordInForm, pathForSong, songPath } from '../src/core/song';
 import type { SongPath } from '../src/core/song';
 import { SONGS } from '../src/core/songs';
+import { commonGrip } from '../src/core/chord-shapes';
 import { parseChord } from '../src/core/harmony';
 import { mod, parseNoteId, scaleById, tuningFor } from '../src/core/music';
 
@@ -171,4 +172,23 @@ test('a song names its real key when the ABC header does not', () => {
   assert.equal(path.root, 7);
   assert.equal(path.scaleId, 'major');
   assert.equal(mod(path.notes.at(-1)!.midi), 7);
+});
+
+test('a song with chords is played where its chords are strummed, so the grip heard sits in the form shown', () => {
+  for (const song of SONGS) {
+    const path = pathForSong(song, neck);
+    if (!path.chords.length) continue;
+    for (const note of path.notes) {
+      if (note.chord === null) continue;
+      const chord = path.chords[note.chord].chord;
+      const inForm = new Set(chordInForm(chord, path.segments[note.segment].study, neck, path).map(p => p.id));
+      const grip = commonGrip(chord, neck)!;
+      assert.ok(grip.notes.every(n => inForm.has(`${n.string}:${n.fret}`)), `${song.title}, note ${note.index}: ${chord.symbol} as strummed lies in the form`);
+    }
+  }
+  // House of the Rising Sun is the open-chord song: its melody stays in the form at the nut, not up at the 5th fret.
+  const rising = pathForSong(SONGS.find(s => s.id === 'house-of-the-rising-sun')!, neck);
+  assert.deepEqual(rising.segments.map(s => [s.study.form, s.study.anchor]), [[2, 1]]);
+  // A song with no chords keeps the route with the fewest moves.
+  assert.deepEqual(pathForSong(SONGS.find(s => s.id === 'blackwaterside')!, neck).segments.map(s => [s.study.form, s.study.anchor]), [[1, 2]]);
 });

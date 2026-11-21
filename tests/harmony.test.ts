@@ -67,3 +67,7 @@ test('the chord tones a scale lacks are named as degrees of the key', () => {
   assert.deepEqual(outsideScale(chord('A7'), 2, minor), [{ pitch: 1, label: '7' }]);
   assert.deepEqual(outsideScale(chord('Bb7'), 2, minor), [{ pitch: 8, label: '♭5' }]);
 });
+
+test('a chord keeps the kind its suffix names, so a chord book can be looked up by it', () => {
+  assert.deepEqual(['C', 'Am', 'Bb7', 'Cmaj7', 'F#m7b5', 'Dm/C#', 'Gsus', 'Cmin7', 'E13'].map(s => chord(s).kind), ['', 'm', '7', 'maj7', 'm7b5', 'm', 'sus4', 'm7', '']);
+});

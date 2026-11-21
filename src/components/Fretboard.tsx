@@ -192,6 +192,12 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           <path className="shared-rail rectangle" d={sharedRails} vectorEffect="non-scaling-stroke" />
           <path className="shared-rail stack" d={sharedRails} vectorEffect="non-scaling-stroke" />
         </g>}
+        {/* The grip drawn as the shape the hand makes: one band through its notes from the low string up, behind the notes. */}
+        {song?.chord?.grip && <polyline key={song.chord.strikes} className={`song-grip${song.chord.strikes ? ' is-struck' : ''}`} aria-hidden="true" data-strikes={song.chord.strikes}
+          points={[...song.chord.grip.notes].sort((a, b) => b.string - a.string).map(n => { const p = geo.at(n.fret, n.string); return `${p.x},${p.y}`; }).join(' ')} />}
+        {/* The grip's barre: one finger laid across the strings it holds, behind the notes. */}
+        {song?.chord?.grip?.barre && (() => { const { fret, from, to } = song.chord.grip.barre; const a = geo.at(fret, from), b = geo.at(fret, to);
+          return <line className="song-barre" aria-hidden="true" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />; })()}
         {/* A song's next few notes, joined in order: the line crosses into the next form where the melody moves. */}
         {song && song.ahead.length > 1 && <polyline className="song-ahead" aria-hidden="true" vectorEffect="non-scaling-stroke"
           points={song.ahead.map(id => { const [string, fret] = parseNoteId(id); const p = geo.at(fret, string); return `${p.x},${p.y}`; }).join(' ')} />}
@@ -200,6 +206,8 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           const p = notePresentation(note, state, shapes, study, ghosts);
           // A song's chord lens names every note from the root of the chord sounding, and colors the chord's own tones by role.
           const chordTone = song?.chord?.tones[note.id];
+          // The notes of the grip strummed for the chord sounding: what the hand holds and the ear hears.
+          const held = !!song?.chord?.grip?.notes.some(n => n.string === note.string && n.fret === note.fret);
           const lens = song?.chord?.relabel ? song.chord : undefined;
           const label = lens ? chordTone?.label ?? genericDegree(note.pitch - lens.root) : state.labels === 'intervals' ? p.interval : p.name;
           // While drilling, only answers already found are drawn, and nothing names a hidden note.
@@ -208,7 +216,7 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
           const assisted = !!drill && (drill.hint === note.id || (drill.revealed && drill.drill.targets.includes(note.id)));
           // A song's notes always show, even one outside the scale.
           const songNote = !!song && (song.notes.includes(note.id) || song.ahead.includes(note.id));
-          const visible = drill ? drillFound || drillMiss || assisted : p.visible || songNote || !!chordTone || drillMiss;
+          const visible = drill ? drillFound || drillMiss || assisted : p.visible || songNote || !!chordTone || held || drillMiss;
           const aria = drill && !drillFound ? `String ${note.string}, ${fret === 0 ? 'open' : `fret ${fret}`}` : p.aria;
           return <g key={note.id} ref={node => { if (node) nodes.current.set(note.id, node); else nodes.current.delete(note.id); }}
             role="button" tabIndex={cursor === note.id ? 0 : -1} aria-label={aria} aria-pressed={drill ? undefined : p.marked}
@@ -222,18 +230,18 @@ export function Fretboard({ state, shapes, study, ghosts, fitNeck: fitRequested 
             <rect className="note-hit" x={-geo.hit.width / 2} y={-geo.hit.height / 2} width={geo.hit.width} height={geo.hit.height} rx="7" />
             <rect className="focus-ring" x="-20" y="-20" width="40" height="40" rx="9" />
             <rect className="mark-ring" x="-17" y="-17" width="34" height="34" rx="7" />
-            {/* A chord tone under the hand is shaded, never ringed: rings belong to the melody. */}
-            {chordTone && <circle className="song-chord-shade" r="21" />}
+            {/* The grip's notes are shaded, never ringed: rings belong to the melody. */}
+            {held && <circle className="song-chord-shade" r="21" />}
             <g className="note-symbol">
               {drillMiss ? <><circle className="note-face" r="11" /><path className="miss-cross" d="M-4,-4 4,4M4,-4-4,4" /></>
-                : p.kind === 'context' && !p.marked && !p.triad && !songNote && !chordTone
+                : p.kind === 'context' && !p.marked && !p.triad && !songNote && !chordTone && !held
                 ? <circle className="note-face" r="3" />
                 : p.charm ? <Charm degree={p.charm} />
                 : state.labels === 'none' ? <circle className="note-face" r={p.kind === 'root' ? 12 : 11} />
                 : <rect className="note-face" x="-15" y="-15" width="30" height="30" rx="5" />}
               {p.triad && <circle className="triad-halo" r="18" />}
               {(drillFound || playing === note.id) && <circle className="note-burst" r="13" />}
-              {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad || songNote || chordTone) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
+              {!drillMiss && state.labels !== 'none' && (p.selected || p.marked || p.triad || songNote || chordTone || held) && <text className="note-label" textAnchor="middle" dominantBaseline="central" y={state.labels === 'both' ? -5 : 0}>{label}</text>}
               {!drillMiss && state.labels === 'both' && (p.selected || p.marked || p.triad || songNote) && <text className="note-interval" textAnchor="middle" y="10">{p.interval}</text>}
               {!drillMiss && state.labels === 'none' && (p.charm === undefined || p.charm === 1) && p.kind === 'root' && <circle r="2.7" className="root-center" />}
             </g>

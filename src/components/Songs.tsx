@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { strum as strumGrip } from '../core/chord-shapes';
+import type { Grip } from '../core/chord-shapes';
 import { chordDegree, romanNumeral } from '../core/harmony';
 import type { Chord, ChordRole, ChordTone } from '../core/harmony';
-import { describeNote, mod, noteAt, position, scaleById } from '../core/music';
+import { describeNote, noteAt, position, scaleById } from '../core/music';
 import { degreeColor } from '../core/presentation';
-import { chordInForm, pathForSong, songView } from '../core/song';
+import { chordInForm, gripUnder, pathForSong, songView, soundingChord } from '../core/song';
 import type { SongLabels, SongPath } from '../core/song';
 import { phrasesOf, songInsight } from '../core/song-insight';
 import type { Phrase } from '../core/song-insight';
@@ -29,15 +31,17 @@ export type SongBoard = {
   /** The next few notes by position, each numbered with the first step (1 = next) that plays it. */
   steps: Record<string, number>;
   /** `relabel` names every note on the board from this chord's root instead of from the key. */
-  chord?: { root: number; tones: Record<string, ChordTone>; relabel: boolean };
+  /** `grip` is the one strummed and drawn; `strikes` counts its strums, so the board can flash each one. */
+  chord?: { root: number; tones: Record<string, ChordTone>; relabel: boolean; symbol: string; grip?: Grip; strikes: number };
 };
 type Register = 'low' | 'high';
 
 const AHEAD = 4;
 const SPEEDS = [.5, .75, 1] as const;
 const MISS_SHOWN = 650;
-// A strummed chord sits under the melody, its root between A2 and G♯3, each string a moment after the last.
-const strum = (chord: Chord, at: number): Backing[] => chord.tones.map((tone, i) => ({ midi: 45 + mod(chord.root - 9) + tone.semitones, at: at + i * .022 }));
+// The backing strums exactly the grip drawn on the board, its low string leading. A chord with no grip is not strummed:
+// nothing is heard that the board does not show.
+const strum = (grip: Grip | undefined, at: number, beat?: number): Backing[] => grip ? strumGrip(grip, at).map((b, i) => ({ ...b, strike: i === 0 ? beat : undefined })) : [];
 
 /**
  * The Songs tab's state: which melody, how it is fingered, where in it the player is, and a recall round if one is
@@ -50,6 +54,8 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
   const [speed, setSpeed] = useState<number>(1);
   const [labels, setLabels] = useState<SongLabels>('degrees');
   const [backing, setBacking] = useState(true);
+  const [strikes, setStrikes] = useState(0);
+  const [struckAt, setStruckAt] = useState<number | null>(null);
   const [loop, setLoop] = useState(false);
   const [cursor, setCursor] = useState(0);
   const [recall, setRecall] = useState<Recall | null>(null);
@@ -79,7 +85,9 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
   const note = path?.notes[focus];
   const segment = path && note ? path.segments[note.segment] : undefined;
   const phrase = phrases.find(p => focus >= p.from && focus <= p.to);
-  const chord = path && note && note.chord !== null ? path.chords[note.chord] : undefined;
+  // The chord sounding: the note's, or one struck while the note still rings, so the board shows every chord heard.
+  const sounding = path && note ? soundingChord(path, focus, struckAt) : null;
+  const chord = path && sounding !== null ? path.chords[sounding] : undefined;
   // Naming notes from the chord needs a chord, and would point at the answer while a phrase is played back.
   const shown: SongLabels = labels === 'chord' && (!path?.chords.length || recall) ? 'degrees' : labels;
 
@@ -104,16 +112,24 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
       steps: path.notes.slice(at + 1, at + AHEAD + 1).reduceRight<Record<string, number>>((steps, n, k) => ({ ...steps, [n.id]: k + 1 }), {}),
       stretch: [...new Set(ids.filter(n => n.stretch).map(n => n.id))],
       miss: null, recalling: false,
-      chord: chord && { root: chord.chord.root, relabel: shown === 'chord', tones: Object.fromEntries(chordInForm(chord.chord, segment.study, neck, path).map(p => [p.id, p.tone])) },
+      chord: chord && (() => {
+        const tones: Record<string, ChordTone> = Object.fromEntries(chordInForm(chord.chord, segment.study, neck, path).map(p => [p.id, p.tone]));
+        // The grip in the form the melody is in: what the backing strums, so what is heard is what is drawn.
+        const grip = gripUnder(path, chord.index, at, neck);
+        return { root: chord.chord.root, relabel: shown === 'chord', symbol: chord.chord.symbol, grip, strikes, tones };
+      })(),
     };
-  }, [path, note, segment, at, chord, shown, recall, state.frets, state.lowest, state.fourths]);
+  }, [path, note, segment, at, chord, shown, recall, strikes, state.frets, state.lowest, state.fourths]);
 
   const hear = (midi: number, level = 1) => { if (sound) pluck(midi, 0, level); };
+  // The grip struck is the one the board shows under that note.
+  const gripAt = (chord: number, note: number) => path ? gripUnder(path, chord, note, { frets: state.frets, lowest: state.lowest, fourths: state.fourths }) : undefined;
   const named = (id: string) => path ? describeNote(noteAt(id, tuning), path.root, scaleById(path.scaleId), state.spelling) : undefined;
 
   /** Plays notes `from`..`to` in time. The cursor follows unless the board must stay as it is (hearing a phrase to recall). */
   function play(from: number, to: number, follow: boolean, again = false) {
     if (!path) return;
+    setStruckAt(null);
     const notes = path.notes.slice(from, to + 1);
     const beat = 60 / (path.tempo * speed);
     const start = notes[0].start;
@@ -122,21 +138,28 @@ export function useSongs(state: State, sound: boolean, active: boolean) {
     const end = looped ? looped.start + looped.beats : notes[notes.length - 1].start + notes[notes.length - 1].beats;
     // The chord is struck where it changes and on each bar line, as a strummed accompaniment would be.
     const strikes = [...new Set([start, ...path.chords.map(c => c.start), ...path.bars])].filter(t => t >= start && t < end).sort((a, b) => a - b);
-    const chords = backing ? strikes.flatMap(t => { const sounding = path.chords.filter(c => c.start <= t).at(-1); return sounding ? strum(sounding.chord, (t - start) * beat) : []; }) : [];
+    const chords = backing ? strikes.flatMap(t => {
+      const under = path.notes.reduce((last, n, k) => n.start <= t ? k : last, 0);
+      const struck = soundingChord(path, under, t);
+      return struck !== null ? strum(gripAt(struck, under), (t - start) * beat, t) : [];
+    }) : [];
     playback.schedule(notes.map(n => ({ id: n.id, midi: n.midi, at: (n.start - start) * beat })), (end - notes[notes.length - 1].start) * beat,
-      () => { if (again && looping.current) play(from, to, follow, true); }, follow ? k => setCursor(from + k) : undefined, chords);
+      () => { if (again && looping.current) play(from, to, follow, true); }, follow ? k => setCursor(from + k) : undefined, chords, struck => { setStruckAt(struck); setStrikes(n => n + 1); });
   }
   function go(index: number) {
     if (!path || recall) return;
     playback.stop();
+    setStruckAt(null);
     const next = Math.max(0, Math.min(path.notes.length - 1, index));
     setCursor(next);
     hear(path.notes[next].midi);
     // Stepping onto a note sounds its chord under it, quietly, so the ear gets the relation the labels spell out.
     const under = path.notes[next].chord;
-    if (sound && backing && under !== null) strum(path.chords[under].chord, 0).forEach(b => pluck(b.midi, b.at, .22));
+    const strummed = sound && backing && under !== null ? strum(gripAt(under, next), 0) : [];
+    strummed.forEach(b => pluck(b.midi, b.at, .22));
+    if (strummed.length) setStrikes(n => n + 1);
   }
-  function restart(change: () => void) { playback.stop(); change(); setCursor(0); setRecall(null); setFeedback(''); setClean([]); }
+  function restart(change: () => void) { playback.stop(); setStruckAt(null); change(); setCursor(0); setRecall(null); setFeedback(''); setClean([]); }
   function listen() {
     if (!path) return;
     if (playback.running) { playback.stop(); return; }
@@ -307,7 +330,7 @@ export function SongDeck({ songs, state }: { songs: Songs; state: State }) {
         </div>
         <div className="song-option"><span>Play in</span>
           <Segments label="Play in" value={songs.homeForm === null ? 'best' : String(songs.homeForm)} onChange={value => songs.chooseHome(value === 'best' ? null : Number(value))}
-            options={[{ value: 'best', label: 'Fewest moves' }, ...[1, 2, 3, 4, 5].map(form => ({ value: String(form), label: `Form ${form}` }))]} />
+            options={[{ value: 'best', label: path.chords.length ? 'With the chords' : 'Fewest moves', hint: path.chords.length ? 'Where the chords are strummed, so they sit in the form' : undefined }, ...[1, 2, 3, 4, 5].map(form => ({ value: String(form), label: `Form ${form}` }))]} />
         </div>
         <div className="song-option"><span>Octave</span>
           <Segments label="Octave" value={songs.register} onChange={songs.chooseRegister}

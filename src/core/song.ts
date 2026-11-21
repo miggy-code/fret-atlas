@@ -1,6 +1,8 @@
 // A melody's path through the forms. A song stores only pitches and lengths; where each note is played is worked out
 // here, by choosing the route through the five form placements that changes form least often.
 import { parseAbc, parseKey } from './abc';
+import { commonGrip, gripInForm } from './chord-shapes';
+import type { Grip } from './chord-shapes';
 import type { AbcTune, Mode } from './abc';
 import { parseChord } from './harmony';
 import type { Chord, ChordTone } from './harmony';
@@ -59,8 +61,25 @@ export type PathOptions = {
 /**
  * Fingers a melody (written pitches, as ABC gives them) for the given neck. The melody moves up an octave if it
  * would fall below the lowest string, and is refused if it runs off the top of the neck.
+ *
+ * A song with chords is played where its chords are strummed: of the routes with the fewest moves and those kept in each
+ * form, the one whose form holds the strummed grip for the most beats. What is heard under the melody is then in the form
+ * shown. A chosen form, or a song without chords, takes the route as asked.
  */
-export function songPath(tune: AbcTune, neck: Neck, { octave = -12, key: keyText, scaleId: scaleChoice, homeForm }: PathOptions = {}): SongPath {
+export function songPath(tune: AbcTune, neck: Neck, options: PathOptions = {}): SongPath {
+  const fewest = route(tune, neck, options);
+  if (options.homeForm !== undefined || !fewest.chords.length) return fewest;
+  const strummed = (path: SongPath) => path.notes.reduce((beats, note) => {
+    if (note.chord === null) return beats;
+    const chord = path.chords[note.chord].chord, grip = commonGrip(chord, neck);
+    const inForm = new Set(chordInForm(chord, path.segments[note.segment].study, neck, path).map(p => p.id));
+    return grip && grip.notes.every(n => inForm.has(noteId(n.string, n.fret))) ? beats + note.beats : beats;
+  }, 0);
+  return [1, 2, 3, 4, 5].map(form => route(tune, neck, { ...options, homeForm: form }))
+    .reduce((best, path) => { const beats = strummed(path); return beats > best.beats ? { path, beats } : best; }, { path: fewest, beats: strummed(fewest) }).path;
+}
+
+function route(tune: AbcTune, neck: Neck, { octave = -12, key: keyText, scaleId: scaleChoice, homeForm }: PathOptions): SongPath {
   const key = keyText ? parseKey(keyText) : tune.key;
   const root = key.tonic, scaleId = scaleChoice ?? SCALE_FOR_MODE[key.mode];
   const tuning = tuningFor(neck.lowest, neck.fourths);
@@ -150,6 +169,21 @@ export function chordInForm(chord: Chord, study: Study, neck: Neck, key: Pick<So
     return placed;
   });
 }
+
+/**
+ * The chord sounding during a note: the one struck at `beat` when that falls inside the note (a change mid-note), else the
+ * one sounding as the note starts. The board shows this chord, so it follows every strum.
+ */
+export function soundingChord(path: SongPath, index: number, beat: number | null = null): number | null {
+  const note = path.notes[index];
+  if (beat === null || beat < note.start || beat >= note.start + note.beats) return note.chord;
+  const struck = path.chords.filter(c => c.start <= beat).at(-1);
+  return struck ? struck.index : note.chord;
+}
+
+/** The grip for a chord under a note: the one in that note's form. The backing strums it and the board draws it. */
+export const gripUnder = (path: SongPath, chord: number, index: number, neck: Neck): Grip | undefined =>
+  gripInForm(path.chords[chord].chord, path.segments[path.notes[index].segment].study, neck);
 
 /** `key` overrides the ABC's key field where the page names the wrong tonic; the ABC itself stays as published. */
 export type Song = { id: string; title: string; abc: string; source: string; provenance: string; octave?: number; scaleId?: string; key?: string };

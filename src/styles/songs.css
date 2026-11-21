@@ -14,6 +14,23 @@
 .song-step text { fill: var(--on-melody); font-size: 10px; font-weight: 700; }
 /* The chord sounding is shaded behind its tones under the hand: where the chord sits, not a grip to hold. */
 .song-chord-shade { fill: var(--triad); opacity: .22; pointer-events: none; }
+.song-grip, .song-barre { fill: none; stroke: var(--triad); stroke-width: 40; stroke-linecap: round; stroke-linejoin: round; opacity: .32; pointer-events: none; }
+/* Each strum flashes the grip, so the eye catches the chord sounding as well as the melody. */
+.song-grip.is-struck { animation: grip-strike .5s ease-out; }
+@keyframes grip-strike { from { opacity: .7; } to { opacity: .32; } }
+/* The grip as a chord book draws it, beside the legend under the board. */
+.chord-diagram { display: flex; align-items: center; gap: 10px; margin: 0; }
+.chord-diagram svg { flex: none; overflow: visible; }
+.chord-diagram figcaption { display: grid; gap: 2px; color: var(--muted); font-size: 12px; }
+.chord-diagram figcaption strong { color: var(--ink); font-size: 16px; }
+.chord-fret, .chord-string { stroke: var(--muted); stroke-width: 1; opacity: .6; }
+.chord-nut { stroke: var(--ink); stroke-width: 4; }
+.chord-first { fill: var(--muted); font-size: 11px; font-weight: 600; }
+.chord-mute { fill: var(--muted); font-size: 12px; }
+.chord-open { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.chord-barre { fill: var(--triad); }
+.chord-dot { fill: var(--triad); }
+.chord-finger { fill: var(--on-accent); font-size: 9px; font-weight: 700; }
 .is-singing .note-node.is-song-chord:not(.is-song-note):not(.is-playing) .note-symbol { opacity: .7; }
 .is-chord-lens .note-node.is-song-chord .note-symbol { opacity: 1; }
 /* From the chord, color means a chord tone and nothing else: the key's root and added tones go neutral. */

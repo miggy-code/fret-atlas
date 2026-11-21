@@ -7,8 +7,8 @@ export type ChordQuality = 'major' | 'minor' | 'diminished' | 'augmented' | 'sus
 export type ChordRole = 'root' | 'third' | 'fifth' | 'seventh' | 'color';
 /** One tone of a chord. `label` names it from the chord's own root (R, ♭3, 5, ♭7), never from the key. */
 export type ChordTone = { semitones: number; pitch: number; label: string; role: ChordRole };
-/** `figure` is what follows the chord's Roman numeral: `7` in V7, `°` in vii°. */
-export type Chord = { symbol: string; root: number; quality: ChordQuality; figure: string; tones: ChordTone[]; bass?: number };
+/** `figure` is what follows the chord's Roman numeral: `7` in V7, `°` in vii°. `kind` is the suffix in one spelling (`m7b5` for ø7). */
+export type Chord = { symbol: string; root: number; kind: string; quality: ChordQuality; figure: string; tones: ChordTone[]; bass?: number };
 
 type Part = readonly [semitones: number, label: string, role: ChordRole];
 type Kind = { quality: ChordQuality; parts: readonly Part[]; figure: string };
@@ -58,11 +58,12 @@ export function parseChord(text: string): Chord | undefined {
   if (!match) return undefined;
   const [, letter, accidental, suffix, bassLetter, bassAccidental] = match;
   const folded = fold(suffix);
-  const kind = KINDS[folded] ?? (folded.startsWith('dim') ? KINDS.dim : folded.startsWith('m') && !folded.startsWith('maj') ? KINDS.m : KINDS['']);
+  const known = folded in KINDS ? folded : folded.startsWith('dim') ? 'dim' : folded.startsWith('m') && !folded.startsWith('maj') ? 'm' : '';
+  const kind = KINDS[known];
   const root = rootOf(letter, accidental);
   return {
     symbol: `${letter}${pretty(accidental)}${suffix.trim()}${bassLetter ? `/${bassLetter}${pretty(bassAccidental)}` : ''}`,
-    root, quality: kind.quality, figure: kind.figure,
+    root, kind: known, quality: kind.quality, figure: kind.figure,
     tones: kind.parts.map(([semitones, label, role]) => ({ semitones, pitch: mod(root + semitones), label, role })),
     ...(bassLetter ? { bass: rootOf(bassLetter, bassAccidental) } : {}),
   };
